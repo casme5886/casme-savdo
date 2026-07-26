@@ -165,6 +165,11 @@ const T = {
         myOrders: "Buyurtmalarim", noOrders: "Hozircha buyurtma yo'q",
         loading: "Yuklanmoqda...",
         addPhone: "Telefon raqamni qo'shish",
+        personalData: "Shaxsiy ma'lumotlar",
+        addresses: "Yetkazib berish manzillari",
+        deliveryAddress: "Manzilingiz", deliveryAddressNote: "Buyurtma berishda avtomatik taklif qilinadi.",
+        addressPh: "Shahar, tuman, ko'cha, uy...",
+        saveAddress: "Saqlash", addressSaved: "Manzil saqlandi",
         addPhoneNote: "Telefon raqamingizni saqlab qo'ysangiz, \"Buyurtmalarim\" bo'limida shu raqamga tegishli buyurtmalarni ham ko'rasiz.",
         searchPh: "Telefon raqamingiz", savePhone: "Saqlash", phoneSaved: "Telefon raqami saqlandi",
         order: "Buyurtma",
@@ -329,6 +334,11 @@ const T = {
         myOrders: "Мои заказы", noOrders: "Пока нет заказов",
         loading: "Загрузка...",
         addPhone: "Добавить номер телефона",
+        personalData: "Личные данные",
+        addresses: "Адреса доставки",
+        deliveryAddress: "Ваш адрес", deliveryAddressNote: "Будет предложен автоматически при оформлении заказа.",
+        addressPh: "Город, район, улица, дом...",
+        saveAddress: "Сохранить", addressSaved: "Адрес сохранён",
         addPhoneNote: "Если сохраните номер телефона, в разделе \"Мои заказы\" вы увидите и заказы, связанные с этим номером.",
         searchPh: "Ваш номер телефона", savePhone: "Сохранить", phoneSaved: "Номер телефона сохранён",
         order: "Заказ",
@@ -416,11 +426,24 @@ function ProfileOrderCard({ order, t }) {
         </span>
         <StatusBadge status={order.status} labels={t.orders.st} />
       </div>
-      <p className="mb-1 text-xs text-slate-400">{order.date}</p>
+      <p className="mb-2 text-xs text-slate-400">{order.date}</p>
       {Array.isArray(order.items) && order.items.length > 0 && (
-        <p className="mb-1.5 text-xs text-slate-600">
-          {t.store.profile.items}: {order.items.map((it) => `${it.productName} × ${it.qty}`).join(", ")}
-        </p>
+        <div className="mb-2 space-y-1.5">
+          {order.items.map((it, idx) => (
+            <div key={idx} className="flex items-center gap-2">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-rose-50 text-stone-300">
+                {it.imageUrl ? (
+                  <img src={it.imageUrl} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <Package size={16} />
+                )}
+              </div>
+              <p className="min-w-0 flex-1 truncate text-xs text-slate-600">
+                {it.productName} × {it.qty}
+              </p>
+            </div>
+          ))}
+        </div>
       )}
       <div className="flex items-center justify-between text-sm">
         <span className="font-semibold text-slate-800">{fmt(order.amount)} {t.common.uzs}</span>
@@ -2329,6 +2352,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [wishlistOpen, setWishlistOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [profileView, setProfileView] = useState("menu"); // "menu" | "personal" | "orders" | "addresses"
   const [myOrders, setMyOrders] = useState([]);
   const [myOrdersLoading, setMyOrdersLoading] = useState(false);
   // Telefon raqamini brauzerda saqlaymiz (localStorage) — shu orqali
@@ -2339,6 +2363,14 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
   const [phoneInput, setPhoneInput] = useState(myPhone);
   const [savingPhone, setSavingPhone] = useState(false);
   const [phoneSaved, setPhoneSaved] = useState(false);
+  // Yetkazib berish manzili — xuddi telefon kabi, brauzerda va mijoz
+  // yozuvida (Firestore) saqlanadi.
+  const [myAddress, setMyAddress] = useState(() => {
+    try { return localStorage.getItem("savdo_my_address") || ""; } catch { return ""; }
+  });
+  const [addressInput, setAddressInput] = useState(myAddress);
+  const [savingAddress, setSavingAddress] = useState(false);
+  const [addressSaved, setAddressSaved] = useState(false);
   const [customersCount, setCustomersCount] = useState(null);
   useEffect(() => {
     getCustomersCount().then(setCustomersCount);
@@ -2390,6 +2422,11 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
   useEffect(() => {
     if (myPhone) setForm(f => (f.phone ? f : { ...f, phone: myPhone }));
   }, [myPhone]);
+
+  // Saqlangan manzil bo'lsa, checkout formadagi manzilni ham avtomatik to'ldiramiz.
+  useEffect(() => {
+    if (myAddress) setForm(f => (f.address ? f : { ...f, address: myAddress }));
+  }, [myAddress]);
 
   // SEO — sayt sarlavhasi va qisqa tavsifini Sozlamalarda kiritilgan
   // qiymatlar bilan yangilaymiz (Google va boshqa qidiruv tizimlari uchun).
@@ -2485,6 +2522,28 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
     setSavingPhone(false);
   };
 
+  /** Yetkazib berish manzilini saqlaydi — telefon bilan bog'liq mijoz
+   *  yozuviga (Firestore) va localStorage'ga. */
+  const saveMyAddress = async () => {
+    if (!addressInput.trim()) return;
+    setSavingAddress(true);
+    try {
+      if (myPhone) {
+        const existing = await findCustomerByPhone(myPhone);
+        if (existing) {
+          await updateItem(COL.customers, existing.id, { address: addressInput.trim() });
+        }
+      }
+      try { localStorage.setItem("savdo_my_address", addressInput.trim()); } catch {}
+      setMyAddress(addressInput.trim());
+      setAddressSaved(true);
+      setTimeout(() => setAddressSaved(false), 2500);
+    } catch (e) {
+      console.error("Manzilni saqlashda xatolik:", e);
+    }
+    setSavingAddress(false);
+  };
+
   /** Profil tugmasi bosilganda — telefon hali bog'lanmagan bo'lsa (va Telegram
    *  ichida bo'lmasa) avval "Kirish/ro'yxatdan o'tish" ekranini ko'rsatamiz. */
   const openProfile = () => {
@@ -2493,7 +2552,19 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
       setOtpCode("");
       setOtpError("");
       setPhoneLoginOpen(true);
-    } else setProfileOpen(true);
+    } else {
+      setProfileView("menu");
+      setProfileOpen(true);
+    }
+  };
+
+  const logoutProfile = () => {
+    try { localStorage.removeItem("savdo_my_phone"); } catch {}
+    setMyPhone("");
+    setPhoneInput("");
+    setMyOrders([]);
+    setProfileOpen(false);
+    setProfileView("menu");
   };
 
   const confirmPhoneLogin = () => {
@@ -2527,6 +2598,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
       }
       await saveMyPhone();
       setPhoneLoginOpen(false);
+      setProfileView("menu");
       setProfileOpen(true);
       setOtpStep("phone");
       setOtpCode("");
@@ -3657,74 +3729,172 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
       {profileOpen && (
         <div className="fixed inset-0 z-40 flex justify-end bg-slate-900/40" onClick={() => setProfileOpen(false)}>
           <div className="flex h-full w-full max-w-sm flex-col bg-white shadow-xl" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
-              <h3 className="text-base font-semibold text-slate-800">{t.store.profile.title}</h3>
+            <div className="flex items-center gap-2 border-b border-gray-100 px-5 py-4">
+              {profileView !== "menu" && (
+                <button onClick={() => setProfileView("menu")} className="rounded-lg p-1 text-slate-400 hover:bg-gray-100">
+                  <ArrowLeft size={18} />
+                </button>
+              )}
+              <h3 className="flex-1 text-base font-semibold text-slate-800">
+                {profileView === "menu" && t.store.profile.title}
+                {profileView === "personal" && t.store.profile.personalData}
+                {profileView === "orders" && t.store.profile.myOrders}
+                {profileView === "addresses" && t.store.profile.addresses}
+              </h3>
               <button onClick={() => setProfileOpen(false)} className="rounded-lg p-1 text-slate-400 hover:bg-gray-100"><X size={18} /></button>
             </div>
 
             <div className="flex-1 overflow-y-auto px-5 py-4">
-              {/* Profil ma'lumotlari */}
-              <div className="mb-5 rounded-xl border border-gray-100 p-3">
-                <div className="mb-2 flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
-                    <UserRound size={20} />
+              {/* ===== ASOSIY MENYU ===== */}
+              {profileView === "menu" && (
+                <>
+                  <div className="mb-5 flex items-center gap-3 rounded-xl border border-gray-100 p-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+                      <UserRound size={20} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-slate-800">
+                        {tgUser ? [tgUser.first_name, tgUser.last_name].filter(Boolean).join(" ") : (form.name || myPhone || "—")}
+                      </p>
+                      <p className="text-xs text-slate-400">
+                        {tgUser?.username ? `@${tgUser.username}` : (myPhone || t.store.profile.notLinked)}
+                      </p>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-slate-800">
-                      {tgUser ? [tgUser.first_name, tgUser.last_name].filter(Boolean).join(" ") : (form.name || "—")}
-                    </p>
-                    <p className="text-xs text-slate-400">
-                      {tgUser?.username ? `@${tgUser.username}` : t.store.profile.notLinked}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between border-t border-gray-100 pt-2 text-xs text-slate-500">
-                  <span>{t.store.profile.phone}</span>
-                  <span className="font-medium text-slate-700">{myPhone || "—"}</span>
-                </div>
-              </div>
 
-              {/* Telefon raqamni qo'shish/yangilash */}
-              <div className="mb-5">
-                <h4 className="mb-1 text-sm font-semibold text-slate-700">{t.store.profile.addPhone}</h4>
-                <p className="mb-2 text-xs text-slate-400">{t.store.profile.addPhoneNote}</p>
-                <div className="flex gap-2">
-                  <PhoneInput value={phoneInput} onChange={setPhoneInput} />
+                  <div className="space-y-1">
+                    {[
+                      { key: "personal", icon: UserRound, label: t.store.profile.personalData },
+                      { key: "orders", icon: ClipboardList, label: t.store.profile.myOrders },
+                      { key: "addresses", icon: MapPin, label: t.store.profile.addresses },
+                    ].map(({ key, icon: Icon, label }) => (
+                      <button
+                        key={key}
+                        onClick={() => setProfileView(key)}
+                        className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left hover:bg-gray-50"
+                      >
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-rose-50 text-rose-500">
+                          <Icon size={17} />
+                        </span>
+                        <span className="flex-1 text-sm font-medium text-slate-700">{label}</span>
+                        <ChevronRight size={16} className="text-slate-300" />
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {/* ===== SHAXSIY MA'LUMOTLAR ===== */}
+              {profileView === "personal" && (
+                <>
+                  <div className="mb-5 rounded-xl border border-gray-100 p-3">
+                    <div className="mb-2 flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+                        <UserRound size={20} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-slate-800">
+                          {tgUser ? [tgUser.first_name, tgUser.last_name].filter(Boolean).join(" ") : (form.name || "—")}
+                        </p>
+                        <p className="text-xs text-slate-400">
+                          {tgUser?.username ? `@${tgUser.username}` : t.store.profile.notLinked}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between border-t border-gray-100 pt-2 text-xs text-slate-500">
+                      <span>{t.store.profile.phone}</span>
+                      <span className="font-medium text-slate-700">{myPhone || "—"}</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="mb-1 text-sm font-semibold text-slate-700">{t.store.profile.addPhone}</h4>
+                    <p className="mb-2 text-xs text-slate-400">{t.store.profile.addPhoneNote}</p>
+                    <div className="flex gap-2">
+                      <PhoneInput value={phoneInput} onChange={setPhoneInput} />
+                      <button
+                        onClick={saveMyPhone}
+                        disabled={savingPhone || !isValidUzPhone(phoneInput)}
+                        className="flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-60"
+                      >
+                        {savingPhone ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                        {t.store.profile.savePhone}
+                      </button>
+                    </div>
+                    {phoneSaved && (
+                      <p className="mt-2 flex items-center gap-1 text-xs text-emerald-600">
+                        <CheckCircle2 size={13} /> {t.store.profile.phoneSaved}
+                      </p>
+                    )}
+                  </div>
+                </>
+              )}
+
+              {/* ===== BUYURTMALARIM ===== */}
+              {profileView === "orders" && (
+                <div>
+                  {myOrdersLoading ? (
+                    <div className="flex items-center gap-2 py-6 text-sm text-slate-400">
+                      <Loader2 size={15} className="animate-spin" /> {t.store.profile.loading}
+                    </div>
+                  ) : myOrders.length === 0 ? (
+                    <EmptyState icon={ClipboardList} text={t.store.profile.noOrders} />
+                  ) : (
+                    <div className="space-y-2">
+                      {myOrders
+                        .slice()
+                        .sort((a, b) => (b.date || "").localeCompare(a.date || ""))
+                        .map((o) => <ProfileOrderCard key={o.id} order={o} t={t} />)}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ===== YETKAZIB BERISH MANZILLARI ===== */}
+              {profileView === "addresses" && (
+                <div>
+                  <h4 className="mb-1 text-sm font-semibold text-slate-700">{t.store.profile.deliveryAddress}</h4>
+                  <p className="mb-2 text-xs text-slate-400">{t.store.profile.deliveryAddressNote}</p>
+                  <textarea
+                    value={addressInput}
+                    onChange={(e) => setAddressInput(e.target.value)}
+                    placeholder={t.store.profile.addressPh}
+                    rows={3}
+                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-slate-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                  />
                   <button
-                    onClick={saveMyPhone}
-                    disabled={savingPhone || !isValidUzPhone(phoneInput)}
-                    className="flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-60"
+                    onClick={saveMyAddress}
+                    disabled={savingAddress || !addressInput.trim()}
+                    className="mt-2 flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-60"
                   >
-                    {savingPhone ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-                    {t.store.profile.savePhone}
+                    {savingAddress ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                    {t.store.profile.saveAddress}
                   </button>
+                  {addressSaved && (
+                    <p className="mt-2 flex items-center gap-1 text-xs text-emerald-600">
+                      <CheckCircle2 size={13} /> {t.store.profile.addressSaved}
+                    </p>
+                  )}
+                  {myAddress && (
+                    <div className="mt-4 flex items-start gap-2 rounded-xl border border-gray-100 p-3 text-xs text-slate-600">
+                      <MapPin size={15} className="mt-0.5 shrink-0 text-rose-400" />
+                      {myAddress}
+                    </div>
+                  )}
                 </div>
-                {phoneSaved && (
-                  <p className="mt-2 flex items-center gap-1 text-xs text-emerald-600">
-                    <CheckCircle2 size={13} /> {t.store.profile.phoneSaved}
-                  </p>
-                )}
-              </div>
-
-              {/* Buyurtmalarim — avval Telegram ID, bo'lmasa saqlangan telefon bo'yicha */}
-              <div>
-                <h4 className="mb-2 text-sm font-semibold text-slate-700">{t.store.profile.myOrders}</h4>
-                {myOrdersLoading ? (
-                  <div className="flex items-center gap-2 py-6 text-sm text-slate-400">
-                    <Loader2 size={15} className="animate-spin" /> {t.store.profile.loading}
-                  </div>
-                ) : myOrders.length === 0 ? (
-                  <EmptyState icon={ClipboardList} text={t.store.profile.noOrders} />
-                ) : (
-                  <div className="space-y-2">
-                    {myOrders
-                      .slice()
-                      .sort((a, b) => (b.date || "").localeCompare(a.date || ""))
-                      .map((o) => <ProfileOrderCard key={o.id} order={o} t={t} />)}
-                  </div>
-                )}
-              </div>
+              )}
             </div>
+
+            {!!myPhone && profileView === "menu" && (
+              <div className="border-t border-gray-100 px-5 py-4">
+                <button
+                  onClick={logoutProfile}
+                  className="flex w-full items-center justify-center gap-2 rounded-full border border-gray-200 py-3 text-sm font-medium text-rose-600 hover:bg-rose-50"
+                >
+                  <LogOut size={16} /> {t.store.logout}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
