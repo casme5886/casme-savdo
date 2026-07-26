@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useEffect, useRef, useState } from "react";
 import { ChevronRight, ChevronLeft, Tag, Package } from "lucide-react";
 import { useCarouselRow } from "./ui.jsx";
 
@@ -27,7 +27,7 @@ export function collectionDescription(c, lang) {
  * (item.imageUrl), 2) bo'lmasa — shu kategoriya/brenddagi birinchi
  * mahsulotning rasmi (avtomatik), 3) ikkalasi ham bo'lmasa — ikonka.
  */
-function itemThumb(item, products, field) {
+export function itemThumb(item, products, field) {
   if (item.imageUrl) return item.imageUrl;
   const p = products.find((prod) => prod[field] === item.name && ((prod.imageUrls && prod.imageUrls[0]) || prod.imageUrl));
   return p ? (p.imageUrls && p.imageUrls[0]) || p.imageUrl : null;
@@ -143,6 +143,62 @@ export function BrandIconRow({ brands, products, activeBrand, onSelect, t, bare,
   );
 }
 
+/**
+ * Banner ostidagi qisqa "Kategoriyalar" qatori — har bir kategoriya
+ * yumshoq gradient fonli dumaloq burchakli karta, ustida rasm, tagida
+ * nomi. Kategoriyalar soni cheklanmagan — qator gorizontal suriladi
+ * (mobil va desktopda scroll bilan). Admin panelda "Kategoriyalar"
+ * oynasidan nomi va rasmi istalgancha o'zgartiriladi/qo'shiladi.
+ */
+const QUICK_GRADIENTS = [
+  "from-rose-200 via-rose-50 to-white",
+  "from-fuchsia-200 via-fuchsia-50 to-white",
+  "from-sky-200 via-sky-50 to-white",
+  "from-violet-200 via-violet-50 to-white",
+  "from-amber-200 via-amber-50 to-white",
+  "from-emerald-200 via-emerald-50 to-white",
+];
+
+export function CategoryQuickRow({ categories, products, onSelect, t }) {
+  const withThumbs = useMemo(
+    () => (categories || []).map((c) => ({ ...c, thumb: itemThumb(c, products, "category") })),
+    [categories, products]
+  );
+  if (withThumbs.length === 0) return null;
+
+  return (
+    <div>
+      <h2 style={SERIF} className="mb-4 text-xl font-semibold text-rose-600 sm:text-2xl">{t.store.navCategories}</h2>
+      <div className="flex overflow-x-auto pb-2 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: "none", msOverflowStyle: "none", gap: "0px" }}>
+        {withThumbs.map((c, i) => (
+          <button
+            key={c.id}
+            onClick={() => onSelect(c.name)}
+            className="flex w-[100px] shrink-0 flex-col items-center gap-2 sm:w-[116px]"
+          >
+            <span
+              className={`relative flex h-[88px] w-[88px] items-center justify-center overflow-hidden rounded-[26%] transition-transform duration-200 hover:-translate-y-0.5 sm:h-28 sm:w-28 ${c.thumb ? "" : `bg-gradient-to-br ${QUICK_GRADIENTS[i % QUICK_GRADIENTS.length]}`}`}
+              style={{ boxShadow: "0 10px 20px -4px rgba(0,0,0,0.28), 0 3px 6px rgba(0,0,0,0.16), inset 0 1px 1px rgba(255,255,255,0.5)" }}
+            >
+              {c.thumb ? (
+                <img src={c.thumb} alt={c.name} className="h-full w-full object-cover" />
+              ) : (
+                <Package size={28} className="text-stone-400" />
+              )}
+              {/* Yaltiroq 3D "shisha" ta'siri — yuqori chap burchakda yorug'lik aksi */}
+              <div
+                className="pointer-events-none absolute inset-0"
+                style={{ background: "linear-gradient(135deg, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.12) 28%, rgba(255,255,255,0) 55%, rgba(0,0,0,0.08) 100%)" }}
+              />
+            </span>
+            <span className="max-w-[100px] truncate text-center text-xs font-medium text-stone-700 sm:text-sm">{c.name}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /** "Find Your Perfect Style" — kategoriya rasmli kartalar tarmog'i. */
 export function CategoryShowcase({ categories, products, onSelect, t }) {
   const withThumbs = useMemo(
@@ -194,14 +250,14 @@ export function CategoryShowcase({ categories, products, onSelect, t }) {
  * Standard va Keng banner turlari FAQAT rasm nisbati (aspectRatio)
  * bilan farqlanadi — matn joylashuvi, shrift, bo'shliqlar bir xil.
  */
-function CollectionCard({ c, lang, t, onSelect, aspectRatio, widthClass = "" }) {
+function CollectionCard({ c, lang, t, onSelect, aspectRatio, widthClass = "", showTitle = true }) {
   const title = collectionTitle(c, lang);
   return (
     <button onClick={() => onSelect(c)} className={`group flex shrink-0 flex-col text-left ${widthClass}`}>
       <div className="overflow-hidden rounded-2xl bg-rose-50" style={{ aspectRatio }}>
         <img src={c.imageUrl} alt={title} className="h-full w-full object-cover transition duration-300 group-hover:scale-105" draggable={false} onDragStart={(e) => e.preventDefault()} />
       </div>
-      {title && <p className="mt-3 w-full line-clamp-2 text-center text-sm font-medium text-stone-800">{title}</p>}
+      {showTitle && title && <p className="mt-3 w-full line-clamp-2 text-center text-sm font-medium text-stone-800">{title}</p>}
     </button>
   );
 }
@@ -266,21 +322,104 @@ export function CollectionShowcase({ collections, onSelect, t, lang, variant = "
  * kartochka bilan bir xil — faqat rasm kengroq (2:1) bo'ladi.
  */
 export function WideCollectionShowcase({ collections, onSelect, t, lang }) {
-  const { viewportRef, scrollPrev, scrollNext } = useCarouselRow();
-
   const active = (collections || []).filter((c) => c.active !== false && c.imageUrl && c.displayStyle === "banner");
+
+  // ILDIZ SABAB (avvalgi versiyada): biz o'zimiz banner ro'yxatini qo'lda
+  // ("loopSlides") bir necha marta takrorlab, USHBU takrorlangan ro'yxat
+  // ustiga YANA Embla'ning o'z ichki `loop: true` klonlash mexanizmini
+  // qo'shgan edik. Ya'ni ikkita mustaqil "aylanish/klonlash" tizimi bir
+  // vaqtda ishlagan — bittasi bizniki (React darajasida, statik massiv),
+  // ikkinchisi Embla'niki (DOM darajasida, dinamik klonlar). Bu ikkalasi
+  // doim bir-biriga mos kelishini kafolatlab bo'lmaydi: masalan oxirgi
+  // "qo'lda takrorlangan" elementga atayin `margin` berilmagan edi (chunki
+  // u ro'yxatning "oxiri" deb hisoblangan), lekin `loop: true` bilan aslida
+  // undan keyin ham Embla o'zining klonini joylashtiradi — natijada aynan
+  // o'sha chegarada doimiy bo'shliqsiz "chok" hosil bo'lgan, va Embla har
+  // safar oyna o'lchami o'zgarganda yoki qayta ishga tushganda klonlarni
+  // qayta hisoblaganida bu nomuvofiqlik turlicha namoyon bo'lgan (goh
+  // ko'rinib, goh ko'rinmay, "bir necha marta aylangandan keyin" degan
+  // taassurot qoldirgan).
+  //
+  // TUZATISH: endi Embla'ning O'ZIGA ishonamiz — u har qanday miqdordagi
+  // slaydni (hatto atigi 2 tasini ham) o'zi yetarlicha klonlab, uzluksiz
+  // aylanishni ta'minlay oladi. Bizning tomondan qo'shimcha "qo'lda
+  // takrorlash" YO'Q — shu bilan ikkita tizim orasidagi nomuvofiqlik
+  // manbai butunlay yo'qoladi. Bo'shliq (margin) esa HAR BIR asl slaydga
+  // bir xilda, SHARTSIZ qo'llanadi (oxirgisiga ham) — chunki `loop: true`
+  // rejimida haqiqiy "oxirgi element" tushunchasi yo'q (u doim keyingi
+  // klonga ulanadi), shuning uchun margin universal va doimiy bo'ladi.
+  const hasMultiple = active.length > 1;
+
+  // `dragFree: false` — surilgandan so'ng albatta bitta banner to'liq
+  // ko'rinadigan holatga "yopishib" (snap) qoladi. `containScroll: false` —
+  // Embla hujjatlariga ko'ra `loop: true` bilan birga `containScroll`
+  // ishlatilmasligi kerak (ikkalasi mos kelmaydi, nomuvofiqlik keltirib
+  // chiqarishi mumkin), shuning uchun aniq o'chirib qo'yamiz.
+  const { viewportRef, emblaApi, scrollPrev, scrollNext } = useCarouselRow({
+    align: "center",
+    loop: hasMultiple,
+    dragFree: false,
+    containScroll: false,
+  });
+
+  // Ekranda ko'rinib-ko'rinmasligini kuzatish (IntersectionObserver) — bo'lim
+  // ekrandan chiqib ketganda avtomatik almashinuvni to'xtatib, batareya/CPU
+  // behuda ishlatilishining oldini olamiz. Boshlang'ich qiymat `true` —
+  // shu bilan birinchi render paytida (Observer hali ulanmagan bo'lsa ham)
+  // karusel darhol ishlay boshlaydi.
+  const wrapperRef = useRef(null);
+  const [isVisible, setIsVisible] = useState(true);
+
+  useEffect(() => {
+    const el = wrapperRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setIsVisible(entry.isIntersecting),
+      { threshold: 0.25 } // kamida chorak qismi ko'rinsa — "ko'rinyapti" deb hisoblanadi
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    // `isVisible` o'zgarganda (ekranga kirdi/chiqdi) effekt qayta ishga tushadi:
+    // React avval ESKI intervalni tozalaydi (cleanup), keyin YANGISINI o'rnatadi —
+    // shu tufayli hech qachon bir nechta interval bir vaqtda ishlamaydi.
+    // Karuselning joriy holati (qaysi slaydda turgani) `emblaApi` ichida saqlanadi
+    // va bu yerda hech qachon qayta tiklanmaydi (scrollTo(0) chaqirilmaydi) —
+    // shuning uchun ko'rinishga qaytganda xuddi shu slayddan davom etadi.
+    if (!emblaApi || !hasMultiple || !isVisible) return;
+    const timer = setInterval(() => emblaApi.scrollNext(), 4000);
+    return () => clearInterval(timer);
+  }, [emblaApi, hasMultiple, isVisible]);
+
   if (active.length === 0) return null;
 
   return (
-    <div className="relative">
+    <div className="relative" ref={wrapperRef}>
       <div ref={viewportRef} className="embla-viewport">
-      <div className="embla-container gap-3 sm:gap-4">
+      {/* Diqqat: slaydlar orasidagi bo'shliq uchun flex `gap` EMAS, balki
+          har bir kartaning o'ng tomonidagi `margin` ishlatiladi — ba'zi
+          eski WebView'larda flex `gap` tan olinmasligi mumkin, va `loop:
+          true` bilan birga `gap` ishlatish Embla hujjatlarida tavsiya
+          etilmaydi. Margin HAR BIR slaydga (oxirgisiga ham) bir xilda
+          qo'llanadi — chunki cheksiz aylanishda "oxirgi" element yo'q. */}
+      <div className="embla-container">
         {active.map((c) => (
-          <CollectionCard key={c.id} c={c} lang={lang} t={t} onSelect={onSelect} aspectRatio="2 / 1" widthClass="w-[78vw] max-w-[340px] sm:w-[560px] sm:max-w-none" />
+          <CollectionCard
+            key={c.id}
+            c={c}
+            lang={lang}
+            t={t}
+            onSelect={onSelect}
+            aspectRatio="950 / 400"
+            widthClass="w-[78vw] max-w-[340px] sm:w-[560px] sm:max-w-none mr-3 sm:mr-4"
+            showTitle={false}
+          />
         ))}
       </div>
       </div>
-      {active.length > 1 && (
+      {hasMultiple && (
         <>
           <button
             onClick={scrollPrev}

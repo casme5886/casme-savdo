@@ -9,7 +9,19 @@ const EMPTY_FORM = {
   nameUz: "", nameRu: "", descriptionUz: "", descriptionRu: "",
   brand: "", category: "", price: "", oldPrice: "", costPrice: "", rating: "", reviewCount: "", tag: "none", stockType: "limited", stock: "",
   imageUrls: [],
+  country: "", skinType: "", useArea: "", compositionFeature: "", hypoallergenic: "", forWhom: "", dailyUse: "",
 };
+
+/** Filtrlash uchun qo'shimcha xususiyatlar — do'kondagi "Filtrlar" oynasida shu maydonlar bo'yicha tanlash imkoni bo'ladi. */
+const EXTRA_FIELDS = [
+  { key: "country" },
+  { key: "skinType" },
+  { key: "useArea" },
+  { key: "compositionFeature" },
+  { key: "hypoallergenic" },
+  { key: "forWhom" },
+  { key: "dailyUse" },
+];
 
 const T_LOCAL = {
   uz: {
@@ -31,6 +43,15 @@ const T_LOCAL = {
     stock: "Qoldiq soni",
     cancel: "Bekor qilish", save: "Saqlash", saving: "Saqlanmoqda...",
     required: "Kamida bitta tilda nom kiriting", uzs: "UZS",
+    filterFieldsTitle: "Qo'shimcha xususiyatlar (filtrlash uchun)",
+    filterFieldsHint: "Bu maydonlar do'kondagi \"Filtrlar\" oynasida mijozlarga tanlov sifatida chiqadi. Bo'sh qoldirsangiz, o'sha filtr bo'limi mijozga ko'rinmaydi.",
+    country: "Ishlab chiqarilgan mamlakat", countryPh: "Masalan: Janubiy Koreya",
+    skinType: "Teri turi", skinTypePh: "Masalan: Yog'li teri",
+    useArea: "Qo'llash sohasi", useAreaPh: "Masalan: Yuz",
+    compositionFeature: "Tarkib xususiyati", compositionFeaturePh: "Masalan: Spirtsiz",
+    hypoallergenic: "Gipoallergen", hypoallergenicPh: "Masalan: Ha",
+    forWhom: "Kimlar uchun", forWhomPh: "Masalan: Ayollar uchun",
+    dailyUse: "Kundalik foydalanish uchun", dailyUsePh: "Masalan: Ha",
   },
   ru: {
     addTitle: "Новый товар", editTitle: "Редактировать товар",
@@ -51,6 +72,15 @@ const T_LOCAL = {
     stock: "Количество",
     cancel: "Отмена", save: "Сохранить", saving: "Сохранение...",
     required: "Укажите название хотя бы на одном языке", uzs: "UZS",
+    filterFieldsTitle: "Дополнительные характеристики (для фильтров)",
+    filterFieldsHint: "Эти поля появятся как варианты выбора в окне \"Фильтры\" в магазине. Если оставить пустым, этот раздел фильтра не будет виден покупателю.",
+    country: "Страна производства", countryPh: "Например: Южная Корея",
+    skinType: "Тип кожи", skinTypePh: "Например: Жирная кожа",
+    useArea: "Область применения", useAreaPh: "Например: Лицо",
+    compositionFeature: "Особенность состава", compositionFeaturePh: "Например: Без спирта",
+    hypoallergenic: "Гипоаллергенно", hypoallergenicPh: "Например: Да",
+    forWhom: "Для кого", forWhomPh: "Например: Для женщин",
+    dailyUse: "Для ежедневного применения", dailyUsePh: "Например: Да",
   },
 };
 
@@ -59,7 +89,7 @@ const T_LOCAL = {
  * forma (kichik popup emas). `product` — tahrirlash uchun mavjud
  * mahsulot (yoki yangi qo'shishda `null`).
  */
-export default function ProductForm({ lang, product, categories, brands, onClose, onEnsureCategory, onEnsureBrand }) {
+export default function ProductForm({ lang, product, products, categories, brands, onClose, onEnsureCategory, onEnsureBrand }) {
   const t = T_LOCAL[lang] || T_LOCAL.uz;
   const isEdit = !!product;
   // ID'ni oldindan aniqlaymiz — rasmlarni Storage'ga shu ID papkasiga yuklaymiz
@@ -84,12 +114,20 @@ export default function ProductForm({ lang, product, categories, brands, onClose
       stockType: product.stockType || "limited",
       stock: String(product.stock ?? ""),
       imageUrls: product.imageUrls && product.imageUrls.length ? product.imageUrls : (product.imageUrl ? [product.imageUrl] : []),
+      country: product.country || "", skinType: product.skinType || "", useArea: product.useArea || "",
+      compositionFeature: product.compositionFeature || "", hypoallergenic: product.hypoallergenic || "",
+      forWhom: product.forWhom || "", dailyUse: product.dailyUse || "",
     };
   });
 
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+
+  // Har bir qo'shimcha maydon uchun boshqa mahsulotlarda oldin kiritilgan
+  // qiymatlar — datalist orqali tez tanlash va bir xil yozilishini ta'minlash uchun.
+  const extraFieldOptions = (key) =>
+    Array.from(new Set((products || []).map((p) => p[key]).filter(Boolean)));
 
   const pct = discountPct(Number(form.price) || 0, Number(form.oldPrice) || 0);
 
@@ -138,6 +176,9 @@ export default function ProductForm({ lang, product, categories, brands, onClose
       stockType: form.stockType,
       stock: form.stockType === "limited" ? Number(form.stock) || 0 : 0,
       imageUrls: form.imageUrls,
+      country: form.country.trim(), skinType: form.skinType.trim(), useArea: form.useArea.trim(),
+      compositionFeature: form.compositionFeature.trim(), hypoallergenic: form.hypoallergenic.trim(),
+      forWhom: form.forWhom.trim(), dailyUse: form.dailyUse.trim(),
     };
 
     await setItem("products", productId, data);
@@ -336,6 +377,28 @@ export default function ProductForm({ lang, product, categories, brands, onClose
               <input type="number" className={inputCls} value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} />
             </Field>
           )}
+
+          {/* ---------- Qo'shimcha xususiyatlar (do'kondagi "Filtrlar" oynasi uchun) ---------- */}
+          <div className="mt-2 border-t border-gray-100 pt-4">
+            <p className="mb-1 text-sm font-semibold text-slate-700">{t.filterFieldsTitle}</p>
+            <p className="mb-3 text-xs text-slate-400">{t.filterFieldsHint}</p>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {EXTRA_FIELDS.map(({ key }) => (
+                <Field key={key} label={t[key]}>
+                  <input
+                    className={inputCls}
+                    value={form[key]}
+                    onChange={(e) => setForm({ ...form, [key]: e.target.value })}
+                    list={`product-form-${key}`}
+                    placeholder={t[`${key}Ph`]}
+                  />
+                  <datalist id={`product-form-${key}`}>
+                    {extraFieldOptions(key).map((v) => <option key={v} value={v} />)}
+                  </datalist>
+                </Field>
+              ))}
+            </div>
+          </div>
         </div>
 
         <div className="flex justify-end gap-2 border-t border-gray-100 px-5 py-4">

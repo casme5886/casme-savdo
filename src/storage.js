@@ -222,6 +222,7 @@ export async function placeOrderBatch({ cartItems, existingCustomer, customerNam
     batch.set(newCustomerRef, {
       name: customerName, phone: customerPhone, address: customerAddress,
       orders: 1, spent: cartTotal, date: orderData.date,
+      bonusPoints: 20000, // Yangi mijozga xush kelibsiz bonusi
       ...telegramFields,
     });
   }

@@ -10,7 +10,7 @@ import {
 import {
   subscribeCollection, updateItem, deleteItem, setItem,
 } from "../storage.js";
-import { Modal, Field, EmptyState, inputCls, uid, fmtMoney, pname, discountPct } from "./ui.jsx";
+import { Modal, Field, EmptyState, inputCls, uid, fmtMoney, pname, discountPct, Toggle } from "./ui.jsx";
 
 const T_LOCAL = {
   uz: {
@@ -702,9 +702,7 @@ function PromoCodesSection({ lang, t, promoCodes }) {
           </Field>
           <div className="mb-3 flex items-center justify-between rounded-lg border border-gray-100 px-3 py-2">
             <span className="text-xs font-medium text-slate-600">{form.active ? t.active : t.inactive}</span>
-            <button type="button" onClick={() => setForm({ ...form, active: !form.active })} className={`relative h-6 w-11 rounded-full transition ${form.active ? "bg-emerald-600" : "bg-gray-300"}`}>
-              <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${form.active ? "translate-x-5" : "translate-x-0.5"}`} />
-            </button>
+            <Toggle checked={form.active} onChange={(v) => setForm({ ...form, active: v })} />
           </div>
           <div className="mt-4 flex justify-end gap-2">
             <button onClick={closeModal} className="rounded-lg px-3.5 py-2 text-sm font-medium text-slate-500 hover:bg-gray-100">{t.cancel}</button>

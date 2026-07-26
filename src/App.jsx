@@ -6,7 +6,8 @@ import {
   Minus, ArrowLeft, PartyPopper, Heart, UserRound, Truck, MapPin,
   LogIn, LogOut, Lock, Image as ImageIcon, Eye, Star, RotateCcw, ShieldCheck, Headphones,
   MessageSquareQuote, HelpCircle, Settings as SettingsIcon, Bell, Download, Phone, Send, Copy, Tag,
-  ArrowUp, ArrowDown, EyeOff, ChevronLeft, ChevronRight, MessageCircle, Home
+  ArrowUp, ArrowDown, EyeOff, ChevronLeft, ChevronRight, MessageCircle, Home,
+  SlidersHorizontal, Filter
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
@@ -16,11 +17,12 @@ import Banner, { MidPromoBanner } from "./components/Banner.jsx";
 import BannerSettings from "./components/BannerSettings.jsx";
 import ProductDetail from "./components/ProductDetail.jsx";
 import ProductForm from "./components/ProductForm.jsx";
-import { CategoryIconRow, BrandIconRow, CategoryShowcase, CollectionShowcase, WideCollectionShowcase, collectionTitle, collectionDescription } from "./components/CategoryShowcase.jsx";
+import { CategoryIconRow, BrandIconRow, CategoryShowcase, CategoryQuickRow, CollectionShowcase, WideCollectionShowcase, collectionTitle, collectionDescription, itemThumb } from "./components/CategoryShowcase.jsx";
 import StoreFooter from "./components/StoreFooter.jsx";
 import Testimonials from "./components/Testimonials.jsx";
 import FAQSection from "./components/FAQSection.jsx";
 import InstagramGallery from "./components/InstagramGallery.jsx";
+import MapPicker from "./components/MapPicker.jsx";
 import TestimonialsSettings from "./components/TestimonialsSettings.jsx";
 import FAQSettings from "./components/FAQSettings.jsx";
 import StoreSettings from "./components/StoreSettings.jsx";
@@ -76,13 +78,13 @@ const T = {
       note: "Admin eslatmasi", noteHint: "Faqat sizga ko'rinadigan ichki eslatma...",
     },
     customers: {
-      title: "Mijozlar", add: "Mijoz qo'shish", edit: "Mijozni tahrirlash", name: "Ism", phone: "Telefon",
+      title: "Mijozlar", add: "Mijoz qo'shish", edit: "Mijozni tahrirlash", name: "Ism", phone: "Telefon", email: "Email",
       orders: "Buyurtmalar", spent: "Jami xarid", date: "Qo'shilgan sana",
       actions: "Amallar", empty: "Mijoz topilmadi", searchPh: "Ism yoki telefon bo'yicha qidirish...",
       tier: "Daraja", tierVip: "VIP", tierActive: "Faol", tierNew: "Yangi",
       sortDate: "Yangi qo'shilgan", sortSpent: "Ko'p xarid qilgan", sortOrders: "Ko'p buyurtma bergan", sortName: "Ism (A-Z)",
       bonusPoints: "Bonus ballar", pointsHint: "Masalan: 50", addPoints: "Qo'shish",
-      orderHistory: "Buyurtmalar tarixi",
+      orderHistory: "Buyurtmalar tarixi", addresses: "Manzillar", noAddresses: "Saqlangan manzil yo'q", onMap: "Xaritada",
     },
     products: {
       title: "Mahsulotlar", add: "Mahsulot qo'shish", edit: "Mahsulotni tahrirlash",
@@ -106,12 +108,15 @@ const T = {
       collectionTitleRuPh: "Masalan: Набор для проблемной кожи",
       collectionDescriptionUz: "Tavsif — o'zbekcha (ixtiyoriy)", collectionDescriptionRu: "Tavsif — ruscha (ixtiyoriy)",
       collectionDescriptionPh: "Bu to'plam haqida qisqacha yozing...", collectionDescriptionRuPh: "Kratkoye opisaniye na russkom...",
-      collectionImage: "Rasm", collectionUpload: "Rasm tanlang",
+      collectionImage: "Rasm", collectionUpload: "Rasm tanlang", collectionImageSizeLabel: "Tavsiya etilgan o'lcham:",
       collectionStyle: "Ko'rinish turi",
       collectionStyleCard: "Kvadrat kartochka", collectionStyleCardHint: "\"O'zingizga mos uslubni toping\" bo'limida",
       collectionStyleCardBottom: "Kvadrat (pastda)", collectionStyleCardBottomHint: "Kategoriya bo'limidan keyin, Brendlardan oldin",
-      collectionStyleBanner: "Keng banner", collectionStyleBannerHint: "\"Mashhur\" ostida, keng suratlar qatorida",
+      collectionStyleBanner: "Keng banner", collectionStyleBannerHint: "\"Mashhur\" ostida, keng suratlar qatorida (950x400)",
+      collectionStyleHero: "Katta surat + mahsulotlar", collectionStyleHeroHint: "Portret surat (750x1200), pastida mahsulotlar qatori",
       collectionProducts: "Mahsulotlar", collectionSelected: "tanlandi",
+      collectionDiscount: "Chegirma (%)", collectionDiscountHint: "Faqat shu banner orqali kirilganda amal qiladi — mahsulotning o'zidagi narxi o'zgarmaydi",
+      showTotalCalc: "Jami narx hisoblash", showTotalCalcHint: "Yoqilsa — ichkarida \"Jami narx\" va \"Barchasini savatga qo'shish\" ko'rinadi",
       active: "Faol", inactive: "Faol emas",
     },
     store: {
@@ -123,10 +128,15 @@ const T = {
       collectionTotal: "Jami narx", collectionAddAll: "Barchasini savatga qo'shish",
       bestSellers: "Eng ko'p sotilganlar",
       bestSellersSubtitle: "So'nggi 30 kun ichida eng ko'p xarid qilingan mahsulotlar",
+      hitProducts: "Xit mahsulotlar",
       allProductsTag: "To'liq katalog", allProductsTitle: "Barcha mahsulotlar",
       brandsCount: "ta brend", productsCount: "ta mahsulot",
-      discountsTag: "Chegirmalar", discountsTitle: "Chegirmaga tushgan mahsulotlar",
-      navHome: "Bosh sahifa", navShop: "Do'kon", navCategories: "Kategoriyalar",
+      discountsTag: "Chegirmalar", discountsTitle: "Chegirmaga tushgan mahsulotlar", megaDiscountTitle: "Mega Chegirma",
+      bonusLabel: "Bonus",
+      navHome: "Bosh sahifa", navShop: "Do'kon", navCategories: "Kategoriyalar", brandsTitle: "Brendlar",
+      searchHistory: "Qidiruv tarixi", clearHistory: "Tozalash", categoriesLabel: "Toifalar",
+      filtersTitle: "Filtrlar", sortTitle: "Saralash", priceLabel: "Narx", applyBtn: "Tasdiqlash", comingSoon: "Tez orada qo'shiladi",
+      minPriceLabel: "Minimal narx", maxPriceLabel: "Maksimal narx",
       happyCustomers: "Xursand mijozlar", avgRating: "O'rtacha reyting",
       newCustomerOffer: "yangi mijozlar uchun",
       featShipping: "Bepul yetkazib berish", featReturns: "Oson qaytarish", featSecure: "Xavfsiz to'lov", featSupport: "24/7 qo'llab-quvvatlash",
@@ -138,11 +148,14 @@ const T = {
       cart: "Savat", cartEmpty: "Savat bo'sh", total: "Jami", checkout: "Buyurtma berish",
       subtotal: "Mahsulotlar summasi",
       promoPh: "Promo kod", promoApply: "Qo'llash", promoApplied: "qo'llandi", promoRemove: "Olib tashlash",
+      bonusAvailable: "Mavjud bonus", bonusUsePh: "Miqdorni kiriting", bonusMaxBtn: "Barchasi", bonusUsed: "Bonusdan foydalanildi",
+      mapPick: "Xaritadan belgilash", mapPickNote: "Manzilni aniqroq ko'rsatish uchun xaritada nuqta belgilang",
       promoInvalid: "Bunday promo kod topilmadi yoki faol emas",
       promoExpired: "Bu promo kodning muddati tugagan",
       promoLimitReached: "Bu promo kodning ishlatish limiti tugagan",
       promoMinOrder: "Bu kod uchun buyurtma kamida {amount} UZS bo'lishi kerak",
       yourName: "Ismingiz", yourPhone: "Telefon raqamingiz", placeOrder: "Buyurtmani tasdiqlash",
+      addPhone2: "Yana bir telefon raqam qo'shish", phone2Label: "Qo'shimcha telefon raqami", removePhone2: "Olib tashlash",
       phoneInvalid: "Telefon raqamini to'liq kiriting",
       payment: "To'lov usuli", cash: "Naqd pul (yetkazib berganda)",
       card: "Karta orqali to'lov / kartaga o'tkazma", address: "Yetkazib berish manzili", addressPh: "Shahar, tuman, ko'cha, uy...",
@@ -161,15 +174,17 @@ const T = {
       viewAll: "Barchasini ko'rish", profileBtn: "Profil",
       profile: {
         title: "Mening profilim", name: "Ism", username: "Telegram username",
+        language: "Til",
         phone: "Telefon raqam", notLinked: "Telegram orqali kirilmagan",
         myOrders: "Buyurtmalarim", noOrders: "Hozircha buyurtma yo'q",
         loading: "Yuklanmoqda...",
         addPhone: "Telefon raqamni qo'shish",
         personalData: "Shaxsiy ma'lumotlar",
         addresses: "Yetkazib berish manzillari",
+        settings: "Sozlamalar",
         deliveryAddress: "Manzilingiz", deliveryAddressNote: "Buyurtma berishda avtomatik taklif qilinadi.",
         addressPh: "Shahar, tuman, ko'cha, uy...",
-        saveAddress: "Saqlash", addressSaved: "Manzil saqlandi",
+        saveAddress: "Saqlash", addressSaved: "Manzil saqlandi", addAddress: "Yangi manzil qo'shish", editAddress: "Manzilni tahrirlash",
         addPhoneNote: "Telefon raqamingizni saqlab qo'ysangiz, \"Buyurtmalarim\" bo'limida shu raqamga tegishli buyurtmalarni ham ko'rasiz.",
         searchPh: "Telefon raqamingiz", savePhone: "Saqlash", phoneSaved: "Telefon raqami saqlandi",
         order: "Buyurtma",
@@ -184,6 +199,10 @@ const T = {
         otpResend: "Telegramni qayta ochish",
         otpConfirm: "Tasdiqlash",
         otpWrong: "Kod noto'g'ri yoki muddati tugagan",
+        yourName: "Ismingiz", namePlaceholder: "Qabul qiluvchi nomini kiriting",
+        emailLabel: "Elektron pochta", emailPlaceholder: "Email manzilingizni kiriting",
+        emailRequired: "Iltimos, elektron pochtani kiriting",
+        applyLabel: "Qo'llash",
       },
     },
     switcher: { admin: "Boshqaruv paneli", store: "Mijozlar do'koni", previewNote: "Namuna: haqiqiy loyihada bular alohida manzillar bo'ladi" },
@@ -245,13 +264,13 @@ const T = {
       note: "Заметка администратора", noteHint: "Внутренняя заметка, видна только вам...",
     },
     customers: {
-      title: "Клиенты", add: "Добавить клиента", edit: "Редактировать клиента", name: "Имя", phone: "Телефон",
+      title: "Клиенты", add: "Добавить клиента", edit: "Редактировать клиента", name: "Имя", phone: "Телефон", email: "Email",
       orders: "Заказы", spent: "Всего покупок", date: "Дата добавления",
       actions: "Действия", empty: "Клиенты не найдены", searchPh: "Поиск по имени или телефону...",
       tier: "Уровень", tierVip: "VIP", tierActive: "Активный", tierNew: "Новый",
       sortDate: "Недавно добавленные", sortSpent: "Больше покупок", sortOrders: "Больше заказов", sortName: "Имя (А-Я)",
       bonusPoints: "Бонусные баллы", pointsHint: "Например: 50", addPoints: "Добавить",
-      orderHistory: "История заказов",
+      orderHistory: "История заказов", addresses: "Адреса", noAddresses: "Нет сохранённых адресов", onMap: "На карте",
     },
     products: {
       title: "Товары", add: "Добавить товар", edit: "Редактировать товар",
@@ -275,12 +294,15 @@ const T = {
       collectionTitleRuPh: "Например: Набор для проблемной кожи",
       collectionDescriptionUz: "Описание — узбекский (опционально)", collectionDescriptionRu: "Описание — русский (опционально)",
       collectionDescriptionPh: "Кратко опишите этот набор...", collectionDescriptionRuPh: "Кратко опишите этот набор...",
-      collectionImage: "Изображение", collectionUpload: "Выберите изображение",
+      collectionImage: "Изображение", collectionUpload: "Выберите изображение", collectionImageSizeLabel: "Рекомендуемый размер:",
       collectionStyle: "Стиль отображения",
       collectionStyleCard: "Квадратная карточка", collectionStyleCardHint: "В разделе \"Найдите свой стиль\"",
       collectionStyleCardBottom: "Квадратная (внизу)", collectionStyleCardBottomHint: "После раздела Категории, перед Брендами",
-      collectionStyleBanner: "Широкий баннер", collectionStyleBannerHint: "Под \"Популярное\", в ряду широких изображений",
+      collectionStyleBanner: "Широкий баннер", collectionStyleBannerHint: "Под \"Популярное\", в ряду широких изображений (950x400)",
+      collectionStyleHero: "Большое фото + товары", collectionStyleHeroHint: "Портретное фото (750x1200), товары внизу",
       collectionProducts: "Товары", collectionSelected: "выбрано",
+      collectionDiscount: "Скидка (%)", collectionDiscountHint: "Действует только при входе через этот баннер — цена самого товара не меняется",
+      showTotalCalc: "Подсчёт итоговой цены", showTotalCalcHint: "Если включено — внутри показывается \"Итоговая цена\" и \"Добавить всё в корзину\"",
       active: "Активен", inactive: "Не активен",
     },
     store: {
@@ -292,10 +314,15 @@ const T = {
       collectionTotal: "Итоговая цена", collectionAddAll: "Добавить всё в корзину",
       bestSellers: "Хиты продаж",
       bestSellersSubtitle: "Самые покупаемые товары за последние 30 дней",
+      hitProducts: "Хит-товары",
       allProductsTag: "Полный каталог", allProductsTitle: "Все товары",
       brandsCount: "брендов", productsCount: "товаров",
-      discountsTag: "Скидки", discountsTitle: "Товары со скидкой",
-      navHome: "Главная", navShop: "Магазин", navCategories: "Категории",
+      discountsTag: "Скидки", discountsTitle: "Товары со скидкой", megaDiscountTitle: "Мега Скидка",
+      bonusLabel: "Бонус",
+      navHome: "Главная", navShop: "Магазин", navCategories: "Категории", brandsTitle: "Бренды",
+      searchHistory: "История поиска", clearHistory: "Очистить", categoriesLabel: "Категории",
+      filtersTitle: "Фильтры", sortTitle: "Сортировка", priceLabel: "Цена", applyBtn: "Применить", comingSoon: "Скоро появится",
+      minPriceLabel: "Минимальная цена", maxPriceLabel: "Максимальная цена",
       happyCustomers: "Довольных клиентов", avgRating: "Средний рейтинг",
       newCustomerOffer: "для новых клиентов",
       featShipping: "Бесплатная доставка", featReturns: "Лёгкий возврат", featSecure: "Безопасная оплата", featSupport: "Поддержка 24/7",
@@ -307,11 +334,14 @@ const T = {
       cart: "Корзина", cartEmpty: "Корзина пуста", total: "Итого", checkout: "Оформить заказ",
       subtotal: "Сумма товаров",
       promoPh: "Промокод", promoApply: "Применить", promoApplied: "применён", promoRemove: "Убрать",
+      bonusAvailable: "Доступный бонус", bonusUsePh: "Введите сумму", bonusMaxBtn: "Всё", bonusUsed: "Бонус использован",
+      mapPick: "Отметить на карте", mapPickNote: "Отметьте точку на карте для более точного адреса",
       promoInvalid: "Такой промокод не найден или не активен",
       promoExpired: "Срок действия этого промокода истёк",
       promoLimitReached: "Лимит использования этого промокода исчерпан",
       promoMinOrder: "Для этого кода заказ должен быть минимум {amount} UZS",
       yourName: "Ваше имя", yourPhone: "Ваш номер телефона", placeOrder: "Подтвердить заказ",
+      addPhone2: "Добавить ещё один номер телефона", phone2Label: "Дополнительный номер телефона", removePhone2: "Убрать",
       phoneInvalid: "Введите номер телефона полностью",
       payment: "Способ оплаты", cash: "Наличные (при получении)",
       card: "Оплата картой / перевод на карту", address: "Адрес доставки", addressPh: "Город, район, улица, дом...",
@@ -330,15 +360,17 @@ const T = {
       viewAll: "Смотреть все", profileBtn: "Профиль",
       profile: {
         title: "Мой профиль", name: "Имя", username: "Telegram username",
+        language: "Язык",
         phone: "Номер телефона", notLinked: "Вход через Telegram не выполнен",
         myOrders: "Мои заказы", noOrders: "Пока нет заказов",
         loading: "Загрузка...",
         addPhone: "Добавить номер телефона",
         personalData: "Личные данные",
         addresses: "Адреса доставки",
+        settings: "Настройки",
         deliveryAddress: "Ваш адрес", deliveryAddressNote: "Будет предложен автоматически при оформлении заказа.",
         addressPh: "Город, район, улица, дом...",
-        saveAddress: "Сохранить", addressSaved: "Адрес сохранён",
+        saveAddress: "Сохранить", addressSaved: "Адрес сохранён", addAddress: "Добавить новый адрес", editAddress: "Редактировать адрес",
         addPhoneNote: "Если сохраните номер телефона, в разделе \"Мои заказы\" вы увидите и заказы, связанные с этим номером.",
         searchPh: "Ваш номер телефона", savePhone: "Сохранить", phoneSaved: "Номер телефона сохранён",
         order: "Заказ",
@@ -353,6 +385,10 @@ const T = {
         otpResend: "Открыть Telegram снова",
         otpConfirm: "Подтвердить",
         otpWrong: "Неверный код или истёк срок",
+        yourName: "Ваше имя", namePlaceholder: "Введите имя получателя",
+        emailLabel: "Электронная почта", emailPlaceholder: "Введите ваш email",
+        emailRequired: "Пожалуйста, введите электронную почту",
+        applyLabel: "Применить",
       },
     },
     switcher: { admin: "Панель управления", store: "Магазин для клиентов", previewNote: "Демо: в реальном проекте это разные адреса" },
@@ -384,10 +420,52 @@ import { auth } from "./firebase.js";
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
 const COL = { orders: "orders", customers: "customers", products: "products", categories: "categories", brands: "brands", banners: "banners", testimonials: "testimonials", faqs: "faqs", collections: "collections" };
 
+/**
+ * Kategoriya sahifasidagi "Filtrlar" oynasi bo'limlari. Faqat `functional: true`
+ * belgilangan bo'limlar (hozircha — brend) haqiqiy ma'lumot bilan ishlaydi;
+ * qolganlari mahsulot ma'lumotlar bazasida hali mos maydon yo'qligi sababli
+ * ro'yxatda ko'rinadi, lekin ochilganda bo'sh — kelajakda shu maydon
+ * (masalan "teri turi") mahsulot shakliga qo'shilsa, shu yerda avtomatik
+ * ishlaydigan qilib tuzilgan.
+ */
+const FILTER_DIMENSIONS = [
+  { key: "brand", uz: "Brend", ru: "Бренд", functional: true },
+  { key: "category", uz: "Kategoriya", ru: "Категория", functional: true },
+  { key: "country", uz: "Ishlab chiqarilgan mamlakat", ru: "Страна производства", functional: true },
+  { key: "skinType", uz: "Teri turi", ru: "Тип кожи", functional: true },
+  { key: "purpose", uz: "Maqsad", ru: "Назначение" },
+  { key: "hairType", uz: "Soch turi", ru: "Тип волос" },
+  { key: "useArea", uz: "Qo'llash sohasi", ru: "Область применения", functional: true },
+  { key: "finish", uz: "Finish", ru: "Финиш" },
+  { key: "beautyIngredient", uz: "Go'zallik ingredienti", ru: "Бьюти-ингредиент" },
+  { key: "dailyUse", uz: "Kundalik foydalanish uchun", ru: "Для ежедневного применения", functional: true },
+  { key: "waterResistant", uz: "Suvga chidamlilik", ru: "Водостойкость" },
+  { key: "releaseForm", uz: "Chiqarilish shakli", ru: "Форма выпуска" },
+  { key: "compositionFeature", uz: "Tarkib xususiyati", ru: "Особенность состава", functional: true },
+  { key: "forWhom", uz: "Kimlar uchun", ru: "Для кого", functional: true },
+  { key: "hypoallergenic", uz: "Gipoallergen", ru: "Гипоаллергенно", functional: true },
+  { key: "fragranceGroup", uz: "Hid guruhi", ru: "Группа аромата" },
+];
+
+/** Mahsulot shaklidagi "qo'shimcha xususiyat" maydonlari — endi haqiqiy ma'lumot bilan filtrlaydi. */
+const EXTRA_FILTER_KEYS = ["country", "skinType", "useArea", "compositionFeature", "hypoallergenic", "forWhom", "dailyUse"];
+
+/** Kategoriya sahifasidagi "Saralash" oynasi variantlari. */
+const SORT_OPTIONS = [
+  { key: "popular", uz: "Eng ommabop mahsulotlar", ru: "Самые популярные товары" },
+  { key: "nameAsc", uz: "Nomlanishi bo'yicha (A-Z)", ru: "По названию (А-Я)" },
+  { key: "nameDesc", uz: "Nomlanishi bo'yicha (Z-A)", ru: "По названию (Я-А)" },
+  { key: "priceAsc", uz: "Narxi bo'yicha (Arzon-Qimmat)", ru: "По цене (Дешевле-Дороже)" },
+  { key: "priceDesc", uz: "Narxi bo'yicha (Qimmat-arzon)", ru: "По цене (Дороже-Дешевле)" },
+  { key: "newest", uz: "Oxirgi (Eng yangi - Eng eski)", ru: "Сначала новые" },
+  { key: "oldest", uz: "Oxirgi (Eng eskisi - Eng yangisi)", ru: "Сначала старые" },
+  { key: "rating", uz: "Reyting bo'yicha", ru: "По рейтингу" },
+];
+
 import {
   uid, fmtMoney, todayISO, inputCls, Modal, Field, EmptyState, StatusBadge,
   pname, pdesc, discountPct, formatUzPhone, isValidUzPhone, PhoneInput,
-  useCarouselRow,
+  useCarouselRow, Toggle,
 } from "./components/ui.jsx";
 
 /**
@@ -849,8 +927,25 @@ function OrdersPage({ lang, orders, setOrders, customers }) {
     await deleteItem(COL.orders, id);
   };
 
+  // Buyurtma holati "Yetkazib berildi"ga o'zgartirilganda — mijozga
+  // buyurtma summasining 1%i miqdorida bonus ball yoziladi (faqat bir marta,
+  // qayta-qayta "yetkazib berildi" qilib qo'yilsa ham ikki marta yozilmaydi).
   const changeStatus = async (id, status) => {
     await updateItem(COL.orders, id, { status });
+    if (status === "delivered") {
+      const order = orders.find(o => o.id === id);
+      if (order && !order.bonusCredited) {
+        const customer = customers.find(c =>
+          (order.telegramUserId && c.telegramUserId === order.telegramUserId) ||
+          (order.phone && c.phone === order.phone)
+        );
+        if (customer) {
+          const bonusEarned = Math.round((Number(order.amount) || 0) * 0.01);
+          await updateItem(COL.customers, customer.id, { bonusPoints: (Number(customer.bonusPoints) || 0) + bonusEarned });
+        }
+        await updateItem(COL.orders, id, { bonusCredited: true });
+      }
+    }
   };
 
   const toggleSelect = (id) => {
@@ -864,7 +959,7 @@ function OrdersPage({ lang, orders, setOrders, customers }) {
     setSelectedIds(prev => (prev.size === filtered.length ? new Set() : new Set(filtered.map(o => o.id))));
   };
   const applyBulkStatus = async () => {
-    await Promise.all(Array.from(selectedIds).map(id => updateItem(COL.orders, id, { status: bulkStatus })));
+    await Promise.all(Array.from(selectedIds).map(id => changeStatus(id, bulkStatus)));
     setSelectedIds(new Set());
   };
 
@@ -1341,6 +1436,29 @@ function CustomersPage({ lang, customers, setCustomers, orders }) {
     await deleteItem(COL.customers, id);
   };
 
+  // Mijoz tarixidagi biror buyurtma bosilganda to'liq detail oyna ochiladi.
+  const [selectedOrder, setSelectedOrder] = useState(null);
+
+  // Xuddi "Buyurtmalar" bo'limidagidek — holat "Yetkazib berildi"ga
+  // o'zgartirilsa, mijozga buyurtma summasining 1%i bonus sifatida yoziladi.
+  const changeOrderStatus = async (id, status) => {
+    await updateItem(COL.orders, id, { status });
+    if (status === "delivered") {
+      const order = orders.find(o => o.id === id);
+      if (order && !order.bonusCredited) {
+        const customer = customers.find(c =>
+          (order.telegramUserId && c.telegramUserId === order.telegramUserId) ||
+          (order.phone && c.phone === order.phone)
+        );
+        if (customer) {
+          const bonusEarned = Math.round((Number(order.amount) || 0) * 0.01);
+          await updateItem(COL.customers, customer.id, { bonusPoints: (Number(customer.bonusPoints) || 0) + bonusEarned });
+        }
+        await updateItem(COL.orders, id, { bonusCredited: true });
+      }
+    }
+  };
+
   return (
     <div className="rounded-2xl bg-white p-4 shadow-sm">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -1376,6 +1494,7 @@ function CustomersPage({ lang, customers, setCustomers, orders }) {
                 <th className="pb-2 font-medium">{t.customers.name}</th>
                 <th className="pb-2 font-medium">{t.customers.tier}</th>
                 <th className="pb-2 font-medium">{t.customers.phone}</th>
+                <th className="pb-2 font-medium">{t.customers.email}</th>
                 <th className="pb-2 font-medium">{t.customers.orders}</th>
                 <th className="pb-2 font-medium">{t.customers.spent}</th>
                 <th className="pb-2 font-medium">{t.customers.date}</th>
@@ -1388,6 +1507,7 @@ function CustomersPage({ lang, customers, setCustomers, orders }) {
                   <td className="py-2.5 font-medium text-slate-700">{c.name}</td>
                   <td className="py-2.5"><TierBadge tier={customerTier(c)} t={t} /></td>
                   <td className="py-2.5 text-slate-600">{c.phone}</td>
+                  <td className="py-2.5 text-slate-600">{c.email || "—"}</td>
                   <td className="py-2.5 text-slate-600">{c.orders || 0}</td>
                   <td className="py-2.5 text-slate-600">{fmtMoney(c.spent)} {t.common.uzs}</td>
                   <td className="py-2.5 text-slate-500">{c.date}</td>
@@ -1435,6 +1555,16 @@ function CustomersPage({ lang, customers, setCustomers, orders }) {
           t={t}
           onClose={() => setSelectedCustomer(null)}
           onEdit={() => { setSelectedCustomer(null); openEdit(selectedCustomer); }}
+          onSelectOrder={setSelectedOrder}
+        />
+      )}
+
+      {selectedOrder && (
+        <OrderDetailModal
+          order={orders.find(o => o.id === selectedOrder.id) || selectedOrder}
+          t={t}
+          onClose={() => setSelectedOrder(null)}
+          onChangeStatus={changeOrderStatus}
         />
       )}
     </div>
@@ -1442,7 +1572,7 @@ function CustomersPage({ lang, customers, setCustomers, orders }) {
 }
 
 /** Mijoz bosilganda ochiladigan detail oyna — buyurtmalar tarixi va bonus ballar bilan. */
-function CustomerDetailModal({ customer, orders, t, onClose, onEdit }) {
+function CustomerDetailModal({ customer, orders, t, onClose, onEdit, onSelectOrder }) {
   const [pointsInput, setPointsInput] = useState("");
   const [savingPoints, setSavingPoints] = useState(false);
 
@@ -1486,6 +1616,10 @@ function CustomerDetailModal({ customer, orders, t, onClose, onEdit }) {
               <p className="font-medium text-slate-700">{customer.phone || "—"}</p>
             </div>
             <div>
+              <p className="text-xs text-slate-400">{t.customers.email}</p>
+              <p className="truncate font-medium text-slate-700">{customer.email || "—"}</p>
+            </div>
+            <div>
               <p className="text-xs text-slate-400">{t.customers.orders}</p>
               <p className="font-medium text-slate-700">{customer.orders || 0}</p>
             </div>
@@ -1515,6 +1649,33 @@ function CustomerDetailModal({ customer, orders, t, onClose, onEdit }) {
             </div>
           )}
 
+          {/* Manzillar */}
+          <div className="mb-4">
+            <p className="mb-2 text-sm font-semibold text-slate-700">{t.customers.addresses}</p>
+            {Array.isArray(customer.addresses) && customer.addresses.length > 0 ? (
+              <div className="space-y-1.5">
+                {customer.addresses.map((addr) => (
+                  <div key={addr.id} className="flex items-start gap-2 rounded-xl border border-gray-100 p-2.5 text-xs text-slate-600">
+                    <MapPin size={14} className="mt-0.5 shrink-0 text-rose-400" />
+                    <span className="min-w-0 flex-1 break-words">{addr.text}</span>
+                    {addr.lat != null && addr.lng != null && (
+                      <a
+                        href={`https://www.google.com/maps?q=${addr.lat},${addr.lng}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="shrink-0 whitespace-nowrap text-emerald-600 hover:underline"
+                      >
+                        {t.customers.onMap}
+                      </a>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-slate-400">{t.customers.noAddresses}</p>
+            )}
+          </div>
+
           {/* Bonus ballar */}
           <div className="mb-4 rounded-xl border border-gray-100 p-3">
             <div className="mb-2 flex items-center justify-between">
@@ -1535,26 +1696,51 @@ function CustomerDetailModal({ customer, orders, t, onClose, onEdit }) {
             </div>
           </div>
 
-          {/* Buyurtmalar tarixi */}
+          {/* Buyurtmalar tarixi — bosilganda to'liq detail (suratlar bilan) ochiladi */}
           <p className="mb-2 text-sm font-semibold text-slate-700">{t.customers.orderHistory}</p>
           {customerOrders.length === 0 ? (
             <EmptyState icon={ClipboardList} text={t.dashboard.noOrders} />
           ) : (
             <div className="space-y-2">
-              {customerOrders.map(o => (
-                <div key={o.id} className="rounded-xl border border-gray-100 p-3">
-                  <div className="mb-1 flex items-center justify-between">
-                    <span className="text-xs text-slate-400">{o.date}</span>
-                    <StatusBadge status={o.status} labels={t.orders.st} />
-                  </div>
-                  <p className="text-sm font-semibold text-slate-800">{fmtMoney(o.amount)} {t.common.uzs}</p>
-                  {Array.isArray(o.items) && o.items.length > 0 && (
-                    <p className="mt-1 truncate text-xs text-slate-500">
-                      {o.items.map(it => `${it.productName} ×${it.qty}`).join(", ")}
-                    </p>
-                  )}
-                </div>
-              ))}
+              {customerOrders.map(o => {
+                const items = Array.isArray(o.items) ? o.items : [];
+                return (
+                  <button
+                    key={o.id}
+                    onClick={() => onSelectOrder(o)}
+                    className="w-full rounded-xl border border-gray-100 p-3 text-left transition hover:border-emerald-200 hover:bg-emerald-50/40"
+                  >
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="text-xs text-slate-400">{o.date}</span>
+                      <StatusBadge status={o.status} labels={t.orders.st} />
+                    </div>
+                    {items.length > 0 && (
+                      <div className="mb-2 flex -space-x-2">
+                        {items.slice(0, 5).map((it, i) => (
+                          <div key={i} className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-white bg-gray-50 text-slate-300 shadow-sm">
+                            {it.imageUrl ? (
+                              <img src={it.imageUrl} alt={it.productName} className="h-full w-full object-cover" />
+                            ) : (
+                              <Package size={14} />
+                            )}
+                          </div>
+                        ))}
+                        {items.length > 5 && (
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-white bg-slate-100 text-[10px] font-semibold text-slate-500 shadow-sm">
+                            +{items.length - 5}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between">
+                      <p className="truncate text-xs text-slate-500">
+                        {items.map(it => `${it.productName} ×${it.qty}`).join(", ") || "—"}
+                      </p>
+                      <p className="shrink-0 pl-2 text-sm font-semibold text-slate-800">{fmtMoney(o.amount)} {t.common.uzs}</p>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
@@ -1710,7 +1896,7 @@ function TaxonomyModal({ title, items, collectionName, productField, products, o
  * unga biriktirilgan mahsulotlar ro'yxati — mijoz bosganda faqat o'sha
  * mahsulotlar ko'rinadi.
  */
-function CollectionsModal({ lang, collections, products, onClose, t }) {
+function CollectionsModal({ lang, collections, products, categories, brands, onClose, t }) {
   const [formOpen, setFormOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null); // null = yangi
 
@@ -1751,7 +1937,7 @@ function CollectionsModal({ lang, collections, products, onClose, t }) {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium text-slate-700">{collectionTitle(item, lang) || "—"}</p>
-                  <p className="text-xs text-slate-400">{(item.productIds || []).length} {t.common.ta} · {item.displayStyle === "banner" ? t.products.collectionStyleBanner : item.displayStyle === "cardBottom" ? t.products.collectionStyleCardBottom : t.products.collectionStyleCard}</p>
+                  <p className="text-xs text-slate-400">{(item.productIds || []).length} {t.common.ta} · {item.displayStyle === "banner" ? t.products.collectionStyleBanner : item.displayStyle === "heroBanner" ? t.products.collectionStyleHero : item.displayStyle === "cardBottom" ? t.products.collectionStyleCardBottom : t.products.collectionStyleCard}</p>
                 </div>
                 <button onClick={() => move(item, -1)} disabled={i === 0} className="rounded-lg p-1.5 text-slate-400 hover:bg-gray-50 disabled:opacity-30"><ArrowUp size={14} /></button>
                 <button onClick={() => move(item, 1)} disabled={i === sorted.length - 1} className="rounded-lg p-1.5 text-slate-400 hover:bg-gray-50 disabled:opacity-30"><ArrowDown size={14} /></button>
@@ -1772,6 +1958,8 @@ function CollectionsModal({ lang, collections, products, onClose, t }) {
           item={editingItem}
           collections={collections}
           products={products}
+          categories={categories}
+          brands={brands}
           onClose={() => setFormOpen(false)}
           t={t}
         />
@@ -1780,7 +1968,7 @@ function CollectionsModal({ lang, collections, products, onClose, t }) {
   );
 }
 
-function CollectionFormModal({ lang, item, collections, products, onClose, t }) {
+function CollectionFormModal({ lang, item, collections, products, categories, brands, onClose, t }) {
   const isNew = !item;
   const [titleUz, setTitleUz] = useState(item?.titleUz || item?.title || "");
   const [titleRu, setTitleRu] = useState(item?.titleRu || "");
@@ -1789,8 +1977,12 @@ function CollectionFormModal({ lang, item, collections, products, onClose, t }) 
   const [imageUrl, setImageUrl] = useState(item?.imageUrl || "");
   const [productIds, setProductIds] = useState(item?.productIds || []);
   const [active, setActive] = useState(item?.active !== false);
-  const [displayStyle, setDisplayStyle] = useState(item?.displayStyle || "card");
+  const [displayStyle, setDisplayStyle] = useState(item?.displayStyle || "banner");
+  const [discountPercent, setDiscountPercent] = useState(item?.discountPercent || 0);
+  const [showTotalCalc, setShowTotalCalc] = useState(item?.showTotalCalc !== false);
   const [productSearch, setProductSearch] = useState("");
+  const [productCategoryFilter, setProductCategoryFilter] = useState("");
+  const [productBrandFilter, setProductBrandFilter] = useState("");
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -1813,7 +2005,10 @@ function CollectionFormModal({ lang, item, collections, products, onClose, t }) 
     setProductIds((prev) => (prev.includes(pid) ? prev.filter((x) => x !== pid) : [...prev, pid]));
   };
 
-  const filteredProducts = products.filter((p) => pname(p, lang).toLowerCase().includes(productSearch.toLowerCase()));
+  const filteredProducts = products
+    .filter((p) => pname(p, lang).toLowerCase().includes(productSearch.toLowerCase()))
+    .filter((p) => !productCategoryFilter || p.category === productCategoryFilter)
+    .filter((p) => !productBrandFilter || p.brand === productBrandFilter);
 
   const submit = async () => {
     if (!titleUz.trim() && !titleRu.trim()) { setError(t.common.required); return; }
@@ -1827,6 +2022,8 @@ function CollectionFormModal({ lang, item, collections, products, onClose, t }) 
       productIds,
       active,
       displayStyle,
+      discountPercent: Math.max(0, Math.min(90, Number(discountPercent) || 0)),
+      showTotalCalc,
       order: isNew ? collections.length : (item.order ?? 0),
     });
     setSaving(false);
@@ -1870,26 +2067,13 @@ function CollectionFormModal({ lang, item, collections, products, onClose, t }) 
             <input type="file" accept="image/*" className="hidden" disabled={uploading} onChange={(e) => handleUpload(e.target.files?.[0])} />
           </label>
         </div>
+        <p className="mt-1.5 text-[11px] text-slate-400">
+          {t.products.collectionImageSizeLabel} {displayStyle === "heroBanner" ? "750×1200" : "950×400"}
+        </p>
       </Field>
 
       <Field label={t.products.collectionStyle}>
-        <div className="grid grid-cols-3 gap-2">
-          <button
-            type="button"
-            onClick={() => setDisplayStyle("card")}
-            className={`rounded-lg border px-2.5 py-2.5 text-xs font-medium ${displayStyle === "card" ? "border-emerald-600 bg-emerald-50 text-emerald-700" : "border-gray-200 text-slate-500 hover:bg-gray-50"}`}
-          >
-            {t.products.collectionStyleCard}
-            <span className="mt-1 block text-[10px] font-normal text-slate-400">{t.products.collectionStyleCardHint}</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setDisplayStyle("cardBottom")}
-            className={`rounded-lg border px-2.5 py-2.5 text-xs font-medium ${displayStyle === "cardBottom" ? "border-emerald-600 bg-emerald-50 text-emerald-700" : "border-gray-200 text-slate-500 hover:bg-gray-50"}`}
-          >
-            {t.products.collectionStyleCardBottom}
-            <span className="mt-1 block text-[10px] font-normal text-slate-400">{t.products.collectionStyleCardBottomHint}</span>
-          </button>
+        <div className="grid grid-cols-2 gap-2">
           <button
             type="button"
             onClick={() => setDisplayStyle("banner")}
@@ -1898,8 +2082,31 @@ function CollectionFormModal({ lang, item, collections, products, onClose, t }) 
             {t.products.collectionStyleBanner}
             <span className="mt-1 block text-[10px] font-normal text-slate-400">{t.products.collectionStyleBannerHint}</span>
           </button>
+          <button
+            type="button"
+            onClick={() => setDisplayStyle("heroBanner")}
+            className={`rounded-lg border px-2.5 py-2.5 text-xs font-medium ${displayStyle === "heroBanner" ? "border-emerald-600 bg-emerald-50 text-emerald-700" : "border-gray-200 text-slate-500 hover:bg-gray-50"}`}
+          >
+            {t.products.collectionStyleHero}
+            <span className="mt-1 block text-[10px] font-normal text-slate-400">{t.products.collectionStyleHeroHint}</span>
+          </button>
         </div>
       </Field>
+
+      {displayStyle === "banner" && (
+        <Field label={t.products.collectionDiscount}>
+          <input
+            type="number"
+            min={0}
+            max={90}
+            className={inputCls}
+            value={discountPercent || ""}
+            onChange={(e) => setDiscountPercent(e.target.value.replace(/[^\d]/g, ""))}
+            placeholder="0"
+          />
+          <p className="mt-1 text-[11px] text-slate-400">{t.products.collectionDiscountHint}</p>
+        </Field>
+      )}
 
       <div className="mb-3 rounded-lg border border-gray-100 p-3">
         <p className="mb-1 text-xs font-medium text-slate-600">{t.products.collectionProducts}</p>
@@ -1912,6 +2119,28 @@ function CollectionFormModal({ lang, item, collections, products, onClose, t }) 
             onChange={(e) => setProductSearch(e.target.value)}
             placeholder={t.products.searchPh}
           />
+        </div>
+        <div className="mb-2 grid grid-cols-2 gap-2">
+          <select
+            className={`${inputCls} text-xs`}
+            value={productCategoryFilter}
+            onChange={(e) => setProductCategoryFilter(e.target.value)}
+          >
+            <option value="">{t.store.allCategories}</option>
+            {(categories || []).map((c) => (
+              <option key={c.id} value={c.name}>{c.name}</option>
+            ))}
+          </select>
+          <select
+            className={`${inputCls} text-xs`}
+            value={productBrandFilter}
+            onChange={(e) => setProductBrandFilter(e.target.value)}
+          >
+            <option value="">{t.store.allBrands}</option>
+            {(brands || []).map((b) => (
+              <option key={b.id} value={b.name}>{b.name}</option>
+            ))}
+          </select>
         </div>
         <div className="max-h-48 space-y-1 overflow-y-auto">
           {filteredProducts.map((p) => {
@@ -1931,10 +2160,16 @@ function CollectionFormModal({ lang, item, collections, products, onClose, t }) 
       </div>
 
       <div className="mb-3 flex items-center justify-between rounded-lg border border-gray-100 px-3 py-2">
+        <div>
+          <span className="block text-xs font-medium text-slate-600">{t.products.showTotalCalc}</span>
+          <span className="block text-[10px] text-slate-400">{t.products.showTotalCalcHint}</span>
+        </div>
+        <Toggle checked={showTotalCalc} onChange={setShowTotalCalc} />
+      </div>
+
+      <div className="mb-3 flex items-center justify-between rounded-lg border border-gray-100 px-3 py-2">
         <span className="text-xs font-medium text-slate-600">{active ? t.products.active : t.products.inactive}</span>
-        <button type="button" onClick={() => setActive(!active)} className={`relative h-6 w-11 rounded-full transition ${active ? "bg-emerald-600" : "bg-gray-300"}`}>
-          <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${active ? "translate-x-5" : "translate-x-0.5"}`} />
-        </button>
+        <Toggle checked={active} onChange={setActive} />
       </div>
 
       <div className="mt-4 flex justify-end gap-2">
@@ -1960,7 +2195,6 @@ function ProductsPage({ lang, products, categories, brands, collections }) {
   const [quickEditValue, setQuickEditValue] = useState("");
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
   const [brandModalOpen, setBrandModalOpen] = useState(false);
-  const [collectionsModalOpen, setCollectionsModalOpen] = useState(false);
 
   const filtered = useMemo(() => {
     let list = products
@@ -2067,9 +2301,6 @@ function ProductsPage({ lang, products, categories, brands, collections }) {
           </button>
           <button onClick={() => setBrandModalOpen(true)} className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3.5 py-2 text-sm font-medium text-slate-600 hover:bg-gray-50">
             <Tag size={16} /> {t.products.brandsBtn}
-          </button>
-          <button onClick={() => setCollectionsModalOpen(true)} className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3.5 py-2 text-sm font-medium text-slate-600 hover:bg-gray-50">
-            <LayoutGrid size={16} /> {t.products.collectionsBtn}
           </button>
           <button onClick={() => exportProductsToCSV(filtered, t, lang)} className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3.5 py-2 text-sm font-medium text-slate-600 hover:bg-gray-50">
             <Download size={16} /> {t.orders.export}
@@ -2231,6 +2462,7 @@ function ProductsPage({ lang, products, categories, brands, collections }) {
         <ProductForm
           lang={lang}
           product={editingProduct}
+          products={products}
           categories={categories}
           brands={brands}
           onClose={() => setFormOpen(false)}
@@ -2263,15 +2495,6 @@ function ProductsPage({ lang, products, categories, brands, collections }) {
         />
       )}
 
-      {collectionsModalOpen && (
-        <CollectionsModal
-          lang={lang}
-          collections={collections}
-          products={products}
-          onClose={() => setCollectionsModalOpen(false)}
-          t={t}
-        />
-      )}
     </div>
   );
 }
@@ -2339,6 +2562,45 @@ function AdminLogin({ lang }) {
   );
 }
 
+/**
+ * Mahsulot kartochkasidagi "savatga qo'shish" boshqaruvi. Hali savatga
+ * qo'shilmagan bo'lsa — oddiy tugma (matn/ikonka `emptyContent` orqali
+ * beriladi). Savatda 1+ dona bo'lsa — to'liq kenglikdagi konturli
+ * "− son +" steperga aylanadi (barcha kartochkalarda bir xil ko'rinish).
+ */
+function AddToCartControl({ qty, soldOut, onIncrease, onDecrease, emptyContent, emptyClassName, theme = "light", size = "md" }) {
+  const th = theme === "dark"
+    ? { border: "border-white/50", text: "text-white", hover: "hover:bg-white/15" }
+    : { border: "border-stone-300", text: "text-stone-900", hover: "hover:bg-stone-100" };
+  const h = size === "sm" ? "h-9" : "h-10 min-[769px]:h-11";
+  const btnSize = size === "sm" ? "h-7 w-7" : "h-8 w-8 min-[769px]:h-9 min-[769px]:w-9";
+  if (qty > 0) {
+    return (
+      <div className={`mt-auto flex ${h} items-center justify-between rounded-full border ${th.border} pl-1 pr-1`}>
+        <button
+          onClick={onDecrease}
+          className={`flex ${btnSize} shrink-0 items-center justify-center rounded-full ${th.text} transition ${th.hover}`}
+        >
+          <Minus size={size === "sm" ? 13 : 15} />
+        </button>
+        <span className={`text-sm font-semibold ${th.text}`}>{qty}</span>
+        <button
+          onClick={onIncrease}
+          disabled={soldOut}
+          className={`flex ${btnSize} shrink-0 items-center justify-center rounded-full ${th.text} transition ${th.hover} disabled:cursor-not-allowed disabled:opacity-40`}
+        >
+          <Plus size={size === "sm" ? 13 : 15} />
+        </button>
+      </div>
+    );
+  }
+  return (
+    <button disabled={soldOut} onClick={onIncrease} className={emptyClassName}>
+      {emptyContent}
+    </button>
+  );
+}
+
 /* ---------------------------------------------------------------
    CUSTOMER-FACING STOREFRONT
 --------------------------------------------------------------- */
@@ -2348,9 +2610,189 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
   const [activeCategory, setActiveCategory] = useState(t.store.allCategories);
   const [activeBrand, setActiveBrand] = useState(t.store.allBrands);
   const [activeCollection, setActiveCollection] = useState(null);
+  // Bannerga biriktirilgan mahsulotlar — banner bosilganda alohida
+  // to'liq sahifada (Mega Chegirma sahifasiga o'xshash) ko'rsatiladi.
+  const [bannerPageOpen, setBannerPageOpen] = useState(false);
+  const [bannerCollection, setBannerCollection] = useState(null);
   const [wishlist, setWishlist] = useState(new Set());
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [wishlistOpen, setWishlistOpen] = useState(false);
+  // "Mega Chegirma" — chegirmadagi barcha mahsulotlar to'liq sahifasi
+  const [discountsPageOpen, setDiscountsPageOpen] = useState(false);
+  const [discountsSearch, setDiscountsSearch] = useState("");
+  const [discountsSort, setDiscountsSort] = useState("default"); // "default" | "priceAsc" | "priceDesc"
+  const [discountsFilterOpen, setDiscountsFilterOpen] = useState(false);
+  const [discountsCategory, setDiscountsCategory] = useState(null);
+  // Kategoriyalar + brendlar to'liq sahifasi (pastki panelning kategoriya tugmasidan ochiladi)
+  const [categoriesPageOpen, setCategoriesPageOpen] = useState(false);
+  const [categoriesPageTab, setCategoriesPageTab] = useState("categories"); // "categories" | "brands"
+  // Qidiruv sahifasi — mobil qidiruv inputiga bosilganda ochiladi, natijalar shu sahifaning o'zida ko'rinadi
+  const [searchPageOpen, setSearchPageOpen] = useState(false);
+  const [searchHistory, setSearchHistory] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("savdo_search_history") || "[]"); } catch { return []; }
+  });
+  const addSearchHistory = (term) => {
+    const val = term.trim();
+    if (!val) return;
+    setSearchHistory(prev => {
+      const next = [val, ...prev.filter(h => h.toLowerCase() !== val.toLowerCase())].slice(0, 8);
+      try { localStorage.setItem("savdo_search_history", JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
+  const clearSearchHistory = () => {
+    setSearchHistory([]);
+    try { localStorage.removeItem("savdo_search_history"); } catch {}
+  };
+  const pickSearchTerm = (term) => {
+    setSearch(term);
+    addSearchHistory(term);
+  };
+  const searchPageLower = search.trim().toLowerCase();
+  const searchPageResults = useMemo(() => {
+    if (!searchPageLower) return [];
+    return products.filter((p) =>
+      pname(p, lang).toLowerCase().includes(searchPageLower) ||
+      (p.category || "").toLowerCase().includes(searchPageLower) ||
+      (p.brand || "").toLowerCase().includes(searchPageLower)
+    );
+  }, [products, searchPageLower, lang]);
+
+  // Kategoriya sahifasi — banner ostidagi "Kategoriyalar" qatoridan bosilganda ochiladi
+  // (xuddi shu sahifa "brand" rejimida — "Barcha mahsulotlar" bo'limidagi
+  // "Barchasini ko'rish" tugmasi orqali — bitta brendning barcha mahsulotlarini ko'rsatish uchun ham ishlatiladi)
+  const [categoryPageOpen, setCategoryPageOpen] = useState(false);
+  const [categoryPageMode, setCategoryPageMode] = useState("category"); // "category" | "brand"
+  const [categoryPageName, setCategoryPageName] = useState(null);
+  const [categoryPageSearch, setCategoryPageSearch] = useState("");
+  const [categoryPageSort, setCategoryPageSort] = useState("popular");
+  const [sortModalOpen, setSortModalOpen] = useState(false);
+  const [filterModalOpen, setFilterModalOpen] = useState(false);
+  // "UZS Narx" bo'limi filtr oynasi ochilganda darhol (avtomatik) ochiq turishi uchun
+  // boshlang'ich qiymat "price" qilib qo'yilgan (boshqa bo'limlar hali yopiq).
+  const [filterExpanded, setFilterExpanded] = useState("price");
+  // Qo'llanilgan (tasdiqlangan) filtrlar
+  const [appliedPriceMin, setAppliedPriceMin] = useState("");
+  const [appliedPriceMax, setAppliedPriceMax] = useState("");
+  const [appliedBrandFilter, setAppliedBrandFilter] = useState([]);
+  const [appliedCategoryFilter, setAppliedCategoryFilter] = useState([]);
+  // Qo'shimcha xususiyat filtrlari (mamlakat, teri turi va h.k.) — { [key]: string[] }
+  const [appliedExtraFilters, setAppliedExtraFilters] = useState({});
+  // Filtr oynasidagi qoralama (Tasdiqlash bosilmaguncha kuchga kirmaydi)
+  const [draftPriceMin, setDraftPriceMin] = useState("");
+  const [draftPriceMax, setDraftPriceMax] = useState("");
+  const [draftBrandFilter, setDraftBrandFilter] = useState([]);
+  const [draftCategoryFilter, setDraftCategoryFilter] = useState([]);
+  const [draftExtraFilters, setDraftExtraFilters] = useState({});
+
+  const openCategoryPage = (name) => {
+    setCategoryPageMode("category");
+    setCategoryPageName(name);
+    setCategoryPageSearch("");
+    setCategoryPageSort("popular");
+    setAppliedPriceMin(""); setAppliedPriceMax(""); setAppliedBrandFilter([]); setAppliedCategoryFilter([]); setAppliedExtraFilters({});
+    setCategoryPageOpen(true);
+  };
+
+  const openBrandPage = (name) => {
+    setCategoryPageMode("brand");
+    setCategoryPageName(name);
+    setCategoryPageSearch("");
+    setCategoryPageSort("popular");
+    setAppliedPriceMin(""); setAppliedPriceMax(""); setAppliedBrandFilter([]); setAppliedCategoryFilter([]); setAppliedExtraFilters({});
+    setCategoryPageOpen(true);
+  };
+
+  const categoryPageObj = useMemo(
+    () => categories.find(c => c.name === categoryPageName) || null,
+    [categories, categoryPageName]
+  );
+  const categoryPageHeroImg = categoryPageMode === "brand"
+    ? (brands.find(b => b.name === categoryPageName)?.imageUrl || null)
+    : (categoryPageObj ? itemThumb(categoryPageObj, products, "category") : null);
+  const categoryPageProducts = useMemo(() => {
+    // "Barchasi" (Hammasi/allBrands yoki allCategories) — bu haqiqiy brend/kategoriya
+    // nomi emas, balki "filtrlamasdan hammasini ko'rsat" degan maxsus belgi.
+    // Shuni literal qiymat sifatida solishtirsak — hech qanday mahsulot mos kelmay,
+    // sahifa bo'sh chiqib qolardi (aynan shu xatolik "Barchasi" sahifasida yuz bergan edi).
+    if (categoryPageMode === "brand") {
+      return categoryPageName === t.store.allBrands ? products : products.filter(p => p.brand === categoryPageName);
+    }
+    return categoryPageName === t.store.allCategories ? products : products.filter(p => p.category === categoryPageName);
+  }, [products, categoryPageName, categoryPageMode, t]);
+  const categoryPagePriceBounds = useMemo(() => {
+    const vals = categoryPageProducts.map(p => Number(p.price) || 0);
+    return { min: vals.length ? Math.min(...vals) : 0, max: vals.length ? Math.max(...vals) : 0 };
+  }, [categoryPageProducts]);
+  const categoryPageBrands = useMemo(
+    () => Array.from(new Set(categoryPageProducts.map(p => p.brand).filter(Boolean))),
+    [categoryPageProducts]
+  );
+  const categoryPageCategories = useMemo(
+    () => Array.from(new Set(categoryPageProducts.map(p => p.category).filter(Boolean))),
+    [categoryPageProducts]
+  );
+  // Har bir qo'shimcha xususiyat (mamlakat, teri turi va h.k.) uchun shu sahifadagi
+  // mahsulotlarda uchraydigan noyob qiymatlar ro'yxati — checkbox variantlari sifatida.
+  const categoryPageExtraOptions = useMemo(() => {
+    const map = {};
+    for (const key of EXTRA_FILTER_KEYS) {
+      map[key] = Array.from(new Set(categoryPageProducts.map(p => p[key]).filter(Boolean)));
+    }
+    return map;
+  }, [categoryPageProducts]);
+  const categoryPageResults = useMemo(() => {
+    const q = categoryPageSearch.trim().toLowerCase();
+    let list = categoryPageProducts.filter(p => {
+      const nameMatch = !q || pname(p, lang).toLowerCase().includes(q) || (p.brand || "").toLowerCase().includes(q);
+      const minOk = !appliedPriceMin || (Number(p.price) || 0) >= Number(appliedPriceMin);
+      const maxOk = !appliedPriceMax || (Number(p.price) || 0) <= Number(appliedPriceMax);
+      const brandOk = appliedBrandFilter.length === 0 || appliedBrandFilter.includes(p.brand);
+      const categoryOk = appliedCategoryFilter.length === 0 || appliedCategoryFilter.includes(p.category);
+      const extraOk = EXTRA_FILTER_KEYS.every((key) => {
+        const selected = appliedExtraFilters[key];
+        return !selected || selected.length === 0 || selected.includes(p[key]);
+      });
+      return nameMatch && minOk && maxOk && brandOk && categoryOk && extraOk;
+    });
+    list = [...list];
+    if (categoryPageSort === "nameAsc") list.sort((a, b) => pname(a, lang).localeCompare(pname(b, lang)));
+    else if (categoryPageSort === "nameDesc") list.sort((a, b) => pname(b, lang).localeCompare(pname(a, lang)));
+    else if (categoryPageSort === "priceAsc") list.sort((a, b) => (a.price || 0) - (b.price || 0));
+    else if (categoryPageSort === "priceDesc") list.sort((a, b) => (b.price || 0) - (a.price || 0));
+    else if (categoryPageSort === "newest") list.reverse();
+    else if (categoryPageSort === "rating") list.sort((a, b) => (Number(b.rating) || 0) - (Number(a.rating) || 0));
+    // "popular" va "oldest" — asl tartibda qoladi
+    return list;
+  }, [categoryPageProducts, categoryPageSearch, categoryPageSort, appliedPriceMin, appliedPriceMax, appliedBrandFilter, appliedCategoryFilter, appliedExtraFilters, lang]);
+
+  const openFilterModal = () => {
+    setDraftPriceMin(appliedPriceMin); setDraftPriceMax(appliedPriceMax); setDraftBrandFilter(appliedBrandFilter); setDraftCategoryFilter(appliedCategoryFilter);
+    setDraftExtraFilters(appliedExtraFilters);
+    setFilterExpanded("price");
+    setFilterModalOpen(true);
+  };
+  const applyFilters = () => {
+    setAppliedPriceMin(draftPriceMin); setAppliedPriceMax(draftPriceMax); setAppliedBrandFilter(draftBrandFilter); setAppliedCategoryFilter(draftCategoryFilter);
+    setAppliedExtraFilters(draftExtraFilters);
+    setFilterModalOpen(false);
+  };
+  const toggleDraftBrand = (name) => {
+    setDraftBrandFilter(prev => prev.includes(name) ? prev.filter(b => b !== name) : [...prev, name]);
+  };
+  const toggleDraftCategory = (name) => {
+    setDraftCategoryFilter(prev => prev.includes(name) ? prev.filter(c => c !== name) : [...prev, name]);
+  };
+  const toggleDraftExtra = (key, value) => {
+    setDraftExtraFilters(prev => {
+      const cur = prev[key] || [];
+      const next = cur.includes(value) ? cur.filter(v => v !== value) : [...cur, value];
+      return { ...prev, [key]: next };
+    });
+  };
+  const activeFilterCount = (appliedPriceMin ? 1 : 0) + (appliedPriceMax ? 1 : 0) + appliedBrandFilter.length + appliedCategoryFilter.length +
+    Object.values(appliedExtraFilters).reduce((s, arr) => s + (arr ? arr.length : 0), 0);
+
   const [profileOpen, setProfileOpen] = useState(false);
   const [profileView, setProfileView] = useState("menu"); // "menu" | "personal" | "orders" | "addresses"
   const [myOrders, setMyOrders] = useState([]);
@@ -2363,18 +2805,89 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
   const [phoneInput, setPhoneInput] = useState(myPhone);
   const [savingPhone, setSavingPhone] = useState(false);
   const [phoneSaved, setPhoneSaved] = useState(false);
-  // Yetkazib berish manzili — xuddi telefon kabi, brauzerda va mijoz
-  // yozuvida (Firestore) saqlanadi.
-  const [myAddress, setMyAddress] = useState(() => {
-    try { return localStorage.getItem("savdo_my_address") || ""; } catch { return ""; }
+  // Yetkazib berish manzillari — bir nechta manzil, har biriga xohlasa
+  // joylashuv (lat/lng) ham biriktirilishi mumkin. Brauzerda va (telefon
+  // bog'langan bo'lsa) mijoz yozuvida (Firestore) saqlanadi.
+  const [myAddresses, setMyAddresses] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("savdo_my_addresses") || "[]"); } catch { return []; }
   });
-  const [addressInput, setAddressInput] = useState(myAddress);
+  const [addressFormOpen, setAddressFormOpen] = useState(false);
+  const [editingAddressId, setEditingAddressId] = useState(null); // null = yangi qo'shish, aks holda tahrirlash
+  const [newAddressText, setNewAddressText] = useState("");
+  const [newAddressLocation, setNewAddressLocation] = useState(null);
   const [savingAddress, setSavingAddress] = useState(false);
-  const [addressSaved, setAddressSaved] = useState(false);
+  const [showAddressMap, setShowAddressMap] = useState(false);
+  const [showCheckoutMap, setShowCheckoutMap] = useState(false);
+  // "Shaxsiy ma'lumotlar" bo'limidagi ism va email — xuddi telefon/manzil
+  // kabi brauzerda va (agar telefon bog'langan bo'lsa) mijoz yozuvida saqlanadi.
+  const [myName, setMyName] = useState(() => {
+    try { return localStorage.getItem("savdo_my_name") || ""; } catch { return ""; }
+  });
+  const [myEmail, setMyEmail] = useState(() => {
+    try { return localStorage.getItem("savdo_my_email") || ""; } catch { return ""; }
+  });
+  const [editField, setEditField] = useState(null); // null | "name" | "email"
+  const [editInput, setEditInput] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
+  const openEditModal = (field) => {
+    setEditField(field);
+    setEditInput(field === "name" ? myName : myEmail);
+  };
+  const saveEditField = async () => {
+    const value = editInput.trim();
+    if (!value) return;
+    setSavingEdit(true);
+    try {
+      if (editField === "name") {
+        try { localStorage.setItem("savdo_my_name", value); } catch {}
+        setMyName(value);
+        setForm(f => ({ ...f, name: value }));
+      } else if (editField === "email") {
+        try { localStorage.setItem("savdo_my_email", value); } catch {}
+        setMyEmail(value);
+      }
+      if (myPhone) {
+        const existing = await findCustomerByPhone(myPhone);
+        if (existing) {
+          await updateItem(COL.customers, existing.id, editField === "name" ? { name: value } : { email: value });
+        }
+      }
+      setEditField(null);
+    } catch (e) {
+      console.error("Ma'lumotni saqlashda xatolik:", e);
+    }
+    setSavingEdit(false);
+  };
   const [customersCount, setCustomersCount] = useState(null);
   useEffect(() => {
     getCustomersCount().then(setCustomersCount);
   }, []);
+  // Mijozning bonus balansi (banner ustida ko'rsatish uchun) — Telegram
+  // ID yoki saqlangan telefon raqami bo'yicha Firestore'dan olinadi.
+  const [myBonus, setMyBonus] = useState(0);
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      try {
+        let customer = null;
+        if (tgUser?.id) customer = await findCustomerByTelegramId(tgUser.id);
+        if (!customer && myPhone) customer = await findCustomerByPhone(myPhone);
+        if (!cancelled) {
+          setMyBonus(customer ? Number(customer.bonusPoints) || 0 : 0);
+          if (customer?.name && !myName) { setMyName(customer.name); try { localStorage.setItem("savdo_my_name", customer.name); } catch {} }
+          if (customer?.email && !myEmail) { setMyEmail(customer.email); try { localStorage.setItem("savdo_my_email", customer.email); } catch {} }
+          if (Array.isArray(customer?.addresses) && customer.addresses.length > 0 && myAddresses.length === 0) {
+            setMyAddresses(customer.addresses);
+            try { localStorage.setItem("savdo_my_addresses", JSON.stringify(customer.addresses)); } catch {}
+          }
+        }
+      } catch {
+        if (!cancelled) setMyBonus(0);
+      }
+    };
+    run();
+    return () => { cancelled = true; };
+  }, [tgUser, myPhone, phoneSaved, profileOpen]);
   const avgRating = useMemo(() => {
     const rated = products.filter(p => Number(p.rating) > 0);
     if (!rated.length) return 0;
@@ -2384,6 +2897,12 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
   // Har bir mahsulot qaysi kolleksiya orqali savatga tushgani (savatda
   // guruhlab, kolleksiya nomi bilan ko'rsatish uchun). productId -> kolleksiya nomi.
   const [cartCollectionTags, setCartCollectionTags] = useState({});
+  // Faqat "Keng banner" orqali kirib qo'shilgan mahsulotlarga tegishli
+  // chegirma foizi. productId -> foiz. Mahsulotning o'zidagi narxi
+  // (product.price) o'zgarmaydi — chegirma faqat shu savat elementining
+  // yakuniy summasiga (cartTotal) qo'llanadi, boshqa joyda (mahsulot
+  // sahifasi, boshqa bo'limlar) ko'rinmaydi.
+  const [cartItemDiscounts, setCartItemDiscounts] = useState({});
   const [expandedCartGroups, setExpandedCartGroups] = useState(new Set());
   const popularRowRef = useRef(null);
   const scrollPopularPrev = () => popularRowRef.current?.scrollBy({ left: -320, behavior: "smooth" });
@@ -2392,7 +2911,6 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
   const { viewportRef: catalogViewportRef, scrollPrev: scrollCatalogPrev, scrollNext: scrollCatalogNext } = useCarouselRow();
   const { viewportRef: brandViewportRef, scrollPrev: scrollBrandPrev, scrollNext: scrollBrandNext } = useCarouselRow();
   const [cartOpen, setCartOpen] = useState(false);
-  const [aiChatOpen, setAiChatOpen] = useState(false);
   const [activeNavTab, setActiveNavTab] = useState("home");
   const [phoneLoginOpen, setPhoneLoginOpen] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
@@ -2401,32 +2919,36 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
   const [otpSending, setOtpSending] = useState(false);
   const [otpError, setOtpError] = useState("");
   const [checkoutOpen, setCheckoutOpen] = useState(false);
-  const [form, setForm] = useState({ name: "", phone: "", payment: "cash", address: "" });
+  const [form, setForm] = useState({ name: "", phone: "", phone2: "", payment: "cash", address: "" });
+  const [showPhone2, setShowPhone2] = useState(false);
   const [location, setLocation] = useState(null); // {lat, lng}
-  const [locating, setLocating] = useState(false);
-  const [locError, setLocError] = useState("");
   const [error, setError] = useState("");
   const [placing, setPlacing] = useState(false);
   const [done, setDone] = useState(false);
 
-  // Telegram ichida ochilgan bo'lsa — ismni avtomatik to'ldiramiz
-  // (foydalanuvchi kerak bo'lsa o'zi qayta o'zgartira oladi).
+  // Ism avtomatik to'ldiriladi — Telegram ichida bo'lsa Telegramdagi ism,
+  // aks holda profilda saqlangan ism (myName) ishlatiladi. Foydalanuvchi
+  // kerak bo'lsa o'zi qayta o'zgartira oladi.
   useEffect(() => {
-    if (tgUser) {
-      const fullName = [tgUser.first_name, tgUser.last_name].filter(Boolean).join(" ");
-      setForm(f => (f.name ? f : { ...f, name: fullName }));
-    }
-  }, [tgUser]);
+    const fullName = tgUser ? [tgUser.first_name, tgUser.last_name].filter(Boolean).join(" ") : myName;
+    if (fullName) setForm(f => (f.name ? f : { ...f, name: fullName }));
+  }, [tgUser, myName]);
 
   // Saqlangan telefon raqami bo'lsa, checkout formadagi telefonni ham avtomatik to'ldiramiz.
   useEffect(() => {
     if (myPhone) setForm(f => (f.phone ? f : { ...f, phone: myPhone }));
   }, [myPhone]);
 
-  // Saqlangan manzil bo'lsa, checkout formadagi manzilni ham avtomatik to'ldiramiz.
+  // Saqlangan manzillar bo'lsa, checkout formadagi manzilni birinchi
+  // saqlangan manzil bilan avtomatik to'ldiramiz (mijoz xohlasa o'zi tanlaydi).
   useEffect(() => {
-    if (myAddress) setForm(f => (f.address ? f : { ...f, address: myAddress }));
-  }, [myAddress]);
+    if (myAddresses.length > 0) {
+      setForm(f => (f.address ? f : { ...f, address: myAddresses[0].text }));
+      if (myAddresses[0].lat != null && myAddresses[0].lng != null) {
+        setLocation(prev => prev || { lat: myAddresses[0].lat, lng: myAddresses[0].lng });
+      }
+    }
+  }, [myAddresses]);
 
   // SEO — sayt sarlavhasi va qisqa tavsifini Sozlamalarda kiritilgan
   // qiymatlar bilan yangilaymiz (Google va boshqa qidiruv tizimlari uchun).
@@ -2510,6 +3032,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
           telegramFirstName: tgUser?.first_name || null,
           telegramUsername: tgUser?.username || null,
           address: "", orders: 0, spent: 0, date: todayISO(),
+          bonusPoints: 20000, // Yangi mijozga xush kelibsiz bonusi
         });
       }
       try { localStorage.setItem("savdo_my_phone", phone); } catch {}
@@ -2522,26 +3045,92 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
     setSavingPhone(false);
   };
 
-  /** Yetkazib berish manzilini saqlaydi — telefon bilan bog'liq mijoz
-   *  yozuviga (Firestore) va localStorage'ga. */
+
+  /** Manzil qo'shish formasini ochadi — parametr berilsa (mavjud manzil)
+   *  tahrirlash rejimida, aks holda yangi manzil qo'shish rejimida ochiladi. */
+  const openAddressForm = (addr) => {
+    if (addr) {
+      setEditingAddressId(addr.id);
+      setNewAddressText(addr.text || "");
+      setNewAddressLocation(addr.lat != null && addr.lng != null ? { lat: addr.lat, lng: addr.lng } : null);
+    } else {
+      setEditingAddressId(null);
+      setNewAddressText("");
+      setNewAddressLocation(null);
+    }
+    setShowAddressMap(false);
+    setAddressFormOpen(true);
+  };
+
+  const closeAddressForm = () => {
+    setAddressFormOpen(false);
+    setEditingAddressId(null);
+    setNewAddressText("");
+    setNewAddressLocation(null);
+    setShowAddressMap(false);
+  };
+
+  /** Yangi manzilni ro'yxatga qo'shadi yoki (tahrirlash rejimida bo'lsa)
+   *  mavjud manzilni yangilaydi — telefon bilan bog'liq mijoz yozuviga
+   *  (Firestore) va localStorage'ga saqlaydi. Bir nechta manzil saqlanishi
+   *  mumkin, buyurtma berishda mijoz shulardan birini tanlaydi. */
   const saveMyAddress = async () => {
-    if (!addressInput.trim()) return;
+    if (!newAddressText.trim()) return;
     setSavingAddress(true);
     try {
+      const addrData = {
+        text: newAddressText.trim(),
+        lat: newAddressLocation?.lat ?? null,
+        lng: newAddressLocation?.lng ?? null,
+      };
+      const nextAddresses = editingAddressId
+        ? myAddresses.map(a => (a.id === editingAddressId ? { ...a, ...addrData } : a))
+        : [...myAddresses, { id: uid(), ...addrData }];
       if (myPhone) {
         const existing = await findCustomerByPhone(myPhone);
         if (existing) {
-          await updateItem(COL.customers, existing.id, { address: addressInput.trim() });
+          await updateItem(COL.customers, existing.id, { addresses: nextAddresses, address: addrData.text });
         }
       }
-      try { localStorage.setItem("savdo_my_address", addressInput.trim()); } catch {}
-      setMyAddress(addressInput.trim());
-      setAddressSaved(true);
-      setTimeout(() => setAddressSaved(false), 2500);
+      try { localStorage.setItem("savdo_my_addresses", JSON.stringify(nextAddresses)); } catch {}
+      setMyAddresses(nextAddresses);
+      closeAddressForm();
     } catch (e) {
       console.error("Manzilni saqlashda xatolik:", e);
     }
     setSavingAddress(false);
+  };
+
+  /** Saqlangan manzillar ro'yxatidan birini o'chiradi. */
+  const deleteMyAddress = async (id) => {
+    const nextAddresses = myAddresses.filter(a => a.id !== id);
+    try {
+      if (myPhone) {
+        const existing = await findCustomerByPhone(myPhone);
+        if (existing) await updateItem(COL.customers, existing.id, { addresses: nextAddresses });
+      }
+      try { localStorage.setItem("savdo_my_addresses", JSON.stringify(nextAddresses)); } catch {}
+      setMyAddresses(nextAddresses);
+    } catch (e) {
+      console.error("Manzilni o'chirishda xatolik:", e);
+    }
+  };
+
+  /** Checkout formasida saqlangan manzillardan birini tanlash — matn va
+   *  (mavjud bo'lsa) joylashuvni formaga va location state'ga o'tkazadi.
+   *  Agar allaqachon tanlangan manzil qayta bosilsa — tanlov bekor qilinadi. */
+  const pickAddressForOrder = (addr) => {
+    if (form.address === addr.text) {
+      setForm(f => ({ ...f, address: "" }));
+      setLocation(null);
+      return;
+    }
+    setForm(f => ({ ...f, address: addr.text }));
+    if (addr.lat != null && addr.lng != null) {
+      setLocation({ lat: addr.lat, lng: addr.lng });
+    } else {
+      setLocation(null);
+    }
   };
 
   /** Profil tugmasi bosilganda — telefon hali bog'lanmagan bo'lsa (va Telegram
@@ -2612,14 +3201,41 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
     return [t.store.allCategories, ...categories.map(c => c.name)];
   }, [categories, lang]);
 
+  // Qidiruv — mahsulot nomi bo'yicha YOKI kategoriya nomi bo'yicha mos keladi
+  // (masalan "krem" yozilsa shu nomdagi mahsulotlar, "parfyumeriya" yozilsa
+  // shu kategoriyaga tegishli barcha mahsulotlar ko'rinadi).
+  const searchLower = search.trim().toLowerCase();
+  const matchesSearch = (p) => {
+    if (!searchLower) return true;
+    if (pname(p, lang).toLowerCase().includes(searchLower)) return true;
+    if ((p.category || "").toLowerCase().includes(searchLower)) return true;
+    if ((p.brand || "").toLowerCase().includes(searchLower)) return true;
+    return false;
+  };
   const filtered = activeCollection
     ? products.filter(p => (activeCollection.productIds || []).includes(p.id))
     : products.filter(p =>
-        pname(p, lang).toLowerCase().includes(search.toLowerCase()) &&
+        matchesSearch(p) &&
         (activeCategory === t.store.allCategories || p.category === activeCategory) &&
         (activeBrand === t.store.allBrands || p.brand === activeBrand)
       );
   const brandFiltered = products.filter(p => activeBrand === t.store.allBrands || p.brand === activeBrand);
+
+  // "Mega Chegirma" sahifasi uchun — barcha chegirmadagi mahsulotlar, qidiruv/kategoriya/saralash bilan
+  const discountedProducts = useMemo(() => products.filter(p => p.oldPrice > p.price), [products]);
+  const discountCategories = useMemo(() => {
+    const names = new Set(discountedProducts.map(p => p.category).filter(Boolean));
+    return categories.filter(c => names.has(c.name));
+  }, [discountedProducts, categories]);
+  const discountsFiltered = useMemo(() => {
+    let list = discountedProducts.filter(p =>
+      pname(p, lang).toLowerCase().includes(discountsSearch.toLowerCase()) &&
+      (!discountsCategory || p.category === discountsCategory)
+    );
+    if (discountsSort === "priceAsc") list = [...list].sort((a, b) => a.price - b.price);
+    if (discountsSort === "priceDesc") list = [...list].sort((a, b) => b.price - a.price);
+    return list;
+  }, [discountedProducts, discountsSearch, discountsCategory, discountsSort, lang]);
 
   const toggleWishlist = (id) => {
     setWishlist(prev => {
@@ -2631,10 +3247,15 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
   const wishlistItems = products.filter(p => wishlist.has(p.id));
 
   const cartItems = Object.entries(cart)
-    .map(([id, qty]) => ({ product: products.find(p => p.id === id), qty }))
+    .map(([id, qty]) => {
+      const product = products.find(p => p.id === id);
+      const discPct = product ? (cartItemDiscounts[id] || 0) : 0;
+      const unitPrice = product ? (discPct > 0 ? Math.max(0, Math.round(product.price * (1 - discPct / 100))) : product.price) : 0;
+      return { product, qty, unitPrice, discPct };
+    })
     .filter(i => i.product && i.qty > 0);
   const cartCount = cartItems.reduce((s, i) => s + i.qty, 0);
-  const cartTotal = cartItems.reduce((s, i) => s + i.product.price * i.qty, 0);
+  const cartTotal = cartItems.reduce((s, i) => s + i.unitPrice * i.qty, 0);
 
   // Savat elementlarini kolleksiya bo'yicha guruhlaymiz — shu kolleksiya
   // orqali qo'shilgan mahsulotlar savatda alohida emas, kolleksiya nomi
@@ -2673,6 +3294,11 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
       items.forEach(({ product }) => { delete next[product.id]; });
       return next;
     });
+    setCartItemDiscounts(prev => {
+      const next = { ...prev };
+      items.forEach(({ product }) => { delete next[product.id]; });
+      return next;
+    });
   };
 
   // Promo kod
@@ -2690,6 +3316,18 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
   }, [appliedPromo, cartTotal]);
 
   const cartTotalAfterDiscount = Math.max(0, cartTotal - promoDiscount);
+
+  // Bonusdan foydalanish — mijoz o'z bonus balansidan xohlagan miqdorini
+  // (buyurtma summasidan oshmagan holda) buyurtmaga qo'llashi mumkin.
+  const [bonusToUse, setBonusToUse] = useState("");
+  const maxBonusUsable = Math.max(0, Math.min(myBonus, cartTotalAfterDiscount));
+  const bonusApplied = Math.min(Number(bonusToUse) || 0, maxBonusUsable);
+  const cartTotalAfterBonus = Math.max(0, cartTotalAfterDiscount - bonusApplied);
+  const setBonusToUseClamped = (v) => {
+    const num = Number(v.replace(/[^\d]/g, "")) || 0;
+    setBonusToUse(String(Math.min(num, maxBonusUsable)));
+  };
+  const useMaxBonus = () => setBonusToUse(String(maxBonusUsable));
 
   const applyPromoCode = async () => {
     setPromoError("");
@@ -2722,7 +3360,13 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
     setPromoError("");
   };
 
-  const addToCart = (p) => {
+  /**
+   * `discountPercent` — ixtiyoriy. Faqat "Keng banner" sahifasidan
+   * qo'shilayotgan mahsulotlar uchun beriladi: shunda shu mahsulot
+   * savatdagi yakuniy summada shu foizda arzonlashadi, lekin
+   * mahsulotning o'z narxi (boshqa joylarda ko'rinadigani) o'zgarmaydi.
+   */
+  const addToCart = (p, discountPercent) => {
     if (p.stockType === "out") return;
     setCart(prev => {
       const current = prev[p.id] || 0;
@@ -2730,6 +3374,9 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
       hapticFeedback("impact", "light");
       return { ...prev, [p.id]: current + 1 };
     });
+    if (discountPercent > 0) {
+      setCartItemDiscounts(prev => ({ ...prev, [p.id]: discountPercent }));
+    }
   };
 
   /**
@@ -2738,12 +3385,12 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
    * kolleksiya nomi bilan "belgilaydi" — shuning uchun savatda alohida
    * mahsulot nomlari o'rniga kolleksiya nomi bilan guruhlanib ko'rinadi.
    */
-  const addAllCollectionToCart = (collection, collectionProducts) => {
+  const addAllCollectionToCart = (collection, collectionProducts, discountPercent) => {
     let addedAny = false;
     const newTags = {};
     collectionProducts.forEach(p => {
       if ((p.stockType || "limited") === "out") return;
-      addToCart(p);
+      addToCart(p, discountPercent);
       newTags[p.id] = collectionTitle(collection, lang);
       addedAny = true;
     });
@@ -2754,18 +3401,71 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
     }
   };
 
-  const addLinkedProductsToCart = (linkedProducts) => {
-    let addedAny = false;
-    linkedProducts.forEach(p => {
-      if ((p.stockType || "limited") === "out") return;
-      addToCart(p);
-      addedAny = true;
+  /**
+   * Banner (yoki uning tugmasi/tayli) bosilganda — savatga avtomatik
+   * qo'shmasdan, biriktirilgan mahsulotlarni alohida to'liq sahifada
+   * ("psevdo-to'plam" sifatida) ochadi. Shu sahifada mijoz mahsulotlarni
+   * ko'rib, xohlasa "Barchasini savatga qo'shish" tugmasi bilan bir
+   * bosishda hammasini qo'shadi, yoki har birini alohida tanlaydi.
+   */
+  const viewLinkedProducts = (banner, linkedIds) => {
+    if (!linkedIds || linkedIds.length === 0) return;
+    setBannerCollection({
+      id: `banner-${banner.id}`,
+      title: banner.title || "",
+      titleUz: banner.title || "",
+      titleRu: banner.title || "",
+      badge: banner.badge || "",
+      subtitle: banner.subtitle || "",
+      mobileImage: banner.mobileImage || banner.desktopImage || "",
+      desktopImage: banner.desktopImage || banner.mobileImage || "",
+      productIds: linkedIds,
+      hideBulkActions: banner.showTotalCalc === false,
     });
-    if (addedAny) {
-      hapticFeedback("notification", "success");
-      setCartOpen(true);
-    }
+    setBannerPageOpen(true);
+    hapticFeedback("selection");
   };
+
+  /**
+   * "Keng banner" bo'limidagi kolleksiyalar (WideCollectionShowcase) —
+   * bosilganda ham xuddi bosh banner kabi, biriktirilgan mahsulotlar
+   * alohida to'liq sahifada ko'rsatiladi (o'sha bannerPageOpen sahifasi
+   * qayta ishlatiladi).
+   */
+  const viewWideBannerProducts = (c) => {
+    if (!c || !(c.productIds || []).length) return;
+    setBannerCollection({
+      id: c.id,
+      titleUz: c.titleUz,
+      titleRu: c.titleRu,
+      title: c.title,
+      badge: "",
+      subtitle: collectionDescription(c, lang),
+      mobileImage: c.imageUrl,
+      desktopImage: c.imageUrl,
+      productIds: c.productIds || [],
+      discountPercent: Number(c.discountPercent) || 0,
+      // Admin "Jami narx hisoblash" tugmasi orqali har bir banner/to'plam
+      // uchun alohida yoqib-o'chirish mumkin.
+      hideBulkActions: c.showTotalCalc === false,
+    });
+    setBannerPageOpen(true);
+    hapticFeedback("selection");
+  };
+
+  const bannerPageProducts = useMemo(
+    () => (bannerCollection ? products.filter(p => (bannerCollection.productIds || []).includes(p.id)) : []),
+    [products, bannerCollection]
+  );
+  // Shu banner sahifasiga xos chegirma (agar admin belgilagan bo'lsa) —
+  // faqat shu sahifada ko'rinadi va shu yerdan qo'shilgan mahsulotlarga
+  // qo'llanadi.
+  const bannerDiscPct = bannerCollection?.discountPercent || 0;
+  const bannerPageTotal = bannerPageProducts.reduce((s, p) => {
+    const base = Number(p.price) || 0;
+    const unit = bannerDiscPct > 0 ? Math.max(0, Math.round(base * (1 - bannerDiscPct / 100))) : base;
+    return s + unit;
+  }, 0);
   const changeQty = (id, delta) => {
     setCart(prev => {
       const next = Math.max(0, (prev[id] || 0) + delta);
@@ -2793,26 +3493,6 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
     }
   }, [checkoutOpen, done, form, location, cartTotal]);
 
-  const requestLocation = () => {
-    if (!navigator.geolocation) {
-      setLocError(t.store.locationError);
-      return;
-    }
-    setLocating(true);
-    setLocError("");
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-        setLocating(false);
-      },
-      () => {
-        setLocError(t.store.locationError);
-        setLocating(false);
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
-  };
-
   const submitOrder = async () => {
     if (!form.name.trim() || !form.address.trim() || cartItems.length === 0) {
       setError(t.common.required);
@@ -2830,7 +3510,8 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
     const orderData = {
       customer: form.name.trim(),
       phone,
-      amount: cartTotalAfterDiscount,
+      phone2: form.phone2?.trim() || null,
+      amount: cartTotalAfterBonus,
       status: "new",
       date: todayISO(),
       payment: form.payment,
@@ -2838,6 +3519,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
       location: location || null,
       promoCode: appliedPromo?.code || null,
       promoDiscount: promoDiscount || 0,
+      bonusUsed: bonusApplied || 0,
       items: cartItems.map(i => ({
         productId: i.product.id,
         productName: pname(i.product, lang),
@@ -2861,7 +3543,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
         customerName: form.name.trim(),
         customerPhone: phone,
         customerAddress: form.address.trim(),
-        cartTotal: cartTotalAfterDiscount,
+        cartTotal: cartTotalAfterBonus,
         orderData,
       });
 
@@ -2869,11 +3551,21 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
         incrementPromoCodeUsage(appliedPromo.id);
       }
 
+      // Ishlatilgan bonusni mijoz balansidan ayiramiz.
+      if (bonusApplied > 0 && existing) {
+        await updateItem(COL.customers, existing.id, {
+          bonusPoints: Math.max(0, (Number(existing.bonusPoints) || 0) - bonusApplied),
+        });
+        setMyBonus(b => Math.max(0, b - bonusApplied));
+      }
+      setBonusToUse("");
+
       hapticFeedback("notification", "success");
       setPlacing(false);
       setDone(true);
       setCart({});
       setCartCollectionTags({});
+      setCartItemDiscounts({});
 
       // Firestore'ga yozib bo'lgandan KEYIN — botga xabar yuborishga urinamiz.
       // Bu qadam ixtiyoriy: agar tarmoq bilan muammo bo'lsa ham, buyurtma
@@ -2896,20 +3588,25 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
     setDone(false);
     setCheckoutOpen(false);
     setCartOpen(false);
-    setForm({ name: "", phone: "", payment: "cash", address: "" });
+    // Ism/telefonni butunlay bo'shatib qo'ymaymiz — mijoz keyingi safar
+    // buyurtma berganda ular yana avtomatik to'ldirilgan holda tursin.
+    const fullName = tgUser ? [tgUser.first_name, tgUser.last_name].filter(Boolean).join(" ") : myName;
+    setForm({ name: fullName || "", phone: myPhone || "", payment: "cash", address: "", phone2: "" });
     setLocation(null);
-    setLocError("");
     setError("");
     removePromoCode();
+    setBonusToUse("");
+    setShowCheckoutMap(false);
+    setShowPhone2(false);
   };
 
   return (
     <div
       className="min-h-[600px] w-full bg-white"
-      style={{ fontFamily: "Inter, system-ui, sans-serif", backgroundColor: "var(--tg-secondary-bg-color, #FFF7F8)" }}
+      style={{ fontFamily: "Inter, system-ui, sans-serif", backgroundColor: "var(--tg-secondary-bg-color, #FFFFFF)" }}
     >
       {/* Store header */}
-      <header className="sticky top-0 z-20 border-b border-gray-100 bg-white/95 px-6 py-3 backdrop-blur">
+      <header className="sticky top-0 z-20 hidden border-b border-gray-100 bg-white/95 px-6 py-3 backdrop-blur md:block">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2.5">
             {storeSettings?.logoUrl ? (
@@ -2927,7 +3624,6 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
             {[
               { label: t.store.navHome, id: null },
               { label: t.store.navShop, id: "shop-section" },
-              { label: t.store.navCategories, id: "categories-section" },
             ].map((item) => (
               <button
                 key={item.label}
@@ -2965,7 +3661,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
               )}
               <span className="hidden sm:inline">{t.store.wishlist}</span>
             </button>
-            <button onClick={() => setCartOpen(true)} className="relative flex items-center gap-1.5 rounded-full px-2.5 py-2 text-xs font-medium text-stone-600 hover:bg-rose-50">
+            <button onClick={() => setCartOpen(true)} className={`relative flex items-center gap-1.5 rounded-full px-2.5 py-2 text-xs font-medium transition ${cartCount > 0 ? "bg-rose-50 text-rose-600" : "text-stone-600 hover:bg-rose-50"}`}>
               <ShoppingCart size={19} />
               {cartCount > 0 && (
                 <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-stone-900 text-[10px] font-semibold text-white">
@@ -2982,66 +3678,53 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
         </div>
       </header>
 
-      {/* Hero banner — admin panelning "Banner" bo'limidan boshqariladi */}
-      <div className="relative px-4 pt-6 min-[769px]:px-6">
-        <Banner banners={banners} inTelegram={inTelegram} t={t} products={products} onAddLinkedProducts={addLinkedProductsToCart} />
-        {/* Suzuvchi chat tugmasi — keyinchalik AI agent shu yerga ulanadi */}
-        <button
-          onClick={() => setAiChatOpen(true)}
+      {/* Hero banner — admin panelning "Banner" bo'limidan boshqariladi. Mobilda header yashirin bo'lgani uchun banner tepaga taqab qo'yiladi, yon tomonlarda gap saqlanadi. */}
+      <div className="relative px-0 pt-0 md:pt-6 min-[769px]:px-6">
+        <Banner banners={banners} inTelegram={inTelegram} t={t} onViewLinkedProducts={viewLinkedProducts} />
+        {/* Mijozning bonus balansi — banner ustida, yuqori o'ng burchakda */}
+        <div className="absolute right-7 top-9 flex items-center gap-1 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-rose-600 shadow-lg min-[769px]:right-9 min-[769px]:top-9">
+          <Wallet size={13} />
+          {fmtMoney(myBonus)} {t.common.uzs}
+        </div>
+        {/* Suzuvchi chat tugmasi — bonus belgisi ostida, Telegram chatga yo'naltiradi */}
+        <a
+          href="https://t.me/casmeuz"
+          target="_blank"
+          rel="noopener noreferrer"
           aria-label="Chat"
-          className="absolute right-7 top-9 flex h-10 w-10 items-center justify-center rounded-full bg-white text-stone-700 shadow-lg transition hover:scale-105 min-[769px]:right-9 min-[769px]:top-9"
+          className="absolute right-7 top-[74px] flex h-10 w-10 items-center justify-center rounded-full bg-white text-stone-700 shadow-lg transition hover:scale-105 min-[769px]:right-9 min-[769px]:top-[74px]"
         >
           <MessageCircle size={19} />
-        </button>
+        </a>
       </div>
 
-      {/* Mobil qidiruv — banner ostida (mobil ilovalardagi kabi) */}
-      <div className="relative px-4 pt-4 md:hidden">
+      {/* Mobil qidiruv — banner ostida (mobil ilovalardagi kabi). Bosilganda alohida qidiruv sahifasi ochiladi. */}
+      <div className="relative px-[5px] pt-4 md:hidden">
         <Search size={15} className="absolute left-7 top-1/2 -translate-y-1/2 text-stone-400" />
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t.store.searchPh}
-          className="w-full rounded-full border border-rose-100 bg-white py-2.5 pl-9 pr-3 text-sm outline-none focus:border-stone-400" />
+        <input
+          value={search}
+          readOnly
+          onFocus={() => setSearchPageOpen(true)}
+          onClick={() => setSearchPageOpen(true)}
+          placeholder={t.store.searchPh}
+          className="w-full cursor-pointer rounded-full border border-rose-100 bg-white py-2.5 pl-9 pr-3 text-sm outline-none focus:border-stone-400"
+        />
       </div>
 
-
-      {/* Statistika banneri — real ma'lumotlar (mijozlar soni, o'rtacha reyting) */}
-      {!search && (customersCount > 0 || avgRating > 0) && (
-        <div className="px-4 pt-16 min-[769px]:px-6">
-          <div className="flex flex-col items-center justify-between gap-6 rounded-2xl bg-rose-50 px-8 py-8 sm:flex-row sm:px-12">
-            <div>
-              <p style={{ fontFamily: "'Playfair Display', Georgia, serif" }} className="text-xl font-semibold text-stone-900 sm:text-2xl">{t.store.bestSellers}</p>
-              <p className="mt-1 max-w-sm text-sm text-stone-500">{t.store.subtitle}</p>
-            </div>
-            <div className="flex gap-8 sm:gap-12">
-              {customersCount > 0 && (
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-rose-500 sm:text-3xl">{customersCount >= 1000 ? `${Math.floor(customersCount / 1000)}K+` : `${customersCount}+`}</p>
-                  <p className="text-xs text-stone-500">{t.store.happyCustomers}</p>
-                </div>
-              )}
-              {avgRating > 0 && (
-                <div className="text-center">
-                  <p className="flex items-center justify-center gap-1 text-2xl font-bold text-rose-500 sm:text-3xl">
-                    {avgRating.toFixed(1)} <Star size={18} className="fill-rose-500 text-rose-500" />
-                  </p>
-                  <p className="text-xs text-stone-500">{t.store.avgRating}</p>
-                </div>
-              )}
-            </div>
-          </div>
+      {/* Kategoriyalar qatori — banner ostida, admin panelda cheksiz kategoriya qo'shiladi/tahrirlanadi */}
+      {!search && !activeCollection && (
+        <div className="px-[5px] pt-8 min-[769px]:px-6">
+          <CategoryQuickRow categories={categories} products={products} onSelect={openCategoryPage} t={t} />
         </div>
       )}
 
       {/* Chegirmadagi mahsulotlar — narxi kamaytirilgan mahsulotlar, bitta gorizontal qatorda */}
       {!search && !activeCollection && products.some(p => p.oldPrice > p.price) && (
-        <div className="px-4 pt-16 min-[769px]:px-6">
-          <div className="rounded-none p-4 min-[769px]:mx-0 min-[769px]:rounded-[24px] min-[769px]:p-[40px_32px]" style={{ background: "linear-gradient(180deg, #2A2525 0%, #1E1B1B 100%)" }}>
-          <div className="mb-4">
-            <p className="text-xs font-semibold uppercase tracking-wider text-[#F6D365]">{t.store.discountsTag}</p>
-            <h2 style={{ fontFamily: "'Playfair Display', Georgia, serif" }} className="text-2xl font-semibold text-[#F6D365] sm:text-3xl">{t.store.discountsTitle}</h2>
-          </div>
+        <div className="px-0 pt-10 min-[769px]:px-6">
+          <div className="rounded-[28px] px-0 pb-7 pt-[6px] min-[769px]:p-[36px] min-[769px]:pb-8" style={{ background: "#B03060" }}>
           <div className="relative">
             <div ref={discountViewportRef} className="embla-viewport">
-            <div className="embla-container gap-3 min-[769px]:gap-4">
+            <div className="embla-container gap-0 pl-3 min-[769px]:gap-2 min-[769px]:pl-0">
               {products.filter(p => p.oldPrice > p.price).map(p => {
               const inCart = cart[p.id] || 0;
               const stockType = p.stockType || "limited";
@@ -3050,36 +3733,58 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
               const pct = discountPct(p.price, p.oldPrice);
               const thumb = (p.imageUrls && p.imageUrls[0]) || p.imageUrl || "";
               const name = pname(p, lang);
+              const liked = wishlist.has(p.id);
               return (
                 <div
                   key={p.id}
                   onClick={() => setSelectedProduct(p)}
-                  className="group flex w-[calc((100vw-48px)/2.8)] shrink-0 cursor-pointer flex-col rounded-2xl bg-white p-2 min-[769px]:p-3 transition hover:-translate-y-0.5 min-[481px]:w-[calc((100vw-48px)/3.2)] min-[769px]:w-48 min-[769px]:max-w-none"
-                  style={{ boxShadow: "0 12px 35px rgba(0,0,0,.18)" }}
+                  className="group flex w-[116px] shrink-0 cursor-pointer flex-col px-0.5 py-2 min-[769px]:p-2.5 transition hover:-translate-y-0.5 min-[769px]:w-[220px]"
                 >
-                  <div className={`relative mb-3 aspect-square overflow-hidden rounded-xl text-stone-300 ${p.tint || "bg-rose-50"}`}>
+                  <div className="relative mb-2.5 aspect-square overflow-hidden rounded-xl border border-white/25 bg-white/10 text-white/40">
                     {thumb ? (
-                      <img src={thumb} alt={name} className="h-full w-full object-cover transition-transform duration-300 ease-out group-hover:scale-110" draggable={false} onDragStart={(e) => e.preventDefault()} />
+                      <img src={thumb} alt={name} className="h-full w-full object-contain p-1 transition-transform duration-300 ease-out group-hover:scale-105" draggable={false} onDragStart={(e) => e.preventDefault()} />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center"><Package size={32} strokeWidth={1.3} /></div>
                     )}
                     {hasDiscount && (
-                      <span className="absolute left-2 top-2 rounded-full bg-rose-500 px-2 py-0.5 text-[11px] font-semibold text-white">-{pct}%</span>
+                      <span className="absolute left-0 top-0 rounded-full bg-[#E01876] px-2 py-0.5 text-[10px] font-bold text-white">-{pct}%</span>
+                    )}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); toggleWishlist(p.id); }}
+                      className="absolute right-0 top-0 flex h-6 w-6 items-center justify-center rounded-full border border-white/70 text-white transition hover:bg-white/15"
+                    >
+                      <Heart size={12} fill={liked ? "#fff" : "none"} />
+                    </button>
+                    {inCart > 0 ? (
+                      <div className="absolute bottom-1 right-1 flex items-center gap-1 rounded-full bg-white px-1 py-1 shadow-md">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); changeQty(p.id, -1); }}
+                          className="flex h-6 w-6 items-center justify-center rounded-full text-stone-600 hover:bg-gray-100"
+                        >
+                          <Minus size={12} />
+                        </button>
+                        <span className="min-w-[14px] text-center text-xs font-semibold text-stone-800">{inCart}</span>
+                        <button
+                          disabled={soldOut}
+                          onClick={(e) => { e.stopPropagation(); addToCart(p); }}
+                          className="flex h-6 w-6 items-center justify-center rounded-full text-stone-600 hover:bg-gray-100 disabled:opacity-40"
+                        >
+                          <Plus size={12} />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        disabled={soldOut}
+                        onClick={(e) => { e.stopPropagation(); addToCart(p); }}
+                        className="absolute bottom-1 right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-[#E01876] shadow-md transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:bg-stone-300 disabled:text-stone-400"
+                      >
+                        <Plus size={13} />
+                      </button>
                     )}
                   </div>
-                  {p.brand && <p className="text-[11px] font-medium uppercase tracking-wide text-rose-400">{p.brand}</p>}
-                  <p className="mb-1 line-clamp-2 text-xs font-medium text-stone-800 min-[769px]:text-sm">{name}</p>
-                  <div className="mb-2 flex items-center gap-2">
-                    {hasDiscount && <span className="text-xs text-stone-400 line-through">{fmtMoney(p.oldPrice)}</span>}
-                    <span className="text-xs font-semibold text-stone-900 min-[769px]:text-sm">{fmtMoney(p.price)} <span className="text-xs font-normal text-stone-400">{t.common.uzs}</span></span>
-                  </div>
-                  <button
-                    disabled={soldOut}
-                    onClick={(e) => { e.stopPropagation(); addToCart(p); }}
-                    className="mt-auto flex items-center justify-center gap-1.5 rounded-full bg-[#D4AF37] min-h-[38px] px-2 py-2 text-xs font-medium min-[769px]:min-h-[44px] min-[769px]:px-3 min-[769px]:py-2.5 min-[769px]:text-sm text-[#1A1A1A] transition hover:bg-[#C49F2F] disabled:cursor-not-allowed disabled:bg-rose-100 disabled:text-stone-400"
-                  >
-                    <Plus size={15} /> {t.store.addToCart}{inCart > 0 ? ` (${inCart})` : ""}
-                  </button>
+                  <p className="mb-1.5 line-clamp-2 min-h-[2.2em] text-xs font-medium text-white min-[769px]:text-sm">{name}</p>
+                  <span className="text-xs font-semibold text-white min-[769px]:text-sm">{fmtMoney(p.price)} <span className="text-[10px] font-normal text-white/70">{t.common.uzs}</span></span>
+                  {hasDiscount && <span className="text-[11px] text-white/60 line-through">{fmtMoney(p.oldPrice)}</span>}
                 </div>
               );
             })}
@@ -3100,27 +3805,238 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
               <ChevronRight size={18} />
             </button>
           </div>
+          <button
+            onClick={() => setDiscountsPageOpen(true)}
+            className="mx-5 mt-5 w-[calc(100%-40px)] rounded-full bg-white py-3.5 text-sm font-semibold text-[#E01876] shadow-sm transition hover:bg-rose-50 min-[769px]:mx-0 min-[769px]:mt-6 min-[769px]:w-full"
+          >
+            {t.store.viewAll} {t.store.megaDiscountTitle}
+          </button>
           </div>
         </div>
       )}
 
-      {/* "Find Your Perfect Style" — admin o'zi yaratgan to'plamlar (agar bo'lsa), aks holda kategoriya kartalari */}
-      {!search && !activeCollection && (
-        <div id="categories-section" className="px-4 pt-16 min-[769px]:px-6">
-          <div className="rounded-none bg-white p-4 shadow-[0_8px_30px_rgba(0,0,0,0.06)] min-[769px]:rounded-[24px] min-[769px]:p-6 min-[769px]:sm:p-8">
-          {collections.some((c) => c.active !== false && c.imageUrl && c.displayStyle !== "banner") ? (
-            <CollectionShowcase collections={collections} onSelect={setActiveCollection} t={t} lang={lang} />
-          ) : (
-            <CategoryShowcase categories={categories} products={products} onSelect={setActiveCategory} t={t} />
-          )}
+      {/* Eng ko'p sotilganlar — admin "Top" deb belgilagan mahsulotlar, Chegirmalar bo'limidan pastda, bitta gorizontal qatorda (mobilda ham) */}
+      {!search && !activeCollection && products.some(p => p.tag === "bestseller") && (
+        <div className="px-0 pt-6 min-[769px]:px-6">
+          <div className="rounded-none bg-white px-0 py-4 shadow-[0_8px_30px_rgba(0,0,0,0.06)] min-[769px]:rounded-[24px] min-[769px]:p-[32px]">
+          <div className="mb-4 flex items-center justify-between gap-2 px-3">
+            <h2 style={{ fontFamily: "'Playfair Display', Georgia, serif", color: "#FF4D4F" }} className="text-lg font-semibold sm:text-xl">🔥 {t.store.hitProducts}</h2>
+            <button
+              onClick={() => document.getElementById("shop-section")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+              className="shrink-0 whitespace-nowrap rounded-full border border-gray-300 px-4 py-2 text-sm font-medium text-stone-700 transition hover:bg-gray-50"
+            >
+              {t.store.viewAll}
+            </button>
+          </div>
+          <div className="relative">
+            <div
+              ref={popularRowRef}
+              className="flex gap-3 overflow-x-auto pb-2 scroll-smooth [&::-webkit-scrollbar]:hidden min-[769px]:gap-4"
+              style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+            >
+              {products.filter(p => p.tag === "bestseller").map((p) => {
+              const inCart = cart[p.id] || 0;
+              const stockType = p.stockType || "limited";
+              const soldOut = stockType === "out" || (stockType === "limited" && (p.stock || 0) <= 0);
+              const hasDiscount = p.oldPrice > p.price;
+              const pct = discountPct(p.price, p.oldPrice);
+              const thumb = (p.imageUrls && p.imageUrls[0]) || p.imageUrl || "";
+              const name = pname(p, lang);
+              const liked = wishlist.has(p.id);
+              return (
+                <div
+                  key={p.id}
+                  onClick={() => setSelectedProduct(p)}
+                  className="group flex w-[88px] shrink-0 cursor-pointer flex-col rounded-2xl bg-white p-1.5 transition hover:-translate-y-0.5 min-[769px]:w-36 min-[769px]:max-w-none"
+                >
+                  <div className={`relative mb-2 aspect-square overflow-hidden rounded-xl text-stone-300 ${p.tint || "bg-gray-50"}`}>
+                    {thumb ? (
+                      <img src={thumb} alt={name} className="h-full w-full object-cover transition-transform duration-300 ease-out group-hover:scale-105" draggable={false} onDragStart={(e) => e.preventDefault()} />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center"><Package size={24} strokeWidth={1.3} /></div>
+                    )}
+                    {hasDiscount && (
+                      <span className="absolute left-1 top-1 rounded-full bg-rose-100 px-1.5 py-0.5 text-[10px] font-bold text-rose-600">-{pct}%</span>
+                    )}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); toggleWishlist(p.id); }}
+                      className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-white/90 text-stone-400 shadow-sm transition hover:text-rose-500"
+                    >
+                      <Heart size={11} fill={liked ? "#f43f5e" : "none"} className={liked ? "text-rose-500" : ""} />
+                    </button>
+                    {inCart > 0 ? (
+                      <div className="absolute bottom-1 right-1 flex items-center gap-1 rounded-full bg-white px-1 py-1 shadow-md">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); changeQty(p.id, -1); }}
+                          className="flex h-6 w-6 items-center justify-center rounded-full text-stone-600 hover:bg-gray-100"
+                        >
+                          <Minus size={12} />
+                        </button>
+                        <span className="min-w-[14px] text-center text-xs font-semibold text-stone-800">{inCart}</span>
+                        <button
+                          disabled={soldOut}
+                          onClick={(e) => { e.stopPropagation(); addToCart(p); }}
+                          className="flex h-6 w-6 items-center justify-center rounded-full text-stone-600 hover:bg-gray-100 disabled:opacity-40"
+                        >
+                          <Plus size={12} />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        disabled={soldOut}
+                        onClick={(e) => { e.stopPropagation(); addToCart(p); }}
+                        className="absolute bottom-1 right-1 flex h-7 w-7 items-center justify-center rounded-full bg-stone-900 text-white shadow-md transition hover:bg-stone-800 disabled:cursor-not-allowed disabled:bg-stone-300"
+                      >
+                        <Plus size={14} />
+                      </button>
+                    )}
+                  </div>
+                  <p className="mb-0.5 line-clamp-2 min-h-[2em] text-[11px] font-medium text-stone-800">{name}</p>
+                  <div className="flex items-center gap-1.5">
+                    {hasDiscount && <span className="text-[10px] text-stone-400 line-through">{fmtMoney(p.oldPrice)}</span>}
+                    <span className="text-xs font-semibold text-stone-900">{fmtMoney(p.price)} <span className="text-[10px] font-normal text-stone-400">{t.common.uzs}</span></span>
+                  </div>
+                </div>
+              );
+            })}
+            </div>
+            <button
+              onClick={scrollPopularPrev}
+              aria-label="Oldingi"
+              className="absolute left-1 top-1/2 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white text-stone-700 shadow-md hover:bg-rose-50 min-[769px]:flex"
+            >
+              <ChevronLeft size={18} />
+            </button>
+            <button
+              onClick={scrollPopularNext}
+              aria-label="Keyingi"
+              className="absolute right-1 top-1/2 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white text-stone-700 shadow-md hover:bg-rose-50 min-[769px]:flex"
+            >
+              <ChevronRight size={18} />
+            </button>
+          </div>
+          </div>
+        </div>
+      )}
+
+      {/* Keng banner uslubidagi to'plamlar — Eng ko'p sotilganlar bo'limidan pastda */}
+      {!search && !activeCollection && collections.some(c => c.displayStyle === "banner" && c.active !== false && c.imageUrl) && (
+        <div className="px-[5px] pt-[12px] min-[769px]:px-6">
+          <WideCollectionShowcase collections={collections} onSelect={viewWideBannerProducts} t={t} lang={lang} />
+        </div>
+      )}
+
+      {/* Katta (portret, 750x1200) surat + pastida mahsulotlar qatori — admin "Katta surat + mahsulotlar" turida qo'shgan to'plamlar */}
+      {!search && !activeCollection && collections.some(c => c.displayStyle === "heroBanner" && c.active !== false && c.imageUrl) && (
+        <div className="px-[14px] pt-[40px] min-[769px]:px-6">
+          <div className="space-y-8">
+            {collections.filter(c => c.displayStyle === "heroBanner" && c.active !== false && c.imageUrl).map(c => {
+              const heroProducts = products.filter(p => (c.productIds || []).includes(p.id));
+              return (
+                <div key={c.id}>
+                  <div className="relative overflow-hidden rounded-[28px] bg-stone-100" style={{ aspectRatio: "750 / 1200" }}>
+                    <img
+                      src={c.imageUrl}
+                      alt={collectionTitle(c, lang)}
+                      className="absolute inset-0 h-full w-full object-cover"
+                      draggable={false}
+                      onDragStart={(e) => e.preventDefault()}
+                    />
+                    {heroProducts.length > 0 && (
+                      <div className="absolute inset-x-0 bottom-0">
+                        {/* Mahsulotlar va tugma — to'g'ridan-to'g'ri banner surati ustida, orqa foni doim ko'rinib turadi */}
+                        <div
+                          className="pb-5 pt-24"
+                          style={{ background: "linear-gradient(180deg, transparent, rgba(0,0,0,0.4) 45%, rgba(0,0,0,0.6))" }}
+                        >
+                        <div className="flex gap-3 overflow-x-auto pl-4 pr-0 pb-1 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: "none" }}>
+                          {heroProducts.map(p => {
+                            const inCart = cart[p.id] || 0;
+                            const stockType = p.stockType || "limited";
+                            const soldOut = stockType === "out" || (stockType === "limited" && (p.stock || 0) <= 0);
+                            const hasDiscount = p.oldPrice > p.price;
+                            const pct = discountPct(p.price, p.oldPrice);
+                            const thumb = (p.imageUrls && p.imageUrls[0]) || p.imageUrl || "";
+                            const name = pname(p, lang);
+                            const liked = wishlist.has(p.id);
+                            return (
+                              <div
+                                key={p.id}
+                                onClick={() => setSelectedProduct(p)}
+                                className="group flex w-[120px] shrink-0 cursor-pointer flex-col transition hover:-translate-y-0.5"
+                              >
+                                <div className="relative mb-1.5 aspect-square overflow-hidden rounded-xl border border-white/25 bg-white/10 backdrop-blur-md text-white/40">
+                                  {thumb ? (
+                                    <img src={thumb} alt={name} className="relative h-full w-full object-contain p-1.5 transition-transform duration-300 ease-out group-hover:scale-105" draggable={false} onDragStart={(e) => e.preventDefault()} />
+                                  ) : (
+                                    <div className="flex h-full w-full items-center justify-center"><Package size={22} strokeWidth={1.3} /></div>
+                                  )}
+                                  {hasDiscount && (
+                                    <span className="absolute left-0 top-0 rounded-full bg-[#E01876] px-2 py-0.5 text-[10px] font-bold text-white">-{pct}%</span>
+                                  )}
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); toggleWishlist(p.id); }}
+                                    className="absolute right-0 top-0 flex h-6 w-6 items-center justify-center rounded-full border border-white/70 text-white transition hover:bg-white/15"
+                                  >
+                                    <Heart size={12} fill={liked ? "#fff" : "none"} />
+                                  </button>
+                                  {inCart > 0 ? (
+                                    <div className="absolute bottom-1 right-1 flex items-center gap-1 rounded-full bg-white px-1 py-1 shadow-md">
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); changeQty(p.id, -1); }}
+                                        className="flex h-6 w-6 items-center justify-center rounded-full text-stone-600 hover:bg-gray-100"
+                                      >
+                                        <Minus size={12} />
+                                      </button>
+                                      <span className="min-w-[14px] text-center text-xs font-semibold text-stone-800">{inCart}</span>
+                                      <button
+                                        disabled={soldOut}
+                                        onClick={(e) => { e.stopPropagation(); addToCart(p); }}
+                                        className="flex h-6 w-6 items-center justify-center rounded-full text-stone-600 hover:bg-gray-100 disabled:opacity-40"
+                                      >
+                                        <Plus size={12} />
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <button
+                                      disabled={soldOut}
+                                      onClick={(e) => { e.stopPropagation(); addToCart(p); }}
+                                      className="absolute bottom-1 right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-[#E01876] shadow-md transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:bg-stone-300 disabled:text-stone-400"
+                                    >
+                                      <Plus size={13} />
+                                    </button>
+                                  )}
+                                </div>
+                                <div className="pl-1.5">
+                                  <p className="mb-1.5 line-clamp-2 min-h-[2.2em] text-xs font-medium text-white">{name}</p>
+                                  <span className="text-xs font-semibold text-white">{fmtMoney(p.price)} <span className="text-[10px] font-normal text-white/70">{t.common.uzs}</span></span>
+                                  {hasDiscount && <span className="text-[11px] text-white/60 line-through">{fmtMoney(p.oldPrice)}</span>}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <button
+                          onClick={() => viewWideBannerProducts(c)}
+                          className="mx-4 mt-5 w-[calc(100%-32px)] rounded-full bg-white/85 py-3 text-center text-sm font-semibold text-rose-600 backdrop-blur-sm transition hover:bg-white"
+                        >
+                          {t.store.viewAll} {t.products.collectionProducts}
+                        </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
 
       {/* Brend doira ikonkalari + shu brendga tegishli mahsulotlar — nozik oltin gradient fon bilan */}
-      {brands && brands.length > 0 && (
+      {!search && brands && brands.length > 0 && (
         <div
-          className="relative mt-16 overflow-hidden rounded-none p-4 min-[769px]:mx-6 min-[769px]:rounded-[24px] min-[769px]:p-6 min-[769px]:sm:p-8"
+          className="relative mt-8 overflow-hidden rounded-none p-4 min-[769px]:mx-6 min-[769px]:rounded-[24px] min-[769px]:p-6 min-[769px]:sm:p-8"
           style={{ background: "linear-gradient(180deg, #F8D34F, #E6BE38)" }}
         >
           {/* Xira oltin dekor — yuqori o'ng burchakda */}
@@ -3129,7 +4045,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
             style={{ background: "#D4AF37", opacity: 0.05 }}
           />
           <div className="relative rounded-2xl bg-white/70 p-4 shadow-sm sm:p-5">
-            <BrandIconRow brands={brands} products={products} activeBrand={activeBrand} onSelect={setActiveBrand} t={t} bare theme="gold" />
+            <BrandIconRow brands={brands} products={products} activeBrand={activeBrand} onSelect={(name) => setActiveBrand(name)} t={t} bare theme="gold" />
           </div>
           <div className="relative mb-4 mt-8">
             <h2 style={{ fontFamily: "'Playfair Display', Georgia, serif", color: "#111827" }} className="text-2xl font-semibold sm:text-3xl">
@@ -3142,10 +4058,8 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
         {brandFiltered.length === 0 ? (
           <EmptyState icon={Package} text={t.store.noProducts} />
         ) : (
-          <div className="relative">
-            <div ref={brandViewportRef} className="embla-viewport">
-            <div className="embla-container gap-3 min-[769px]:gap-4">
-            {brandFiltered.map(p => {
+          <div className="grid grid-cols-2 gap-3 min-[769px]:gap-4">
+            {brandFiltered.slice(0, 8).map(p => {
               const inCart = cart[p.id] || 0;
               const stockType = p.stockType || "limited"; // eski mahsulotlar uchun orqaga moslik
               const soldOut = stockType === "out" || (stockType === "limited" && (p.stock || 0) <= 0);
@@ -3163,11 +4077,11 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                 <div
                   key={p.id}
                   onClick={() => setSelectedProduct(p)}
-                  className="group flex w-[calc((100vw-48px)/2.8)] shrink-0 cursor-pointer flex-col rounded-[20px] border border-gray-50 bg-white p-2 min-[769px]:p-3 shadow-sm transition-all duration-200 ease-out hover:-translate-y-1 hover:shadow-lg min-[481px]:w-[calc((100vw-48px)/3.2)] min-[769px]:w-48 min-[769px]:max-w-none"
+                  className="group flex w-full cursor-pointer flex-col rounded-[20px] border border-gray-50 bg-white p-2 min-[769px]:p-3 shadow-sm transition-all duration-200 ease-out hover:-translate-y-1 hover:shadow-lg"
                 >
                   {/* aspect-square — karta kengligi qanday bo'lishidan qat'i nazar rasm nisbati
                       har doim 1:1 (kvadrat) bo'lib qoladi, shu tufayli hech qachon cho'zilib/torayib ko'rinmaydi */}
-                  <div className={`relative mb-3 aspect-square overflow-hidden rounded-2xl text-stone-300 ${p.tint || "bg-rose-50"}`}>
+                  <div className={`relative mb-3 aspect-square overflow-hidden rounded-2xl text-stone-300 ${p.tint || "bg-white"}`}>
                     {thumb ? (
                       <img
                         src={thumb}
@@ -3234,318 +4148,27 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                   <p className={`mb-3 text-xs ${soldOut ? "text-rose-500" : "text-stone-400"}`}>
                     {stockLabel}
                   </p>
-                  <button
-                    disabled={soldOut}
-                    onClick={(e) => { e.stopPropagation(); addToCart(p); }}
-                    className="mt-auto flex items-center justify-center gap-1.5 rounded-full bg-stone-900 min-h-[38px] px-2 py-2 text-xs font-medium min-[769px]:min-h-[44px] min-[769px]:px-3 min-[769px]:py-2.5 min-[769px]:text-sm text-white transition hover:bg-stone-800 disabled:cursor-not-allowed disabled:bg-rose-100 disabled:text-stone-400"
-                  >
-                    <Plus size={15} /> {t.store.addToCart}{inCart > 0 ? ` (${inCart})` : ""}
-                  </button>
+                  <AddToCartControl
+                    qty={inCart}
+                    soldOut={soldOut}
+                    onIncrease={(e) => { e.stopPropagation(); addToCart(p); }}
+                    onDecrease={(e) => { e.stopPropagation(); changeQty(p.id, -1); }}
+                    emptyContent={<><Plus size={15} /> {t.store.addToCart}</>}
+                    emptyClassName="mt-auto flex items-center justify-center gap-1.5 rounded-full bg-stone-900 min-h-[38px] px-2 py-2 text-xs font-medium min-[769px]:min-h-[44px] min-[769px]:px-3 min-[769px]:py-2.5 min-[769px]:text-sm text-white transition hover:bg-stone-800 disabled:cursor-not-allowed disabled:bg-rose-100 disabled:text-stone-400"
+                  />
                 </div>
               );
             })}
-            </div>
-            </div>
-            <button
-              onClick={scrollBrandPrev}
-              aria-label="Oldingi"
-              className="absolute left-1 top-1/2 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white text-stone-700 shadow-md hover:bg-rose-50 sm:flex"
-            >
-              <ChevronLeft size={18} />
-            </button>
-            <button
-              onClick={scrollBrandNext}
-              aria-label="Keyingi"
-              className="absolute right-1 top-1/2 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white text-stone-700 shadow-md hover:bg-rose-50 sm:flex"
-            >
-              <ChevronRight size={18} />
-            </button>
           </div>
         )}
-
-        </div>
-      )}
-
-
-      {/* Mashhur mahsulotlar — admin "Top" deb belgilagan mahsulotlar, bitta gorizontal qatorda */}
-      {!search && !activeCollection && products.some(p => p.tag === "bestseller") && (
-        <div className="px-4 pt-16 min-[769px]:px-6">
-          <div className="rounded-none bg-white p-4 shadow-[0_8px_30px_rgba(0,0,0,0.06)] min-[769px]:rounded-[24px] min-[769px]:p-[32px]">
-          <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
-            <div>
-              <h2 style={{ fontFamily: "'Playfair Display', Georgia, serif" }} className="text-2xl font-semibold text-stone-900 sm:text-3xl">🔥 {t.store.popular}</h2>
-              <p className="mt-1 text-xs text-stone-400 sm:text-sm">{t.store.bestSellersSubtitle}</p>
-            </div>
-            <button
-              onClick={() => document.getElementById("shop-section")?.scrollIntoView({ behavior: "smooth", block: "start" })}
-              className="shrink-0 text-sm font-medium text-rose-500 hover:text-rose-600"
-            >
-              {t.store.viewAll} →
-            </button>
-          </div>
-          <div className="relative">
-            <div
-              ref={popularRowRef}
-              className="grid grid-flow-col grid-rows-2 gap-3 overflow-x-auto pb-2 scroll-smooth [&::-webkit-scrollbar]:hidden min-[769px]:flex min-[769px]:grid-rows-1 min-[769px]:gap-4"
-              style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-            >
-              {products.filter(p => p.tag === "bestseller").map((p, idx) => {
-              const inCart = cart[p.id] || 0;
-              const stockType = p.stockType || "limited";
-              const soldOut = stockType === "out" || (stockType === "limited" && (p.stock || 0) <= 0);
-              const hasDiscount = p.oldPrice > p.price;
-              const pct = discountPct(p.price, p.oldPrice);
-              const thumb = (p.imageUrls && p.imageUrls[0]) || p.imageUrl || "";
-              const name = pname(p, lang);
-              const rankBadge = idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : null;
-              return (
-                <div
-                  key={p.id}
-                  onClick={() => setSelectedProduct(p)}
-                  className="group flex w-[calc((100vw-48px)/2.8)] shrink-0 cursor-pointer flex-col rounded-2xl bg-white p-2 min-[769px]:p-3 transition hover:-translate-y-0.5 hover:shadow-lg min-[481px]:w-[calc((100vw-48px)/3.2)] min-[769px]:w-48 min-[769px]:max-w-none"
-                >
-                  <div className={`relative mb-3 aspect-square overflow-hidden rounded-xl text-stone-300 ${p.tint || "bg-rose-50"}`}>
-                    {thumb ? (
-                      <img src={thumb} alt={name} className="h-full w-full object-cover transition-transform duration-300 ease-out group-hover:scale-110" draggable={false} onDragStart={(e) => e.preventDefault()} />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center"><Package size={32} strokeWidth={1.3} /></div>
-                    )}
-                    {hasDiscount && (
-                      <span className="absolute left-2 top-2 rounded-full bg-rose-500 px-2 py-0.5 text-[11px] font-semibold text-white">-{pct}%</span>
-                    )}
-                    <span className="absolute right-2 top-2 rounded-full bg-amber-500 px-2 py-0.5 text-[11px] font-semibold text-white">{t.store.tagBestseller}</span>
-                    {rankBadge && (
-                      <span className="absolute bottom-2 left-2 flex h-7 w-7 items-center justify-center rounded-full bg-white text-base shadow-sm">{rankBadge}</span>
-                    )}
-                  </div>
-                  {p.brand && <p className="text-[11px] font-medium uppercase tracking-wide text-rose-400">{p.brand}</p>}
-                  <p className="mb-1 line-clamp-2 text-xs font-medium text-stone-800 min-[769px]:text-sm">{name}</p>
-                  <div className="mb-2 flex items-center gap-2">
-                    {hasDiscount && <span className="text-xs text-stone-400 line-through">{fmtMoney(p.oldPrice)}</span>}
-                    <span className="text-xs font-semibold text-stone-900 min-[769px]:text-sm">{fmtMoney(p.price)} <span className="text-xs font-normal text-stone-400">{t.common.uzs}</span></span>
-                  </div>
-                  <button
-                    disabled={soldOut}
-                    onClick={(e) => { e.stopPropagation(); addToCart(p); }}
-                    className="mt-auto flex items-center justify-center gap-1.5 rounded-full bg-stone-900 min-h-[38px] px-2 py-2 text-xs font-medium min-[769px]:min-h-[44px] min-[769px]:px-3 min-[769px]:py-2.5 min-[769px]:text-sm text-white hover:bg-stone-800 disabled:cursor-not-allowed disabled:bg-rose-100 disabled:text-stone-400"
-                  >
-                    <Plus size={15} /> {t.store.addToCart}{inCart > 0 ? ` (${inCart})` : ""}
-                  </button>
-                </div>
-              );
-            })}
-            </div>
-            <button
-              onClick={scrollPopularPrev}
-              aria-label="Oldingi"
-              className="absolute left-1 top-1/2 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white text-stone-700 shadow-md hover:bg-rose-50 min-[769px]:flex"
-            >
-              <ChevronLeft size={18} />
-            </button>
-            <button
-              onClick={scrollPopularNext}
-              aria-label="Keyingi"
-              className="absolute right-1 top-1/2 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white text-stone-700 shadow-md hover:bg-rose-50 min-[769px]:flex"
-            >
-              <ChevronRight size={18} />
-            </button>
-          </div>
-          </div>
-        </div>
-      )}
-
-      {/* Keng banner uslubidagi to'plamlar — Mashhur bo'limidan pastda */}
-      {!search && !activeCollection && collections.some(c => c.displayStyle === "banner" && c.active !== false && c.imageUrl) && (
-        <div className="px-4 pt-16 min-[769px]:px-6">
-          <WideCollectionShowcase collections={collections} onSelect={setActiveCollection} t={t} lang={lang} />
-        </div>
-      )}
-
-      {/* Kategoriya + Barcha mahsulotlar — BITTA yaxlit oq karta (ajratilgan bo'lim emas) */}
-      <div
-        id="shop-section"
-        className="relative mt-16 overflow-hidden rounded-none p-4 shadow-sm min-[769px]:mx-6 min-[769px]:rounded-[24px] min-[769px]:p-6 min-[769px]:sm:p-8"
-        style={{
-          background: "linear-gradient(180deg, #5A2335, #7A2950)",
-          animation: "categoryFadeUp 0.4s ease-out",
-        }}
-      >
-        <div
-          className="pointer-events-none absolute inset-0"
-          style={{ background: "radial-gradient(circle at top left, rgba(255,255,255,.08), transparent 45%)" }}
-        />
-        <div className="relative">
-        <CategoryIconRow categories={categories} products={products} activeCategory={activeCategory} onSelect={setActiveCategory} t={t} bare theme="magenta" />
-
-        {activeCollection && (
-          <div className="mb-4 mt-12 rounded-2xl bg-rose-50 px-4 py-4 sm:px-6 sm:py-5">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p style={{ fontFamily: "'Playfair Display', Georgia, serif" }} className="text-lg font-semibold text-stone-900 sm:text-xl">{collectionTitle(activeCollection, lang)}</p>
-                {collectionDescription(activeCollection, lang) && (
-                  <p className="mt-1 text-sm text-stone-500">{collectionDescription(activeCollection, lang)}</p>
-                )}
-              </div>
-              <button onClick={() => setActiveCollection(null)} className="flex shrink-0 items-center gap-1 rounded-full bg-white px-3 py-1.5 text-xs font-medium text-stone-600 hover:bg-stone-100">
-                <X size={13} /> {t.store.allCategories}
-              </button>
-            </div>
-            {filtered.length > 0 && (
-              <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-rose-100 pt-3">
-                <p className="text-sm text-stone-600">
-                  {t.store.collectionTotal}: <span className="text-base font-semibold text-stone-900">{fmtMoney(filtered.reduce((s, p) => s + (Number(p.price) || 0), 0))} {t.common.uzs}</span>
-                  <span className="ml-1 text-xs text-stone-400">({filtered.length} {t.common.ta})</span>
-                </p>
-                <button
-                  onClick={() => addAllCollectionToCart(activeCollection, filtered)}
-                  className="flex items-center gap-1.5 rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-800"
-                >
-                  <ShoppingCart size={15} /> {t.store.collectionAddAll}
-                </button>
-              </div>
-            )}
-          </div>
+        {brandFiltered.length > 8 && (
+          <button
+            onClick={() => openBrandPage(activeBrand)}
+            className="mt-4 w-full rounded-full bg-stone-900 py-3 text-center text-sm font-semibold text-white transition hover:bg-stone-800"
+          >
+            {t.store.viewAll} {t.products.collectionProducts}
+          </button>
         )}
-        {!activeCollection && (
-          <div className="mb-10 mt-12">
-            <h2 style={{ fontFamily: "'Playfair Display', Georgia, serif" }} className="text-2xl font-semibold text-white sm:text-3xl">
-              {activeCategory === t.store.allCategories ? t.store.allProductsTitle : activeCategory}
-            </h2>
-          </div>
-        )}
-        {filtered.length === 0 ? (
-          <EmptyState icon={Package} text={t.store.noProducts} />
-        ) : (
-          <div className="relative">
-            <div ref={catalogViewportRef} className="embla-viewport">
-            <div className="embla-container gap-3 min-[769px]:gap-4">
-            {filtered.map(p => {
-              const inCart = cart[p.id] || 0;
-              const stockType = p.stockType || "limited"; // eski mahsulotlar uchun orqaga moslik
-              const soldOut = stockType === "out" || (stockType === "limited" && (p.stock || 0) <= 0);
-              const hasDiscount = p.oldPrice > p.price;
-              const pct = discountPct(p.price, p.oldPrice);
-              const liked = wishlist.has(p.id);
-              const thumb = (p.imageUrls && p.imageUrls[0]) || p.imageUrl || "";
-              const name = pname(p, lang);
-              const brandInfo = p.brand ? brands.find(b => b.name === p.brand) : null;
-              let stockLabel;
-              if (stockType === "unlimited") stockLabel = t.store.available;
-              else if (soldOut) stockLabel = t.store.outOfStock;
-              else stockLabel = `${p.stock} ${t.store.inStock}`;
-              return (
-                <div
-                  key={p.id}
-                  onClick={() => setSelectedProduct(p)}
-                  className="group flex w-[calc((100vw-48px)/2.8)] shrink-0 cursor-pointer flex-col rounded-[20px] border border-gray-50 bg-white p-2 min-[769px]:p-3 transition-all duration-200 ease-out hover:-translate-y-2 hover:scale-[1.03] min-[481px]:w-[calc((100vw-48px)/3.2)] min-[769px]:w-48 min-[769px]:max-w-none"
-                  style={{ boxShadow: "0 20px 50px rgba(0,0,0,.12)" }}
-                >
-                  {/* aspect-square — karta kengligi qanday bo'lishidan qat'i nazar rasm nisbati
-                      har doim 1:1 (kvadrat) bo'lib qoladi, shu tufayli hech qachon cho'zilib/torayib ko'rinmaydi */}
-                  <div className={`relative mb-3 aspect-square overflow-hidden rounded-2xl text-stone-300 ${p.tint || "bg-rose-50"}`}>
-                    {thumb ? (
-                      <img
-                        src={thumb}
-                        alt={name}
-                        className="h-full w-full object-cover transition-transform duration-300 ease-out group-hover:scale-110"
-                        onError={(e) => { e.target.style.display = "none"; e.target.nextSibling.style.display = "flex"; }}
-                        draggable={false}
-                        onDragStart={(e) => e.preventDefault()}
-                      />
-                    ) : null}
-                    <div className={`${thumb ? "hidden" : "flex"} absolute inset-0 items-center justify-center`}>
-                      <Package size={36} strokeWidth={1.3} />
-                    </div>
-                    <div className="absolute left-2 top-2 flex flex-col items-start gap-1">
-                      {p.brand && (
-                        <span className="flex items-center gap-1 rounded-full bg-white/95 py-0.5 pl-0.5 pr-2 shadow-sm">
-                          <span className="flex h-4 w-4 shrink-0 items-center justify-center overflow-hidden rounded-full bg-rose-50 text-stone-300">
-                            {brandInfo?.imageUrl ? (
-                              <img src={brandInfo.imageUrl} alt="" className="h-full w-full object-cover" />
-                            ) : (
-                              <Tag size={8} />
-                            )}
-                          </span>
-                          <span className="text-[10px] font-semibold uppercase tracking-wide text-stone-700">{p.brand}</span>
-                        </span>
-                      )}
-                      {hasDiscount && (
-                        <span className="rounded-full bg-rose-500 px-2 py-0.5 text-[11px] font-semibold text-white">
-                          -{pct}%
-                        </span>
-                      )}
-                      {p.tag === "new" && (
-                        <span className="rounded-full bg-stone-900 px-2 py-0.5 text-[11px] font-semibold text-white">
-                          ✨ {t.store.tagNew}
-                        </span>
-                      )}
-                      {p.tag === "bestseller" && (
-                        <span className="rounded-full bg-amber-500 px-2 py-0.5 text-[11px] font-semibold text-white">
-                          🔥 {t.store.tagBestseller}
-                        </span>
-                      )}
-                    </div>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); toggleWishlist(p.id); }}
-                      className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-stone-400 shadow-sm transition hover:text-rose-500"
-                    >
-                      <Heart size={15} fill={liked ? "#f43f5e" : "none"} className={liked ? "text-rose-500" : ""} />
-                    </button>
-                  </div>
-                  <p className="mb-1 line-clamp-2 min-h-[2.5em] text-xs font-medium text-stone-800 min-[769px]:text-sm">{name}</p>
-                  <div className="mb-1 flex min-h-[1.25rem] items-center gap-1 text-xs text-stone-500">
-                    {p.rating > 0 && (
-                      <>
-                        <Star size={12} className="fill-amber-400 text-amber-400" />
-                        <span className="font-medium text-stone-700">{Number(p.rating).toFixed(1)}</span>
-                        {p.reviewCount > 0 && <span className="text-stone-400">({p.reviewCount})</span>}
-                      </>
-                    )}
-                  </div>
-                  <div className="mb-2 flex items-center gap-2">
-                    {hasDiscount && <span className="text-xs text-stone-400 line-through">{fmtMoney(p.oldPrice)}</span>}
-                    <span className="text-xs font-semibold text-stone-900 min-[769px]:text-sm">{fmtMoney(p.price)} <span className="text-xs font-normal text-stone-400">{t.common.uzs}</span></span>
-                  </div>
-                  <p className={`mb-3 text-xs ${soldOut ? "text-rose-500" : "text-stone-400"}`}>
-                    {stockLabel}
-                  </p>
-                  <button
-                    disabled={soldOut}
-                    onClick={(e) => { e.stopPropagation(); addToCart(p); }}
-                    className="mt-auto flex items-center justify-center gap-1.5 rounded-full bg-stone-900 min-h-[38px] px-2 py-2 text-xs font-medium min-[769px]:min-h-[44px] min-[769px]:px-3 min-[769px]:py-2.5 min-[769px]:text-sm text-white transition hover:bg-stone-800 disabled:cursor-not-allowed disabled:bg-rose-100 disabled:text-stone-400"
-                  >
-                    <Plus size={15} /> {t.store.addToCart}{inCart > 0 ? ` (${inCart})` : ""}
-                  </button>
-                </div>
-              );
-            })}
-            </div>
-            </div>
-            <button
-              onClick={scrollCatalogPrev}
-              aria-label="Oldingi"
-              className="absolute left-1 top-1/2 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white text-stone-700 shadow-md hover:bg-rose-50 sm:flex"
-            >
-              <ChevronLeft size={18} />
-            </button>
-            <button
-              onClick={scrollCatalogNext}
-              aria-label="Keyingi"
-              className="absolute right-1 top-1/2 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white text-stone-700 shadow-md hover:bg-rose-50 sm:flex"
-            >
-              <ChevronRight size={18} />
-            </button>
-          </div>
-        )}
-        </div>
-      </div>
-
-      {/* Yana bir kolleksiya bo'limi — Kategoriya bo'limidan keyin, Brendlardan oldin */}
-      {!search && !activeCollection && collections.some(c => c.displayStyle === "cardBottom" && c.active !== false && c.imageUrl) && (
-        <div className="px-4 pt-16 min-[769px]:px-6">
-          <div className="rounded-none bg-white p-4 shadow-[0_8px_30px_rgba(0,0,0,0.06)] min-[769px]:rounded-[24px] min-[769px]:p-6 min-[769px]:sm:p-8">
-            <CollectionShowcase collections={collections} onSelect={setActiveCollection} t={t} lang={lang} variant="bottom" />
-          </div>
         </div>
       )}
 
@@ -3578,32 +4201,909 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
       </div>
 
       {/* Sharhlardan oldingi reklama banneri — admin panelda 4-banner qo'shilsa ko'rinadi */}
-      <div className="px-4 pt-16 min-[769px]:px-6">
-        <MidPromoBanner banners={banners} inTelegram={inTelegram} t={t} products={products} onAddLinkedProducts={addLinkedProductsToCart} />
+      <div className="px-[5px] pt-16 min-[769px]:px-6">
+        <MidPromoBanner banners={banners} inTelegram={inTelegram} t={t} onViewLinkedProducts={viewLinkedProducts} />
       </div>
 
       {/* Mijoz sharhlari */}
-      <div className="px-4 pt-16 min-[769px]:px-6">
+      <div className="px-[5px] pt-16 min-[769px]:px-6">
         <div className="rounded-none p-4 min-[769px]:rounded-[24px] min-[769px]:p-6 min-[769px]:sm:p-8" style={{ background: "#FAF3E8" }}>
           <Testimonials testimonials={testimonials} t={t} />
         </div>
       </div>
 
       {/* Instagram uslubidagi galereya (mahsulot rasmlaridan) */}
-      <div className="px-4 pt-16 min-[769px]:px-6">
+      <div className="px-[5px] pt-16 min-[769px]:px-6">
         <InstagramGallery products={products} settings={storeSettings} t={t} />
       </div>
 
       {/* Savol-javob */}
-      <div className="px-4 pt-16 pb-16 min-[769px]:px-6">
+      <div className="px-[5px] pt-16 pb-16 min-[769px]:px-6">
         <FAQSection faqs={faqs} t={t} />
       </div>
 
       <StoreFooter lang={lang} storeName={storeSettings?.storeName || t.appName} settings={storeSettings} />
 
+      {/* "Mega Chegirma" — chegirmadagi barcha mahsulotlar to'liq sahifasi (Chegirmalar bo'limidagi "Barchasini ko'rish" tugmasidan ochiladi) */}
+      {discountsPageOpen && (
+        <div className="fixed inset-0 z-50 flex flex-col bg-white">
+          <div className="flex-1 overflow-y-auto px-[5px] pb-28 pt-5 min-[769px]:px-6">
+            <div className="mb-4 flex items-center justify-between">
+              <h1 style={{ fontFamily: "'Playfair Display', Georgia, serif" }} className="text-2xl font-bold text-stone-900 sm:text-3xl">{t.store.megaDiscountTitle}</h1>
+              <button onClick={() => setDiscountsPageOpen(false)} className="rounded-full p-2 text-stone-400 hover:bg-gray-100">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="mb-4 flex items-center gap-2">
+              <div className="relative flex-1">
+                <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" />
+                <input
+                  id="discounts-page-search"
+                  value={discountsSearch}
+                  onChange={(e) => setDiscountsSearch(e.target.value)}
+                  placeholder={t.store.searchPh}
+                  className="w-full rounded-full bg-gray-100 py-3 pl-11 pr-4 text-sm outline-none focus:bg-gray-50"
+                />
+              </div>
+              <button
+                onClick={() => setDiscountsSort((s) => (s === "default" ? "priceAsc" : s === "priceAsc" ? "priceDesc" : "default"))}
+                aria-label="Saralash"
+                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full border transition ${discountsSort !== "default" ? "border-rose-500 bg-rose-50 text-rose-500" : "border-gray-200 text-stone-500 hover:bg-gray-50"}`}
+              >
+                <SlidersHorizontal size={17} />
+              </button>
+              <button
+                onClick={() => setDiscountsFilterOpen((v) => !v)}
+                aria-label="Filtr"
+                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full border transition ${discountsCategory ? "border-rose-500 bg-rose-50 text-rose-500" : "border-gray-200 text-stone-500 hover:bg-gray-50"}`}
+              >
+                <Filter size={17} />
+              </button>
+            </div>
+
+            {discountsFilterOpen && discountCategories.length > 0 && (
+              <div className="mb-4 flex gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: "none" }}>
+                <button
+                  onClick={() => setDiscountsCategory(null)}
+                  className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-medium transition ${!discountsCategory ? "bg-stone-900 text-white" : "bg-gray-100 text-stone-500 hover:bg-gray-200"}`}
+                >
+                  {t.store.allCategories}
+                </button>
+                {discountCategories.map((c) => (
+                  <button
+                    key={c.id}
+                    onClick={() => setDiscountsCategory(c.name)}
+                    className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-medium transition ${discountsCategory === c.name ? "bg-stone-900 text-white" : "bg-gray-100 text-stone-500 hover:bg-gray-200"}`}
+                  >
+                    {c.name}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {discountsFiltered.length === 0 ? (
+              <EmptyState icon={Package} text={t.store.noProducts} />
+            ) : (
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                {discountsFiltered.map((p) => {
+                  const inCart = cart[p.id] || 0;
+                  const stockType = p.stockType || "limited";
+                  const soldOut = stockType === "out" || (stockType === "limited" && (p.stock || 0) <= 0);
+                  const pct = discountPct(p.price, p.oldPrice);
+                  const thumb = (p.imageUrls && p.imageUrls[0]) || p.imageUrl || "";
+                  const name = pname(p, lang);
+                  const liked = wishlist.has(p.id);
+                  return (
+                    <div
+                      key={p.id}
+                      onClick={() => setSelectedProduct(p)}
+                      className="relative flex cursor-pointer flex-col rounded-2xl bg-white p-2.5 shadow-sm transition hover:-translate-y-0.5"
+                    >
+                      <div className="relative mb-2.5 aspect-square overflow-hidden rounded-xl bg-white text-stone-300">
+                        {thumb ? (
+                          <img src={thumb} alt={name} className="h-full w-full object-contain p-2" draggable={false} onDragStart={(e) => e.preventDefault()} />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center"><Package size={28} strokeWidth={1.3} /></div>
+                        )}
+                        <span className="absolute left-1.5 top-1.5 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-bold text-rose-600">-{pct}%</span>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); toggleWishlist(p.id); }}
+                          className="absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-stone-400 shadow-sm transition hover:text-rose-500"
+                        >
+                          <Heart size={13} fill={liked ? "#f43f5e" : "none"} className={liked ? "text-rose-500" : ""} />
+                        </button>
+                      </div>
+                      <p className="mb-1 line-clamp-2 min-h-[2.2em] text-xs font-medium text-stone-800 sm:text-sm">{name}</p>
+                      <p className="text-xs font-semibold text-stone-900 sm:text-sm">{fmtMoney(p.price)} <span className="text-[10px] font-normal text-stone-400">{t.common.uzs}</span></p>
+                      <p className="mb-2 text-[11px] text-stone-400 line-through">{fmtMoney(p.oldPrice)}</p>
+                      <AddToCartControl
+                        qty={inCart}
+                        soldOut={soldOut}
+                        size="sm"
+                        onIncrease={(e) => { e.stopPropagation(); addToCart(p); }}
+                        onDecrease={(e) => { e.stopPropagation(); changeQty(p.id, -1); }}
+                        emptyContent={<Plus size={15} />}
+                        emptyClassName="mt-auto flex h-9 items-center justify-center rounded-full border border-stone-300 text-stone-800 transition hover:bg-stone-100 disabled:cursor-not-allowed disabled:opacity-40"
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Suzuvchi orqaga qaytish + navigatsiya paneli */}
+          <div className="fixed inset-x-0 bottom-4 z-10 flex items-center justify-center gap-2">
+            <button
+              onClick={() => setDiscountsPageOpen(false)}
+              aria-label="Orqaga"
+              className="flex h-12 w-12 items-center justify-center rounded-full bg-rose-500 text-white shadow-lg transition hover:bg-rose-600"
+            >
+              <ArrowLeft size={20} />
+            </button>
+            <div className="flex items-center gap-1 rounded-full bg-white px-2 py-2 shadow-[0_8px_28px_rgba(0,0,0,0.16)]">
+              <button onClick={() => { setDiscountsPageOpen(false); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="flex h-11 w-11 items-center justify-center rounded-full text-stone-500 hover:bg-rose-50">
+                <Home size={20} />
+              </button>
+              <button onClick={() => document.getElementById("discounts-page-search")?.focus()} className="flex h-11 w-11 items-center justify-center rounded-full text-stone-500 hover:bg-rose-50">
+                <Search size={20} />
+              </button>
+              <button onClick={() => setWishlistOpen(true)} className="relative flex h-11 w-11 items-center justify-center rounded-full text-stone-500 hover:bg-rose-50">
+                <Heart size={20} />
+                {wishlistItems.length > 0 && (
+                  <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-stone-900 text-[9px] font-semibold text-white">{wishlistItems.length}</span>
+                )}
+              </button>
+              <button onClick={() => setCartOpen(true)} className={`relative flex h-11 w-11 items-center justify-center rounded-full transition ${cartCount > 0 ? "bg-rose-50 text-rose-500" : "text-stone-500 hover:bg-rose-50"}`}>
+                <ShoppingCart size={20} />
+                {cartCount > 0 && (
+                  <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-stone-900 text-[9px] font-semibold text-white">{cartCount}</span>
+                )}
+              </button>
+              <button onClick={openProfile} className="flex h-11 w-11 items-center justify-center rounded-full text-stone-500 hover:bg-rose-50">
+                <UserRound size={20} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bannerga biriktirilgan mahsulotlar — alohida to'liq sahifa, banner bosilganda ochiladi */}
+      {bannerPageOpen && bannerCollection && (
+        <div className="fixed inset-0 z-50 flex flex-col bg-white">
+          <div className="flex-1 overflow-y-auto px-[5px] pb-28 pt-5 min-[769px]:px-6">
+            {/* Banner surati — zamonaviy hero ko'rinishida, tepasida yopish tugmasi */}
+            <div className="relative mb-4 overflow-hidden rounded-[28px]" style={{ aspectRatio: "800 / 520" }}>
+              {(bannerCollection.mobileImage || bannerCollection.desktopImage) ? (
+                <img
+                  src={bannerCollection.mobileImage || bannerCollection.desktopImage}
+                  alt={collectionTitle(bannerCollection, lang)}
+                  className="h-full w-full object-cover"
+                  draggable={false}
+                  onDragStart={(e) => e.preventDefault()}
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center bg-rose-100 text-stone-400">
+                  <Package size={32} strokeWidth={1.3} />
+                </div>
+              )}
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+              <button
+                onClick={() => { setBannerPageOpen(false); setBannerCollection(null); }}
+                className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-stone-700 shadow-sm hover:bg-white"
+              >
+                <X size={18} />
+              </button>
+              <div className="absolute inset-x-0 bottom-0 px-5 pb-5 pt-10 sm:px-7">
+                {bannerCollection.badge && (
+                  <span className="mb-2 inline-block rounded-full bg-white/15 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.15em] text-white backdrop-blur-sm">{bannerCollection.badge}</span>
+                )}
+                <h1 style={{ fontFamily: "'Playfair Display', Georgia, serif" }} className="text-2xl font-bold leading-tight text-white sm:text-3xl">
+                  {collectionTitle(bannerCollection, lang)}
+                </h1>
+                {bannerCollection.subtitle && <p className="mt-1 max-w-sm text-sm text-white/85">{bannerCollection.subtitle}</p>}
+              </div>
+            </div>
+
+            {!bannerCollection.hideBulkActions && bannerPageProducts.length > 0 && (
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-rose-50 px-4 py-3.5 sm:px-5">
+                <p className="text-sm text-stone-600">
+                  {t.store.collectionTotal}: <span className="text-base font-semibold text-stone-900">{fmtMoney(bannerPageTotal)} {t.common.uzs}</span>
+                  <span className="ml-1 text-xs text-stone-400">({bannerPageProducts.length} {t.common.ta})</span>
+                </p>
+                <button
+                  onClick={() => addAllCollectionToCart(bannerCollection, bannerPageProducts, bannerDiscPct)}
+                  className="flex items-center gap-1.5 rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-800"
+                >
+                  <ShoppingCart size={15} /> {t.store.collectionAddAll}
+                </button>
+              </div>
+            )}
+
+            {bannerPageProducts.length === 0 ? (
+              <EmptyState icon={Package} text={t.store.noProducts} />
+            ) : (
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                {bannerPageProducts.map((p) => {
+                  const inCart = cart[p.id] || 0;
+                  const stockType = p.stockType || "limited";
+                  const soldOut = stockType === "out" || (stockType === "limited" && (p.stock || 0) <= 0);
+                  const basePrice = Number(p.price) || 0;
+                  const finalPrice = bannerDiscPct > 0 ? Math.max(0, Math.round(basePrice * (1 - bannerDiscPct / 100))) : basePrice;
+                  const hasDiscount = bannerDiscPct > 0 || p.oldPrice > p.price;
+                  const pct = bannerDiscPct > 0 ? bannerDiscPct : discountPct(p.price, p.oldPrice);
+                  const crossedPrice = bannerDiscPct > 0 ? basePrice : p.oldPrice;
+                  const thumb = (p.imageUrls && p.imageUrls[0]) || p.imageUrl || "";
+                  const name = pname(p, lang);
+                  const liked = wishlist.has(p.id);
+                  return (
+                    <div
+                      key={p.id}
+                      onClick={() => setSelectedProduct(p)}
+                      className="relative flex cursor-pointer flex-col rounded-2xl bg-white p-2.5 shadow-sm transition hover:-translate-y-0.5"
+                    >
+                      <div className="relative mb-2.5 aspect-square overflow-hidden rounded-xl bg-white text-stone-300">
+                        {thumb ? (
+                          <img src={thumb} alt={name} className="h-full w-full object-contain p-2" draggable={false} onDragStart={(e) => e.preventDefault()} />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center"><Package size={28} strokeWidth={1.3} /></div>
+                        )}
+                        {hasDiscount && (
+                          <span className="absolute left-1.5 top-1.5 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-bold text-rose-600">-{pct}%</span>
+                        )}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); toggleWishlist(p.id); }}
+                          className="absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-stone-400 shadow-sm transition hover:text-rose-500"
+                        >
+                          <Heart size={13} fill={liked ? "#f43f5e" : "none"} className={liked ? "text-rose-500" : ""} />
+                        </button>
+                      </div>
+                      <p className="mb-1 line-clamp-2 min-h-[2.2em] text-xs font-medium text-stone-800 sm:text-sm">{name}</p>
+                      <p className="text-xs font-semibold text-stone-900 sm:text-sm">{fmtMoney(finalPrice)} <span className="text-[10px] font-normal text-stone-400">{t.common.uzs}</span></p>
+                      {hasDiscount && <p className="mb-2 text-[11px] text-stone-400 line-through">{fmtMoney(crossedPrice)}</p>}
+                      <AddToCartControl
+                        qty={inCart}
+                        soldOut={soldOut}
+                        size="sm"
+                        onIncrease={(e) => { e.stopPropagation(); addToCart(p, bannerDiscPct); }}
+                        onDecrease={(e) => { e.stopPropagation(); changeQty(p.id, -1); }}
+                        emptyContent={<Plus size={15} />}
+                        emptyClassName="mt-auto flex h-9 items-center justify-center rounded-full border border-stone-300 text-stone-800 transition hover:bg-stone-100 disabled:cursor-not-allowed disabled:opacity-40"
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Suzuvchi orqaga qaytish + navigatsiya paneli */}
+          <div className="fixed inset-x-0 bottom-4 z-10 flex items-center justify-center gap-2">
+            <button
+              onClick={() => { setBannerPageOpen(false); setBannerCollection(null); }}
+              aria-label="Orqaga"
+              className="flex h-12 w-12 items-center justify-center rounded-full bg-rose-500 text-white shadow-lg transition hover:bg-rose-600"
+            >
+              <ArrowLeft size={20} />
+            </button>
+            <div className="flex items-center gap-1 rounded-full bg-white px-2 py-2 shadow-[0_8px_28px_rgba(0,0,0,0.16)]">
+              <button onClick={() => { setBannerPageOpen(false); setBannerCollection(null); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="flex h-11 w-11 items-center justify-center rounded-full text-stone-500 hover:bg-rose-50">
+                <Home size={20} />
+              </button>
+              <button onClick={() => setWishlistOpen(true)} className="relative flex h-11 w-11 items-center justify-center rounded-full text-stone-500 hover:bg-rose-50">
+                <Heart size={20} />
+                {wishlistItems.length > 0 && (
+                  <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-stone-900 text-[9px] font-semibold text-white">{wishlistItems.length}</span>
+                )}
+              </button>
+              <button onClick={() => setCartOpen(true)} className={`relative flex h-11 w-11 items-center justify-center rounded-full transition ${cartCount > 0 ? "bg-rose-50 text-rose-500" : "text-stone-500 hover:bg-rose-50"}`}>
+                <ShoppingCart size={20} />
+                {cartCount > 0 && (
+                  <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-stone-900 text-[9px] font-semibold text-white">{cartCount}</span>
+                )}
+              </button>
+              <button onClick={openProfile} className="flex h-11 w-11 items-center justify-center rounded-full text-stone-500 hover:bg-rose-50">
+                <UserRound size={20} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Kategoriyalar + brendlar to'liq sahifasi — pastki panelning kategoriya (grid) tugmasidan ochiladi */}
+      {categoriesPageOpen && (
+        <div className="fixed inset-0 z-50 flex flex-col bg-white">
+          <div className="flex-1 overflow-y-auto px-[5px] pb-28 pt-5 min-[769px]:px-6">
+            <div className="mb-4 flex items-center justify-between">
+              <h1 style={{ fontFamily: "'Playfair Display', Georgia, serif" }} className="text-2xl font-bold text-stone-900 sm:text-3xl">{t.store.navCategories}</h1>
+              <button onClick={() => setCategoriesPageOpen(false)} className="rounded-full p-2 text-stone-400 hover:bg-gray-100">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="mb-5 flex gap-2 rounded-full bg-gray-100 p-1">
+              <button
+                onClick={() => setCategoriesPageTab("categories")}
+                className={`flex-1 rounded-full py-2 text-sm font-medium transition ${categoriesPageTab === "categories" ? "bg-white text-stone-900 shadow-sm" : "text-stone-500"}`}
+              >
+                {t.store.navCategories}
+              </button>
+              <button
+                onClick={() => setCategoriesPageTab("brands")}
+                className={`flex-1 rounded-full py-2 text-sm font-medium transition ${categoriesPageTab === "brands" ? "bg-white text-stone-900 shadow-sm" : "text-stone-500"}`}
+              >
+                {t.store.brandsTitle}
+              </button>
+            </div>
+
+            {categoriesPageTab === "categories" ? (
+              categories.length === 0 ? (
+                <EmptyState icon={LayoutGrid} text={t.store.noProducts} />
+              ) : (
+                <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
+                  {categories.map((c) => {
+                    const thumb = itemThumb(c, products, "category");
+                    return (
+                      <button
+                        key={c.id}
+                        onClick={() => openCategoryPage(c.name)}
+                        className="flex flex-col items-center gap-2"
+                      >
+                        <span
+                          className="flex h-20 w-20 items-center justify-center rounded-2xl p-[3px] transition-transform duration-200 hover:-translate-y-0.5 sm:h-24 sm:w-24"
+                          style={{
+                            background: "linear-gradient(145deg, #ffffff, #d6d6d6)",
+                            boxShadow: "0 8px 16px rgba(0,0,0,0.14), 0 2px 4px rgba(0,0,0,0.08), inset 0 1px 1px rgba(255,255,255,0.9)",
+                          }}
+                        >
+                          <span
+                            className="flex h-full w-full items-center justify-center overflow-hidden rounded-2xl bg-rose-50"
+                            style={{ boxShadow: "inset 0 2px 4px rgba(0,0,0,0.12), inset 0 -1px 2px rgba(255,255,255,0.8)" }}
+                          >
+                            {thumb ? (
+                              <img src={thumb} alt={c.name} className="h-full w-full object-cover" />
+                            ) : (
+                              <Package size={26} className="text-stone-400" />
+                            )}
+                          </span>
+                        </span>
+                        <span className="max-w-[92px] truncate text-center text-xs font-medium text-stone-700 sm:text-sm">{c.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )
+            ) : brands.length === 0 ? (
+              <EmptyState icon={Tag} text={t.store.noProducts} />
+            ) : (
+              <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
+                {brands.map((b) => {
+                  const thumb = itemThumb(b, products, "brand");
+                  return (
+                    <button
+                      key={b.id}
+                      onClick={() => openBrandPage(b.name)}
+                      className="flex flex-col items-center gap-2"
+                    >
+                      <span
+                        className="flex h-20 w-20 items-center justify-center rounded-full p-[3px] transition-transform duration-200 hover:-translate-y-0.5 sm:h-24 sm:w-24"
+                        style={{
+                          background: "linear-gradient(145deg, #ffffff, #d6d6d6)",
+                          boxShadow: "0 8px 16px rgba(0,0,0,0.14), 0 2px 4px rgba(0,0,0,0.08), inset 0 1px 1px rgba(255,255,255,0.9)",
+                        }}
+                      >
+                        <span
+                          className="flex h-full w-full items-center justify-center overflow-hidden rounded-full bg-white"
+                          style={{ boxShadow: "inset 0 2px 4px rgba(0,0,0,0.12), inset 0 -1px 2px rgba(255,255,255,0.8)" }}
+                        >
+                          {thumb ? (
+                            <img src={thumb} alt={b.name} className="h-full w-full object-cover" />
+                          ) : (
+                            <Tag size={26} className="text-stone-400" />
+                          )}
+                        </span>
+                      </span>
+                      <span className="max-w-[92px] truncate text-center text-sm font-bold text-stone-800 sm:text-base">{b.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Suzuvchi orqaga qaytish + navigatsiya paneli */}
+          <div className="fixed inset-x-0 bottom-4 z-10 flex items-center justify-center gap-2">
+            <button
+              onClick={() => setCategoriesPageOpen(false)}
+              aria-label="Orqaga"
+              className="flex h-12 w-12 items-center justify-center rounded-full bg-rose-500 text-white shadow-lg transition hover:bg-rose-600"
+            >
+              <ArrowLeft size={20} />
+            </button>
+            <div className="flex items-center gap-1 rounded-full bg-white px-2 py-2 shadow-[0_8px_28px_rgba(0,0,0,0.16)]">
+              <button onClick={() => { setCategoriesPageOpen(false); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="flex h-11 w-11 items-center justify-center rounded-full text-stone-500 hover:bg-rose-50">
+                <Home size={20} />
+              </button>
+              <button onClick={() => setWishlistOpen(true)} className="relative flex h-11 w-11 items-center justify-center rounded-full text-stone-500 hover:bg-rose-50">
+                <Heart size={20} />
+                {wishlistItems.length > 0 && (
+                  <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-stone-900 text-[9px] font-semibold text-white">{wishlistItems.length}</span>
+                )}
+              </button>
+              <button onClick={() => setCartOpen(true)} className={`relative flex h-11 w-11 items-center justify-center rounded-full transition ${cartCount > 0 ? "bg-rose-50 text-rose-500" : "text-stone-500 hover:bg-rose-50"}`}>
+                <ShoppingCart size={20} />
+                {cartCount > 0 && (
+                  <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-stone-900 text-[9px] font-semibold text-white">{cartCount}</span>
+                )}
+              </button>
+              <button onClick={openProfile} className="flex h-11 w-11 items-center justify-center rounded-full text-stone-500 hover:bg-rose-50">
+                <UserRound size={20} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Qidiruv sahifasi — mobil qidiruv inputiga bosilganda ochiladi. Yozilgan zahoti natijalar shu sahifaning o'zida (mahsulot kartochkalari bilan) ko'rinadi. */}
+      {searchPageOpen && (
+        <div className="fixed inset-0 z-50 flex flex-col bg-white">
+          <div className="flex-1 overflow-y-auto px-4 pb-28 pt-5 min-[769px]:px-6">
+            <div className="mb-6 flex items-center gap-3">
+              <div className="relative flex-1">
+                <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" />
+                <input
+                  autoFocus
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter" && search.trim()) addSearchHistory(search); }}
+                  placeholder={t.store.searchPh}
+                  className="w-full rounded-full bg-gray-100 py-3 pl-11 pr-9 text-sm outline-none focus:bg-gray-50"
+                />
+                {search && (
+                  <button
+                    onClick={() => setSearch("")}
+                    aria-label="Tozalash"
+                    className="absolute right-3 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full bg-stone-300 text-white hover:bg-stone-400"
+                  >
+                    <X size={12} />
+                  </button>
+                )}
+              </div>
+              <button
+                onClick={() => { setSearchPageOpen(false); setSearch(""); }}
+                className="shrink-0 text-sm font-semibold text-stone-700 hover:text-rose-500"
+              >
+                {t.common.cancel}
+              </button>
+            </div>
+
+            {searchPageLower ? (
+              searchPageResults.length === 0 ? (
+                <EmptyState icon={Package} text={t.store.noProducts} />
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  {searchPageResults.map((p) => {
+                    const inCart = cart[p.id] || 0;
+                    const stockType = p.stockType || "limited";
+                    const soldOut = stockType === "out" || (stockType === "limited" && (p.stock || 0) <= 0);
+                    const hasDiscount = p.oldPrice > p.price;
+                    const pct = discountPct(p.price, p.oldPrice);
+                    const thumb = (p.imageUrls && p.imageUrls[0]) || p.imageUrl || "";
+                    const name = pname(p, lang);
+                    const liked = wishlist.has(p.id);
+                    return (
+                      <div
+                        key={p.id}
+                        onClick={() => { setSelectedProduct(p); setSearchPageOpen(false); }}
+                        className="relative flex cursor-pointer flex-col rounded-2xl bg-white p-2.5 shadow-sm transition hover:-translate-y-0.5"
+                      >
+                        <div className="relative mb-2.5 aspect-square overflow-hidden rounded-xl bg-white text-stone-300">
+                          {thumb ? (
+                            <img src={thumb} alt={name} className="h-full w-full object-contain p-2" draggable={false} onDragStart={(e) => e.preventDefault()} />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center"><Package size={28} strokeWidth={1.3} /></div>
+                          )}
+                          {hasDiscount && (
+                            <span className="absolute left-1.5 top-1.5 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-bold text-rose-600">-{pct}%</span>
+                          )}
+                          <button
+                            onClick={(e) => { e.stopPropagation(); toggleWishlist(p.id); }}
+                            className="absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-stone-400 shadow-sm transition hover:text-rose-500"
+                          >
+                            <Heart size={13} fill={liked ? "#f43f5e" : "none"} className={liked ? "text-rose-500" : ""} />
+                          </button>
+                        </div>
+                        {p.brand && <p className="text-[10px] font-medium uppercase tracking-wide text-rose-500">{p.brand}</p>}
+                        <p className="mb-1 line-clamp-2 min-h-[2.2em] text-xs font-medium text-stone-800 sm:text-sm">{name}</p>
+                        <p className="text-xs font-semibold text-stone-900 sm:text-sm">{fmtMoney(p.price)} <span className="text-[10px] font-normal text-stone-400">{t.common.uzs}</span></p>
+                        {hasDiscount && <p className="mb-2 text-[11px] text-stone-400 line-through">{fmtMoney(p.oldPrice)}</p>}
+                        <AddToCartControl
+                          qty={inCart}
+                          soldOut={soldOut}
+                          size="sm"
+                          onIncrease={(e) => { e.stopPropagation(); addToCart(p); }}
+                          onDecrease={(e) => { e.stopPropagation(); changeQty(p.id, -1); }}
+                          emptyContent={<Plus size={15} />}
+                          emptyClassName="mt-auto flex h-9 items-center justify-center rounded-full border border-stone-200 text-stone-800 transition hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-40"
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              )
+            ) : (
+              <>
+                {searchHistory.length > 0 && (
+                  <div className="mb-6">
+                    <div className="mb-3 flex items-center justify-between">
+                      <h2 className="text-sm font-semibold text-stone-800">{t.store.searchHistory}</h2>
+                      <button onClick={clearSearchHistory} className="text-xs font-medium text-stone-400 hover:text-rose-500">{t.store.clearHistory}</button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {searchHistory.map((h, i) => (
+                        <button
+                          key={i}
+                          onClick={() => pickSearchTerm(h)}
+                          className="flex items-center gap-1.5 rounded-full border border-stone-200 px-3 py-2 text-sm text-stone-700 transition hover:bg-stone-50"
+                        >
+                          <Clock size={13} className="text-stone-400" /> {h}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {categories.length > 0 && (
+                  <div>
+                    <h2 className="mb-3 text-sm font-semibold text-stone-800">{t.store.categoriesLabel}</h2>
+                    <div className="grid grid-cols-2 gap-3">
+                      {categories.map((c) => {
+                        const thumb = itemThumb(c, products, "category");
+                        return (
+                          <button
+                            key={c.id}
+                            onClick={() => pickSearchTerm(c.name)}
+                            className="flex items-center gap-3 rounded-xl border border-stone-200 p-2 text-left transition hover:bg-stone-50"
+                          >
+                            <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-stone-100">
+                              {thumb ? (
+                                <img src={thumb} alt={c.name} className="h-full w-full object-cover" />
+                              ) : (
+                                <Package size={18} className="text-stone-400" />
+                              )}
+                            </span>
+                            <span className="truncate text-sm font-medium text-rose-600">{c.name}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* Suzuvchi navigatsiya paneli */}
+          <div className="fixed inset-x-0 bottom-4 z-10 flex items-center justify-center">
+            <div className="flex items-center gap-1 rounded-full bg-white px-2 py-2 shadow-[0_8px_28px_rgba(0,0,0,0.16)]">
+              <button onClick={() => { setSearchPageOpen(false); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="flex h-11 w-11 items-center justify-center rounded-full text-stone-500 hover:bg-rose-50">
+                <Home size={20} />
+              </button>
+              <button className="flex h-11 w-11 items-center justify-center rounded-full bg-rose-500 text-white">
+                <Search size={20} />
+              </button>
+              <button onClick={() => setWishlistOpen(true)} className="relative flex h-11 w-11 items-center justify-center rounded-full text-stone-500 hover:bg-rose-50">
+                <Heart size={20} />
+                {wishlistItems.length > 0 && (
+                  <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-stone-900 text-[9px] font-semibold text-white">{wishlistItems.length}</span>
+                )}
+              </button>
+              <button onClick={() => setCartOpen(true)} className={`relative flex h-11 w-11 items-center justify-center rounded-full transition ${cartCount > 0 ? "bg-rose-50 text-rose-500" : "text-stone-500 hover:bg-rose-50"}`}>
+                <ShoppingCart size={20} />
+                {cartCount > 0 && (
+                  <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-stone-900 text-[9px] font-semibold text-white">{cartCount}</span>
+                )}
+              </button>
+              <button onClick={openProfile} className="flex h-11 w-11 items-center justify-center rounded-full text-stone-500 hover:bg-rose-50">
+                <UserRound size={20} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Kategoriya sahifasi — banner ostidagi "Kategoriyalar" qatoridan bosilganda ochiladi: tepada rasmli banner + nomi, qidiruv, saralash va filtr */}
+      {categoryPageOpen && (
+        <div className="fixed inset-0 z-50 flex flex-col bg-white">
+          <div className="flex-1 overflow-y-auto pb-28">
+            <div className="relative h-40 w-full overflow-hidden rounded-b-[28px] bg-rose-100 sm:h-52">
+              {categoryPageHeroImg ? (
+                <img src={categoryPageHeroImg} alt={categoryPageName || ""} className="h-full w-full object-cover" />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center"><Package size={40} className="text-rose-300" /></div>
+              )}
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-transparent" />
+              <button
+                onClick={() => setCategoryPageOpen(false)}
+                className="absolute left-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-stone-700 shadow-sm hover:bg-white"
+              >
+                <ArrowLeft size={18} />
+              </button>
+              <h1 style={{ fontFamily: "'Playfair Display', Georgia, serif" }} className="absolute bottom-4 left-5 right-5 text-2xl font-bold text-white sm:text-3xl">
+                {categoryPageName}
+              </h1>
+            </div>
+
+            <div className="px-4 pt-4 min-[769px]:px-6">
+              <div className="mb-4 flex items-center gap-2">
+                <div className="relative flex-1">
+                  <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" />
+                  <input
+                    value={categoryPageSearch}
+                    onChange={(e) => setCategoryPageSearch(e.target.value)}
+                    placeholder={t.store.searchPh}
+                    className="w-full rounded-full bg-gray-100 py-3 pl-10 pr-4 text-sm outline-none focus:bg-gray-50"
+                  />
+                </div>
+                <button onClick={() => setSortModalOpen(true)} aria-label={t.store.sortTitle} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-gray-200 text-stone-600 hover:bg-gray-50">
+                  <SlidersHorizontal size={17} />
+                </button>
+                <button onClick={openFilterModal} aria-label={t.store.filtersTitle} className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-gray-200 text-stone-600 hover:bg-gray-50">
+                  <Filter size={17} />
+                  {activeFilterCount > 0 && (
+                    <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[9px] font-semibold text-white">{activeFilterCount}</span>
+                  )}
+                </button>
+              </div>
+
+              {categoryPageResults.length === 0 ? (
+                <EmptyState icon={Package} text={t.store.noProducts} />
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  {categoryPageResults.map((p) => {
+                    const inCart = cart[p.id] || 0;
+                    const stockType = p.stockType || "limited";
+                    const soldOut = stockType === "out" || (stockType === "limited" && (p.stock || 0) <= 0);
+                    const hasDiscount = p.oldPrice > p.price;
+                    const pct = discountPct(p.price, p.oldPrice);
+                    const thumb = (p.imageUrls && p.imageUrls[0]) || p.imageUrl || "";
+                    const name = pname(p, lang);
+                    const liked = wishlist.has(p.id);
+                    return (
+                      <div
+                        key={p.id}
+                        onClick={() => { setSelectedProduct(p); setCategoryPageOpen(false); }}
+                        className="relative flex cursor-pointer flex-col rounded-2xl bg-white p-2.5 shadow-sm transition hover:-translate-y-0.5"
+                      >
+                        <div className="relative mb-2.5 aspect-square overflow-hidden rounded-xl bg-white text-stone-300">
+                          {thumb ? (
+                            <img src={thumb} alt={name} className="h-full w-full object-contain p-2" draggable={false} onDragStart={(e) => e.preventDefault()} />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center"><Package size={28} strokeWidth={1.3} /></div>
+                          )}
+                          {hasDiscount && (
+                            <span className="absolute left-1.5 top-1.5 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-bold text-rose-600">-{pct}%</span>
+                          )}
+                          <button
+                            onClick={(e) => { e.stopPropagation(); toggleWishlist(p.id); }}
+                            className="absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-stone-400 shadow-sm transition hover:text-rose-500"
+                          >
+                            <Heart size={13} fill={liked ? "#f43f5e" : "none"} className={liked ? "text-rose-500" : ""} />
+                          </button>
+                        </div>
+                        {p.brand && <p className="text-[10px] font-medium uppercase tracking-wide text-rose-500">{p.brand}</p>}
+                        <p className="mb-1 line-clamp-2 min-h-[2.2em] text-xs font-medium text-stone-800 sm:text-sm">{name}</p>
+                        <p className="text-xs font-semibold text-stone-900 sm:text-sm">{fmtMoney(p.price)} <span className="text-[10px] font-normal text-stone-400">{t.common.uzs}</span></p>
+                        {hasDiscount && <p className="mb-2 text-[11px] text-stone-400 line-through">{fmtMoney(p.oldPrice)}</p>}
+                        <AddToCartControl
+                          qty={inCart}
+                          soldOut={soldOut}
+                          size="sm"
+                          onIncrease={(e) => { e.stopPropagation(); addToCart(p); }}
+                          onDecrease={(e) => { e.stopPropagation(); changeQty(p.id, -1); }}
+                          emptyContent={<Plus size={15} />}
+                          emptyClassName="mt-auto flex h-9 items-center justify-center rounded-full border border-stone-200 text-stone-800 transition hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-40"
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Suzuvchi orqaga qaytish + navigatsiya paneli */}
+          <div className="fixed inset-x-0 bottom-4 z-10 flex items-center justify-center gap-2">
+            <button
+              onClick={() => setCategoryPageOpen(false)}
+              aria-label="Orqaga"
+              className="flex h-12 w-12 items-center justify-center rounded-full bg-rose-500 text-white shadow-lg transition hover:bg-rose-600"
+            >
+              <ArrowLeft size={20} />
+            </button>
+            <div className="flex items-center gap-1 rounded-full bg-white px-2 py-2 shadow-[0_8px_28px_rgba(0,0,0,0.16)]">
+              <button onClick={() => { setCategoryPageOpen(false); setCategoriesPageOpen(false); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="flex h-11 w-11 items-center justify-center rounded-full text-stone-500 hover:bg-rose-50">
+                <Home size={20} />
+              </button>
+              <button onClick={() => setWishlistOpen(true)} className="relative flex h-11 w-11 items-center justify-center rounded-full text-stone-500 hover:bg-rose-50">
+                <Heart size={20} />
+                {wishlistItems.length > 0 && (
+                  <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-stone-900 text-[9px] font-semibold text-white">{wishlistItems.length}</span>
+                )}
+              </button>
+              <button onClick={() => setCartOpen(true)} className={`relative flex h-11 w-11 items-center justify-center rounded-full transition ${cartCount > 0 ? "bg-rose-50 text-rose-500" : "text-stone-500 hover:bg-rose-50"}`}>
+                <ShoppingCart size={20} />
+                {cartCount > 0 && (
+                  <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-stone-900 text-[9px] font-semibold text-white">{cartCount}</span>
+                )}
+              </button>
+              <button onClick={openProfile} className="flex h-11 w-11 items-center justify-center rounded-full text-stone-500 hover:bg-rose-50">
+                <UserRound size={20} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Saralash oynasi */}
+      {sortModalOpen && (
+        <div className="fixed inset-0 z-[60] flex items-end justify-center bg-slate-900/40" onClick={() => setSortModalOpen(false)}>
+          <div className="max-h-[75vh] w-full max-w-lg overflow-y-auto rounded-t-[28px] bg-white p-5 pb-8" onClick={(e) => e.stopPropagation()}>
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-stone-900">{t.store.sortTitle}</h3>
+              <button onClick={() => setSortModalOpen(false)} className="rounded-full p-1.5 text-stone-400 hover:bg-gray-100"><X size={18} /></button>
+            </div>
+            <div className="space-y-1">
+              {SORT_OPTIONS.map((opt) => (
+                <button
+                  key={opt.key}
+                  onClick={() => { setCategoryPageSort(opt.key); setSortModalOpen(false); }}
+                  className="flex w-full items-center gap-3 rounded-xl px-2 py-3 text-left hover:bg-gray-50"
+                >
+                  <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${categoryPageSort === opt.key ? "border-rose-500" : "border-stone-300"}`}>
+                    {categoryPageSort === opt.key && <span className="h-2.5 w-2.5 rounded-full bg-rose-500" />}
+                  </span>
+                  <span className="text-sm text-stone-700">{lang === "ru" ? opt.ru : opt.uz}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Filtrlar oynasi — Narx va Brend to'liq ishlaydi, qolgan mezonlar hozircha ma'lumot bazasida yo'q */}
+      {filterModalOpen && (
+        <div className="fixed inset-0 z-[60] flex items-end justify-center bg-slate-900/40" onClick={() => setFilterModalOpen(false)}>
+          <div className="flex max-h-[85vh] w-full max-w-lg flex-col rounded-t-[28px] bg-white" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+              <h3 className="text-lg font-semibold text-stone-900">{t.store.filtersTitle}</h3>
+              <button onClick={() => setFilterModalOpen(false)} className="rounded-full p-1.5 text-stone-400 hover:bg-gray-100"><X size={18} /></button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-5 py-2">
+              <div className="border-b border-gray-100">
+                <button
+                  onClick={() => setFilterExpanded(filterExpanded === "price" ? null : "price")}
+                  className="flex w-full items-center justify-between py-3 text-sm font-semibold text-stone-800"
+                >
+                  {t.common.uzs} {t.store.priceLabel}
+                  <ChevronDown size={16} className={`text-stone-400 transition-transform ${filterExpanded === "price" ? "rotate-180" : ""}`} />
+                </button>
+                {filterExpanded === "price" && (
+                  <div className="flex items-start gap-2 pb-4">
+                    <div className="w-full">
+                      <label className="mb-1 block text-[11px] text-stone-400">{t.store.minPriceLabel}</label>
+                      <input
+                        type="number"
+                        value={draftPriceMin}
+                        onChange={(e) => setDraftPriceMin(e.target.value)}
+                        placeholder={String(categoryPagePriceBounds.min)}
+                        className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-rose-300"
+                      />
+                    </div>
+                    <span className="mt-6 text-stone-300">—</span>
+                    <div className="w-full">
+                      <label className="mb-1 block text-[11px] text-stone-400">{t.store.maxPriceLabel}</label>
+                      <input
+                        type="number"
+                        value={draftPriceMax}
+                        onChange={(e) => setDraftPriceMax(e.target.value)}
+                        placeholder={String(categoryPagePriceBounds.max)}
+                        className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-rose-300"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {FILTER_DIMENSIONS.map((dim) => (
+                <div key={dim.key} className="border-b border-gray-100">
+                  <button
+                    onClick={() => setFilterExpanded(filterExpanded === dim.key ? null : dim.key)}
+                    className="flex w-full items-center justify-between py-3 text-sm font-medium text-stone-700"
+                  >
+                    {lang === "ru" ? dim.ru : dim.uz}
+                    <ChevronDown size={16} className={`text-stone-400 transition-transform ${filterExpanded === dim.key ? "rotate-180" : ""}`} />
+                  </button>
+                  {filterExpanded === dim.key && (
+                    <div className="pb-3">
+                      {dim.functional && dim.key === "brand" ? (
+                        categoryPageBrands.length === 0 ? (
+                          <p className="text-xs text-stone-400">{t.store.comingSoon}</p>
+                        ) : (
+                          <div className="space-y-2">
+                            {categoryPageBrands.map((b) => (
+                              <label key={b} className="flex items-center gap-2.5 text-sm text-stone-700">
+                                <input
+                                  type="checkbox"
+                                  checked={draftBrandFilter.includes(b)}
+                                  onChange={() => toggleDraftBrand(b)}
+                                  className="h-4 w-4 rounded border-gray-300 text-rose-500 focus:ring-rose-400"
+                                />
+                                {b}
+                              </label>
+                            ))}
+                          </div>
+                        )
+                      ) : dim.functional && dim.key === "category" ? (
+                        categoryPageCategories.length === 0 ? (
+                          <p className="text-xs text-stone-400">{t.store.comingSoon}</p>
+                        ) : (
+                          <div className="space-y-2">
+                            {categoryPageCategories.map((c) => (
+                              <label key={c} className="flex items-center gap-2.5 text-sm text-stone-700">
+                                <input
+                                  type="checkbox"
+                                  checked={draftCategoryFilter.includes(c)}
+                                  onChange={() => toggleDraftCategory(c)}
+                                  className="h-4 w-4 rounded border-gray-300 text-rose-500 focus:ring-rose-400"
+                                />
+                                {c}
+                              </label>
+                            ))}
+                          </div>
+                        )
+                      ) : dim.functional && EXTRA_FILTER_KEYS.includes(dim.key) ? (
+                        (categoryPageExtraOptions[dim.key] || []).length === 0 ? (
+                          <p className="text-xs text-stone-400">{t.store.comingSoon}</p>
+                        ) : (
+                          <div className="space-y-2">
+                            {categoryPageExtraOptions[dim.key].map((v) => (
+                              <label key={v} className="flex items-center gap-2.5 text-sm text-stone-700">
+                                <input
+                                  type="checkbox"
+                                  checked={(draftExtraFilters[dim.key] || []).includes(v)}
+                                  onChange={() => toggleDraftExtra(dim.key, v)}
+                                  className="h-4 w-4 rounded border-gray-300 text-rose-500 focus:ring-rose-400"
+                                />
+                                {v}
+                              </label>
+                            ))}
+                          </div>
+                        )
+                      ) : (
+                        <p className="text-xs text-stone-400">{t.store.comingSoon}</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-3 border-t border-gray-100 px-5 py-4">
+              <button onClick={() => setFilterModalOpen(false)} className="flex-1 rounded-full bg-gray-100 py-3 text-sm font-semibold text-stone-700 hover:bg-gray-200">
+                {t.common.cancel}
+              </button>
+              <button onClick={applyFilters} className="flex-1 rounded-full bg-[#C4106A] py-3 text-sm font-semibold text-white hover:bg-[#a80d59]">
+                {t.store.applyBtn}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Wishlist drawer */}
       {wishlistOpen && (
-        <div className="fixed inset-0 z-40 flex justify-end bg-slate-900/40" onClick={() => setWishlistOpen(false)}>
+        <div className="fixed inset-0 z-[55] flex justify-end bg-slate-900/40" onClick={() => setWishlistOpen(false)}>
           <div className="flex h-full w-full max-w-sm flex-col bg-white shadow-xl" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
               <h3 className="text-base font-semibold text-slate-800">{t.store.wishlist}</h3>
@@ -3633,12 +5133,33 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                 </div>
               )}
             </div>
+
+            {/* Mijoz qaysi bo'limda ekanini bilib turishi va boshqa bo'limga tez o'tishi uchun — asosiy pastki navigatsiyaning o'zi */}
+            <div className="flex items-center justify-center gap-1 border-t border-gray-100 px-5 py-3">
+              {[
+                { key: "home", icon: Home, onClick: () => { setWishlistOpen(false); setActiveNavTab("home"); window.scrollTo({ top: 0, behavior: "smooth" }); } },
+                { key: "wishlist", icon: Heart, onClick: () => {}, badge: wishlistItems.length },
+                { key: "cart", icon: ShoppingCart, onClick: () => { setWishlistOpen(false); setActiveNavTab("cart"); setCartOpen(true); }, badge: cartCount },
+                { key: "profile", icon: UserRound, onClick: () => { setWishlistOpen(false); setActiveNavTab("profile"); openProfile(); } },
+              ].map(({ key, icon: Icon, onClick, badge }) => (
+                <button
+                  key={key}
+                  onClick={onClick}
+                  className={`relative flex h-11 w-11 items-center justify-center rounded-full transition ${key === "wishlist" ? "bg-rose-500 text-white" : "text-stone-500 hover:bg-rose-50"}`}
+                >
+                  <Icon size={20} />
+                  {!!badge && (
+                    <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-stone-900 text-[9px] font-semibold text-white">{badge}</span>
+                  )}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       )}
       {/* Telefon bilan kirish/ro'yxatdan o'tish ekrani — Profil bosilganda, hali telefon bog'lanmagan bo'lsa */}
       {phoneLoginOpen && (
-        <div className="fixed inset-0 z-40 flex flex-col bg-white">
+        <div className="fixed inset-0 z-[55] flex flex-col bg-white">
           {otpStep === "phone" ? (
             <>
               <div className="flex flex-1 flex-col justify-end px-6 pb-8">
@@ -3727,7 +5248,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
       )}
 
       {profileOpen && (
-        <div className="fixed inset-0 z-40 flex justify-end bg-slate-900/40" onClick={() => setProfileOpen(false)}>
+        <div className="fixed inset-0 z-[55] flex justify-end bg-slate-900/40" onClick={() => setProfileOpen(false)}>
           <div className="flex h-full w-full max-w-sm flex-col bg-white shadow-xl" onClick={e => e.stopPropagation()}>
             <div className="flex items-center gap-2 border-b border-gray-100 px-5 py-4">
               {profileView !== "menu" && (
@@ -3740,6 +5261,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                 {profileView === "personal" && t.store.profile.personalData}
                 {profileView === "orders" && t.store.profile.myOrders}
                 {profileView === "addresses" && t.store.profile.addresses}
+                {profileView === "settings" && t.store.profile.settings}
               </h3>
               <button onClick={() => setProfileOpen(false)} className="rounded-lg p-1 text-slate-400 hover:bg-gray-100"><X size={18} /></button>
             </div>
@@ -3754,7 +5276,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                     </div>
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold text-slate-800">
-                        {tgUser ? [tgUser.first_name, tgUser.last_name].filter(Boolean).join(" ") : (form.name || myPhone || "—")}
+                        {tgUser ? [tgUser.first_name, tgUser.last_name].filter(Boolean).join(" ") : (myName || myPhone || "—")}
                       </p>
                       <p className="text-xs text-slate-400">
                         {tgUser?.username ? `@${tgUser.username}` : (myPhone || t.store.profile.notLinked)}
@@ -3762,11 +5284,19 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                     </div>
                   </div>
 
+                  <div className="mb-5 flex items-center justify-between rounded-xl bg-rose-50 px-4 py-3">
+                    <span className="flex items-center gap-2 text-sm font-medium text-rose-700">
+                      <Wallet size={16} /> {t.store.bonusLabel}
+                    </span>
+                    <span className="text-sm font-bold text-rose-600">{fmtMoney(myBonus)} {t.common.uzs}</span>
+                  </div>
+
                   <div className="space-y-1">
                     {[
                       { key: "personal", icon: UserRound, label: t.store.profile.personalData },
                       { key: "orders", icon: ClipboardList, label: t.store.profile.myOrders },
                       { key: "addresses", icon: MapPin, label: t.store.profile.addresses },
+                      { key: "settings", icon: SettingsIcon, label: t.store.profile.settings },
                     ].map(({ key, icon: Icon, label }) => (
                       <button
                         key={key}
@@ -3787,47 +5317,83 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
               {/* ===== SHAXSIY MA'LUMOTLAR ===== */}
               {profileView === "personal" && (
                 <>
-                  <div className="mb-5 rounded-xl border border-gray-100 p-3">
-                    <div className="mb-2 flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
-                        <UserRound size={20} />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-slate-800">
-                          {tgUser ? [tgUser.first_name, tgUser.last_name].filter(Boolean).join(" ") : (form.name || "—")}
-                        </p>
-                        <p className="text-xs text-slate-400">
-                          {tgUser?.username ? `@${tgUser.username}` : t.store.profile.notLinked}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between border-t border-gray-100 pt-2 text-xs text-slate-500">
-                      <span>{t.store.profile.phone}</span>
-                      <span className="font-medium text-slate-700">{myPhone || "—"}</span>
-                    </div>
-                  </div>
+                  <h4 className="mb-1 text-sm font-semibold text-slate-700">{t.store.profile.yourName}</h4>
+                  <button
+                    onClick={() => openEditModal("name")}
+                    className="mb-4 block w-full rounded-xl bg-gray-100 px-4 py-3 text-left text-sm text-slate-700 hover:bg-gray-200"
+                  >
+                    {myName || (tgUser ? [tgUser.first_name, tgUser.last_name].filter(Boolean).join(" ") : "") || <span className="text-slate-400">...</span>}
+                  </button>
 
-                  <div>
-                    <h4 className="mb-1 text-sm font-semibold text-slate-700">{t.store.profile.addPhone}</h4>
-                    <p className="mb-2 text-xs text-slate-400">{t.store.profile.addPhoneNote}</p>
-                    <div className="flex gap-2">
-                      <PhoneInput value={phoneInput} onChange={setPhoneInput} />
-                      <button
-                        onClick={saveMyPhone}
-                        disabled={savingPhone || !isValidUzPhone(phoneInput)}
-                        className="flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-60"
-                      >
-                        {savingPhone ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-                        {t.store.profile.savePhone}
+                  {!myEmail && (
+                    <p className="mb-2 text-xs font-medium text-rose-600">{t.store.profile.emailRequired}</p>
+                  )}
+                  <button
+                    onClick={() => openEditModal("email")}
+                    className="mb-4 block w-full rounded-xl bg-gray-100 px-4 py-3 text-left text-sm text-slate-700 hover:bg-gray-200"
+                  >
+                    {myEmail || <span className="text-slate-400">&nbsp;</span>}
+                  </button>
+
+                  <h4 className="mb-1 text-sm font-semibold text-slate-700">{t.store.profile.phone}</h4>
+                  {myPhone ? (
+                    <div className="block w-full rounded-xl bg-gray-100 px-4 py-3 text-sm font-medium text-amber-700">
+                      {myPhone}
+                    </div>
+                  ) : (
+                    <div>
+                      <p className="mb-2 text-xs text-slate-400">{t.store.profile.addPhoneNote}</p>
+                      <div className="flex gap-2">
+                        <PhoneInput value={phoneInput} onChange={setPhoneInput} />
+                        <button
+                          onClick={saveMyPhone}
+                          disabled={savingPhone || !isValidUzPhone(phoneInput)}
+                          className="flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-60"
+                        >
+                          {savingPhone ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                          {t.store.profile.savePhone}
+                        </button>
+                      </div>
+                      {phoneSaved && (
+                        <p className="mt-2 flex items-center gap-1 text-xs text-emerald-600">
+                          <CheckCircle2 size={13} /> {t.store.profile.phoneSaved}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Ism / Email tahrirlash oynasi — bosilganda pastdan chiqadi */}
+              {editField && (
+                <div className="fixed inset-0 z-[70] flex items-end justify-center bg-slate-900/40 sm:items-center" onClick={() => setEditField(null)}>
+                  <div className="w-full max-w-sm rounded-t-[28px] bg-white p-5 sm:rounded-2xl" onClick={(e) => e.stopPropagation()}>
+                    <div className="mb-4 flex items-center justify-between">
+                      <h3 className="text-lg font-semibold text-slate-800">
+                        {editField === "name" ? t.store.profile.yourName : t.store.profile.emailLabel}
+                      </h3>
+                      <button onClick={() => setEditField(null)} className="rounded-lg p-1 text-slate-400 hover:bg-gray-100">
+                        <X size={18} />
                       </button>
                     </div>
-                    {phoneSaved && (
-                      <p className="mt-2 flex items-center gap-1 text-xs text-emerald-600">
-                        <CheckCircle2 size={13} /> {t.store.profile.phoneSaved}
-                      </p>
-                    )}
+                    <input
+                      autoFocus
+                      type={editField === "email" ? "email" : "text"}
+                      value={editInput}
+                      onChange={(e) => setEditInput(e.target.value)}
+                      placeholder={editField === "name" ? t.store.profile.namePlaceholder : t.store.profile.emailPlaceholder}
+                      className="mb-4 w-full rounded-xl bg-gray-100 px-4 py-3 text-sm text-slate-800 outline-none placeholder:text-slate-400"
+                    />
+                    <button
+                      onClick={saveEditField}
+                      disabled={savingEdit || !editInput.trim()}
+                      className="flex w-full items-center justify-center gap-1.5 rounded-full bg-rose-600 py-3 text-sm font-semibold text-white hover:bg-rose-700 disabled:opacity-60"
+                    >
+                      {savingEdit && <Loader2 size={14} className="animate-spin" />}
+                      {t.store.profile.applyLabel}
+                    </button>
                   </div>
-                </>
+                </div>
               )}
 
               {/* ===== BUYURTMALARIM ===== */}
@@ -3853,54 +5419,150 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
               {/* ===== YETKAZIB BERISH MANZILLARI ===== */}
               {profileView === "addresses" && (
                 <div>
-                  <h4 className="mb-1 text-sm font-semibold text-slate-700">{t.store.profile.deliveryAddress}</h4>
-                  <p className="mb-2 text-xs text-slate-400">{t.store.profile.deliveryAddressNote}</p>
-                  <textarea
-                    value={addressInput}
-                    onChange={(e) => setAddressInput(e.target.value)}
-                    placeholder={t.store.profile.addressPh}
-                    rows={3}
-                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-slate-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
-                  />
-                  <button
-                    onClick={saveMyAddress}
-                    disabled={savingAddress || !addressInput.trim()}
-                    className="mt-2 flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-60"
-                  >
-                    {savingAddress ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-                    {t.store.profile.saveAddress}
-                  </button>
-                  {addressSaved && (
-                    <p className="mt-2 flex items-center gap-1 text-xs text-emerald-600">
-                      <CheckCircle2 size={13} /> {t.store.profile.addressSaved}
-                    </p>
-                  )}
-                  {myAddress && (
-                    <div className="mt-4 flex items-start gap-2 rounded-xl border border-gray-100 p-3 text-xs text-slate-600">
-                      <MapPin size={15} className="mt-0.5 shrink-0 text-rose-400" />
-                      {myAddress}
+                  <p className="mb-3 text-xs text-slate-400">{t.store.profile.deliveryAddressNote}</p>
+
+                  {myAddresses.length > 0 && (
+                    <div className="mb-3 space-y-2">
+                      {myAddresses.map((addr) => (
+                        <div key={addr.id} className="flex items-start gap-2 rounded-xl border border-gray-100 p-3 text-xs text-slate-600">
+                          <MapPin size={15} className="mt-0.5 shrink-0 text-rose-400" />
+                          <div className="min-w-0 flex-1">
+                            <p className="break-words">{addr.text}</p>
+                            {addr.lat != null && addr.lng != null && (
+                              <p className="mt-1 flex items-center gap-1 text-[11px] text-emerald-600">
+                                <CheckCircle2 size={11} /> {t.store.locationSet}
+                              </p>
+                            )}
+                          </div>
+                          <button onClick={() => openAddressForm(addr)} className="shrink-0 rounded-lg p-1 text-slate-300 hover:bg-emerald-50 hover:text-emerald-600">
+                            <Pencil size={14} />
+                          </button>
+                          <button onClick={() => deleteMyAddress(addr.id)} className="shrink-0 rounded-lg p-1 text-slate-300 hover:bg-rose-50 hover:text-rose-500">
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      ))}
                     </div>
+                  )}
+
+                  {addressFormOpen ? (
+                    <div className="rounded-xl border border-gray-100 p-3">
+                      <h4 className="mb-1 text-sm font-semibold text-slate-700">
+                        {editingAddressId ? t.store.profile.editAddress : t.store.profile.deliveryAddress}
+                      </h4>
+                      <textarea
+                        value={newAddressText}
+                        onChange={(e) => setNewAddressText(e.target.value)}
+                        placeholder={t.store.profile.addressPh}
+                        rows={3}
+                        autoFocus
+                        className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-slate-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowAddressMap(v => !v)}
+                        className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-gray-50"
+                      >
+                        <MapPin size={14} /> {t.store.mapPick}
+                      </button>
+                      {showAddressMap && (
+                        <div className="mt-2">
+                          <p className="mb-1.5 text-[11px] text-slate-400">{t.store.mapPickNote}</p>
+                          <MapPicker value={newAddressLocation} onChange={setNewAddressLocation} />
+                          <button
+                            type="button"
+                            onClick={() => setShowAddressMap(false)}
+                            className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg bg-emerald-600 py-2 text-xs font-semibold text-white hover:bg-emerald-700"
+                          >
+                            <CheckCircle2 size={14} /> {t.store.applyBtn}
+                          </button>
+                        </div>
+                      )}
+                      {newAddressLocation && (
+                        <p className="mt-2 flex items-center gap-1 text-xs text-emerald-600">
+                          <CheckCircle2 size={13} /> {t.store.locationSet}
+                        </p>
+                      )}
+                      <div className="mt-3 flex gap-2">
+                        <button
+                          onClick={closeAddressForm}
+                          className="flex-1 rounded-lg px-3 py-2 text-sm font-medium text-slate-500 hover:bg-gray-100"
+                        >
+                          {t.common.cancel}
+                        </button>
+                        <button
+                          onClick={saveMyAddress}
+                          disabled={savingAddress || !newAddressText.trim()}
+                          className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-60"
+                        >
+                          {savingAddress ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                          {t.store.profile.saveAddress}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => openAddressForm(null)}
+                      className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-gray-300 py-3 text-sm font-medium text-rose-600 hover:bg-rose-50"
+                    >
+                      <Plus size={15} /> {t.store.profile.addAddress}
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* ===== SOZLAMALAR ===== */}
+              {profileView === "settings" && (
+                <div className="space-y-1">
+                  <button
+                    onClick={() => setLang(lang === "uz" ? "ru" : "uz")}
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left hover:bg-gray-50"
+                  >
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-rose-50 text-rose-500">
+                      <Globe size={17} />
+                    </span>
+                    <span className="flex-1 text-sm font-medium text-slate-700">{t.store.profile.language}</span>
+                    <span className="text-xs font-medium text-slate-400">{lang === "uz" ? "O'zbek" : "Русский"}</span>
+                  </button>
+
+                  {!!myPhone && (
+                    <button
+                      onClick={logoutProfile}
+                      className="flex w-full items-center justify-center gap-2 rounded-full border border-gray-200 py-3 text-sm font-medium text-rose-600 hover:bg-rose-50"
+                    >
+                      <LogOut size={16} /> {t.store.logout}
+                    </button>
                   )}
                 </div>
               )}
             </div>
 
-            {!!myPhone && profileView === "menu" && (
-              <div className="border-t border-gray-100 px-5 py-4">
+            {/* Mijoz qaysi bo'limda ekanini bilib turishi va boshqa bo'limga tez o'tishi uchun — asosiy pastki navigatsiyaning o'zi */}
+            <div className="flex items-center justify-center gap-1 border-t border-gray-100 px-5 py-3">
+              {[
+                { key: "home", icon: Home, onClick: () => { setProfileOpen(false); setActiveNavTab("home"); window.scrollTo({ top: 0, behavior: "smooth" }); } },
+                { key: "wishlist", icon: Heart, onClick: () => { setProfileOpen(false); setActiveNavTab("wishlist"); setWishlistOpen(true); }, badge: wishlistItems.length },
+                { key: "cart", icon: ShoppingCart, onClick: () => { setProfileOpen(false); setActiveNavTab("cart"); setCartOpen(true); }, badge: cartCount },
+                { key: "profile", icon: UserRound, onClick: () => {} },
+              ].map(({ key, icon: Icon, onClick, badge }) => (
                 <button
-                  onClick={logoutProfile}
-                  className="flex w-full items-center justify-center gap-2 rounded-full border border-gray-200 py-3 text-sm font-medium text-rose-600 hover:bg-rose-50"
+                  key={key}
+                  onClick={onClick}
+                  className={`relative flex h-11 w-11 items-center justify-center rounded-full transition ${key === "profile" ? "bg-rose-500 text-white" : "text-stone-500 hover:bg-rose-50"}`}
                 >
-                  <LogOut size={16} /> {t.store.logout}
+                  <Icon size={20} />
+                  {!!badge && (
+                    <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-stone-900 text-[9px] font-semibold text-white">{badge}</span>
+                  )}
                 </button>
-              </div>
-            )}
+              ))}
+            </div>
           </div>
         </div>
       )}
 
       {cartOpen && (
-        <div className="fixed inset-0 z-40 flex justify-end bg-slate-900/40" onClick={() => setCartOpen(false)}>
+        <div className="fixed inset-0 z-[55] flex justify-end bg-slate-900/40" onClick={() => setCartOpen(false)}>
           <div className="flex h-full w-full max-w-sm flex-col bg-white shadow-xl" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
               <h3 className="text-base font-semibold text-slate-800">{t.store.cart}</h3>
@@ -3914,7 +5576,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                 <div className="space-y-3">
                   {cartGroups.map(({ tag, items }) => {
                     const groupQty = items.reduce((s, i) => s + i.qty, 0);
-                    const groupSubtotal = items.reduce((s, i) => s + i.product.price * i.qty, 0);
+                    const groupSubtotal = items.reduce((s, i) => s + i.unitPrice * i.qty, 0);
                     const expanded = expandedCartGroups.has(tag);
                     return (
                       <div key={tag} className="rounded-xl border border-rose-200 bg-rose-50/50 p-3">
@@ -3932,11 +5594,14 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                         </div>
                         {expanded && (
                           <div className="mt-2 space-y-2 border-t border-rose-200 pt-2">
-                            {items.map(({ product, qty }) => (
+                            {items.map(({ product, qty, unitPrice, discPct }) => (
                               <div key={product.id} className="flex items-center justify-between gap-2">
                                 <div className="min-w-0 flex-1">
                                   <p className="truncate text-xs font-medium text-stone-600">{pname(product, lang)}</p>
-                                  <p className="text-[11px] text-stone-400">{fmtMoney(product.price)} {t.common.uzs}</p>
+                                  <p className="text-[11px] text-stone-400">
+                                    {fmtMoney(unitPrice)} {t.common.uzs}
+                                    {discPct > 0 && <span className="ml-1 line-through text-stone-300">{fmtMoney(product.price)}</span>}
+                                  </p>
                                 </div>
                                 <div className="flex items-center gap-1.5">
                                   <button onClick={() => changeQty(product.id, -1)} className="rounded-lg border border-gray-200 bg-white p-1 text-slate-500 hover:bg-gray-50"><Minus size={12} /></button>
@@ -3950,11 +5615,14 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                       </div>
                     );
                   })}
-                  {cartSingles.map(({ product, qty }) => (
+                  {cartSingles.map(({ product, qty, unitPrice, discPct }) => (
                     <div key={product.id} className="flex items-center justify-between gap-2 rounded-xl border border-gray-100 p-3">
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium text-slate-700">{pname(product, lang)}</p>
-                        <p className="text-xs text-slate-400">{fmtMoney(product.price)} {t.common.uzs}</p>
+                        <p className="text-xs text-slate-400">
+                          {fmtMoney(unitPrice)} {t.common.uzs}
+                          {discPct > 0 && <span className="ml-1.5 line-through text-slate-300">{fmtMoney(product.price)}</span>}
+                        </p>
                       </div>
                       <div className="flex items-center gap-2">
                         <button onClick={() => changeQty(product.id, -1)} className="rounded-lg border border-gray-200 p-1 text-slate-500 hover:bg-gray-50"><Minus size={13} /></button>
@@ -3981,6 +5649,27 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                 </button>
               </div>
             )}
+
+            {/* Mijoz qaysi bo'limda ekanini bilib turishi va boshqa bo'limga tez o'tishi uchun — asosiy pastki navigatsiyaning o'zi */}
+            <div className="flex items-center justify-center gap-1 border-t border-gray-100 px-5 py-3">
+              {[
+                { key: "home", icon: Home, onClick: () => { setCartOpen(false); setActiveNavTab("home"); window.scrollTo({ top: 0, behavior: "smooth" }); } },
+                { key: "wishlist", icon: Heart, onClick: () => { setCartOpen(false); setActiveNavTab("wishlist"); setWishlistOpen(true); }, badge: wishlistItems.length },
+                { key: "cart", icon: ShoppingCart, onClick: () => {}, badge: cartCount },
+                { key: "profile", icon: UserRound, onClick: () => { setCartOpen(false); setActiveNavTab("profile"); openProfile(); } },
+              ].map(({ key, icon: Icon, onClick, badge }) => (
+                <button
+                  key={key}
+                  onClick={onClick}
+                  className={`relative flex h-11 w-11 items-center justify-center rounded-full transition ${key === "cart" ? "bg-rose-500 text-white" : "text-stone-500 hover:bg-rose-50"}`}
+                >
+                  <Icon size={20} />
+                  {!!badge && (
+                    <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-stone-900 text-[9px] font-semibold text-white">{badge}</span>
+                  )}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       )}
@@ -4010,9 +5699,15 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                     <span>-{fmtMoney(promoDiscount)} {t.common.uzs}</span>
                   </div>
                 )}
+                {bonusApplied > 0 && (
+                  <div className="mt-1 flex justify-between text-rose-600">
+                    <span>{t.store.bonusUsed}</span>
+                    <span>-{fmtMoney(bonusApplied)} {t.common.uzs}</span>
+                  </div>
+                )}
                 <div className="mt-1.5 flex justify-between border-t border-gray-200 pt-1.5 font-semibold text-slate-700">
                   <span>{t.store.total}</span>
-                  <span>{fmtMoney(cartTotalAfterDiscount)} {t.common.uzs}</span>
+                  <span>{fmtMoney(cartTotalAfterBonus)} {t.common.uzs}</span>
                 </div>
               </div>
 
@@ -4047,12 +5742,61 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                 )}
               </div>
 
+              {/* Bonusdan foydalanish */}
+              {maxBonusUsable > 0 && (
+                <div className="mb-3 rounded-lg border border-rose-100 bg-rose-50/50 p-3">
+                  <div className="mb-1.5 flex items-center justify-between text-xs">
+                    <span className="flex items-center gap-1 font-medium text-rose-700"><Wallet size={13} /> {t.store.bonusAvailable}</span>
+                    <span className="font-semibold text-rose-600">{fmtMoney(myBonus)} {t.common.uzs}</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      inputMode="numeric"
+                      className={inputCls}
+                      value={bonusToUse}
+                      onChange={(e) => setBonusToUseClamped(e.target.value)}
+                      placeholder={t.store.bonusUsePh}
+                    />
+                    <button
+                      type="button"
+                      onClick={useMaxBonus}
+                      className="shrink-0 whitespace-nowrap rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-gray-50"
+                    >
+                      {t.store.bonusMaxBtn}
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <Field label={t.store.yourName} error={error && !form.name ? error : ""}>
                 <input className={inputCls} value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
               </Field>
               <Field label={t.store.yourPhone} error={error && !isValidUzPhone(form.phone) ? error : ""}>
                 <PhoneInput value={form.phone} onChange={(v) => setForm({ ...form, phone: v })} />
               </Field>
+
+              {showPhone2 ? (
+                <Field label={t.store.phone2Label}>
+                  <div className="flex gap-2">
+                    <PhoneInput value={form.phone2} onChange={(v) => setForm({ ...form, phone2: v })} />
+                    <button
+                      type="button"
+                      onClick={() => { setShowPhone2(false); setForm(f => ({ ...f, phone2: "" })); }}
+                      className="shrink-0 rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-slate-500 hover:bg-gray-50"
+                    >
+                      {t.store.removePhone2}
+                    </button>
+                  </div>
+                </Field>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowPhone2(true)}
+                  className="mb-3 flex items-center gap-1.5 text-xs font-medium text-emerald-600 hover:underline"
+                >
+                  <Plus size={13} /> {t.store.addPhone2}
+                </button>
+              )}
 
               <Field label={t.store.payment}>
                 <div className="grid grid-cols-2 gap-2">
@@ -4075,6 +5819,29 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
               </Field>
 
               <Field label={t.store.address} error={error && !form.address ? error : ""}>
+                {myAddresses.length > 0 && (
+                  <div className="mb-2 space-y-1.5">
+                    {myAddresses.map((addr) => {
+                      const active = form.address === addr.text;
+                      return (
+                        <button
+                          key={addr.id}
+                          type="button"
+                          onClick={() => pickAddressForOrder(addr)}
+                          className={`flex w-full items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left text-xs font-medium transition ${
+                            active ? "border-emerald-600 bg-emerald-50 text-emerald-700" : "border-gray-200 text-slate-600 hover:border-gray-300 hover:bg-gray-50"
+                          }`}
+                        >
+                          <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition ${active ? "bg-emerald-600 text-white" : "bg-gray-100 text-slate-400"}`}>
+                            <MapPin size={14} />
+                          </span>
+                          <span className="min-w-0 flex-1 truncate">{addr.text}</span>
+                          {active && <CheckCircle2 size={16} className="shrink-0 text-emerald-600" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
                 <textarea
                   className={`${inputCls} min-h-[64px] resize-none`}
                   value={form.address}
@@ -4086,13 +5853,24 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
               <div className="mb-3">
                 <button
                   type="button"
-                  onClick={requestLocation}
-                  disabled={locating}
-                  className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-gray-50 disabled:opacity-60"
+                  onClick={() => setShowCheckoutMap(v => !v)}
+                  className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-gray-50"
                 >
-                  {locating ? <Loader2 size={14} className="animate-spin" /> : <MapPin size={14} />}
-                  {locating ? t.store.locating : t.store.locateMe}
+                  <MapPin size={14} /> {t.store.mapPick}
                 </button>
+                {showCheckoutMap && (
+                  <div className="mt-2">
+                    <p className="mb-1.5 text-[11px] text-slate-400">{t.store.mapPickNote}</p>
+                    <MapPicker value={location} onChange={setLocation} />
+                    <button
+                      type="button"
+                      onClick={() => setShowCheckoutMap(false)}
+                      className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg bg-emerald-600 py-2 text-xs font-semibold text-white hover:bg-emerald-700"
+                    >
+                      <CheckCircle2 size={14} /> {t.store.applyBtn}
+                    </button>
+                  </div>
+                )}
                 {location && (
                   <div className="mt-2 flex items-center justify-between rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
                     <span className="flex items-center gap-1"><CheckCircle2 size={13} /> {t.store.locationSet}</span>
@@ -4106,7 +5884,6 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                     </span>
                   </div>
                 )}
-                {locError && <p className="mt-1 text-xs text-rose-600">{locError}</p>}
               </div>
 
               <div className="mt-4 flex justify-end gap-2">
@@ -4136,7 +5913,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
       <nav className="fixed inset-x-0 bottom-4 z-30 mx-auto flex w-fit items-center gap-1 rounded-full bg-white px-2 py-2 shadow-[0_8px_28px_rgba(0,0,0,0.16)] md:hidden">
         {[
           { key: "home", icon: Home, onClick: () => { setActiveCategory(t.store.allCategories); setActiveCollection(null); window.scrollTo({ top: 0, behavior: "smooth" }); } },
-          { key: "categories", icon: LayoutGrid, onClick: () => document.getElementById("categories-section")?.scrollIntoView({ behavior: "smooth" }) },
+          { key: "categories", icon: LayoutGrid, onClick: () => setCategoriesPageOpen(true) },
           { key: "cart", icon: ShoppingCart, onClick: () => setCartOpen(true), badge: cartCount },
           { key: "wishlist", icon: Heart, onClick: () => setWishlistOpen(true), badge: wishlistItems.length },
           { key: "profile", icon: UserRound, onClick: openProfile },
@@ -4145,7 +5922,11 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
             key={key}
             onClick={() => { setActiveNavTab(key); onClick(); }}
             className={`relative flex h-11 w-11 items-center justify-center rounded-full transition ${
-              activeNavTab === key ? "bg-rose-500 text-white" : "text-stone-500 hover:bg-rose-50"
+              activeNavTab === key
+                ? "bg-rose-500 text-white"
+                : key === "cart" && cartCount > 0
+                ? "bg-rose-50 text-rose-500"
+                : "text-stone-500 hover:bg-rose-50"
             }`}
           >
             <Icon size={20} />
@@ -4159,21 +5940,6 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
       </nav>
       {/* Pastki panel ostida kontent yashirinib qolmasligi uchun bo'shliq */}
       <div className="h-20 md:hidden" />
-
-      {/* AI Chat — hozircha bo'sh joy egallovchi, keyinchalik AI agent shu yerga ulanadi */}
-      {aiChatOpen && (
-        <div className="fixed inset-0 z-40 flex items-end justify-center bg-slate-900/40 md:items-center" onClick={() => setAiChatOpen(false)}>
-          <div className="flex h-[70vh] w-full max-w-sm flex-col rounded-t-2xl bg-white shadow-xl md:h-[520px] md:rounded-2xl" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between border-b border-gray-100 p-4">
-              <p className="flex items-center gap-2 font-semibold text-stone-800"><MessageCircle size={18} /> Chat</p>
-              <button onClick={() => setAiChatOpen(false)} className="rounded-lg p-1 text-slate-400 hover:bg-gray-100"><X size={18} /></button>
-            </div>
-            <div className="flex flex-1 items-center justify-center p-6 text-center text-sm text-stone-400">
-              Tez orada bu yerda AI yordamchi javob beradi
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -4197,6 +5963,9 @@ export default function App() {
   const [storeSettings, setStoreSettings] = useState(null);
   const [productsLoaded, setProductsLoaded] = useState(false);
   const [user, setUser] = useState(undefined); // undefined = checking, null = logged out
+  // "Kolleksiyalar" — endi mahsulotlar sahifasidan Banner sahifasiga ko'chirildi
+  // (chunki kolleksiyalar asosan banner turidagi bo'limlar uchun ishlatiladi).
+  const [collectionsModalOpen, setCollectionsModalOpen] = useState(false);
 
   // Telegram Mini App — faqat bir marta, komponent yuklanganda ishga tushadi.
   const [tgUser, setTgUser] = useState(null);
@@ -4391,7 +6160,30 @@ export default function App() {
           {page === "orders" && <OrdersPage lang={lang} orders={orders} setOrders={setOrders} customers={customers} />}
           {page === "customers" && <CustomersPage lang={lang} customers={customers} setCustomers={setCustomers} orders={orders} />}
           {page === "products" && <ProductsPage lang={lang} products={products} categories={categories} brands={brands} collections={collections} />}
-          {page === "banner" && <BannerSettings lang={lang} banners={banners} products={products} />}
+          {page === "banner" && (
+            <div className="space-y-4">
+              <div className="flex justify-end">
+                <button
+                  onClick={() => setCollectionsModalOpen(true)}
+                  className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3.5 py-2 text-sm font-medium text-slate-600 hover:bg-gray-50"
+                >
+                  <LayoutGrid size={16} /> {t.products.collectionsBtn}
+                </button>
+              </div>
+              <BannerSettings lang={lang} banners={banners} products={products} />
+              {collectionsModalOpen && (
+                <CollectionsModal
+                  lang={lang}
+                  collections={collections}
+                  products={products}
+                  categories={categories}
+                  brands={brands}
+                  onClose={() => setCollectionsModalOpen(false)}
+                  t={t}
+                />
+              )}
+            </div>
+          )}
           {page === "testimonials" && <TestimonialsSettings lang={lang} testimonials={testimonials} />}
           {page === "faqs" && <FAQSettings lang={lang} faqs={faqs} />}
           {page === "marketing" && <MarketingPage lang={lang} banners={banners} products={products} orders={orders} customers={customers} />}

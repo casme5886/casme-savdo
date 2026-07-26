@@ -4,12 +4,12 @@ import {
   AlertTriangle, MousePointerClick, Search, Package, ChevronRight,
 } from "lucide-react";
 import { setItem, updateItem, deleteItem, uploadImage } from "../storage.js";
-import { Modal, Field, EmptyState, inputCls, uid, fmtMoney, pname } from "./ui.jsx";
+import { Modal, Field, EmptyState, inputCls, uid, fmtMoney, pname, Toggle } from "./ui.jsx";
 
 const EMPTY_FORM = {
   badge: "", title: "", subtitle: "", bottomText: "", minOrder: "",
   buttonText: "", buttonLink: "", desktopImage: "", mobileImage: "", active: true,
-  startDate: "", endDate: "", linkedProductIds: [],
+  startDate: "", endDate: "", linkedProductIds: [], showTotalCalc: true,
   desktopImagePosition: "center", mobileImagePosition: "center",
 };
 
@@ -26,7 +26,7 @@ const T_LOCAL = {
     badge: "Kichik badge (masalan: Chegirma)", bannerTitle: "Asosiy sarlavha", subtitle: "Ikkinchi matn",
     bottomText: "Pastdagi matn", minOrder: "Minimal buyurtma summasi (ixtiyoriy)",
     buttonText: "Tugma matni (ixtiyoriy)", buttonLink: "Tugma havolasi (ixtiyoriy)",
-    desktop: "Desktop banner (tavsiya: 1920×600)", mobile: "Mobil banner (tavsiya: 1080×720)",
+    desktop: "Desktop banner (tavsiya: 1920×600)", mobile: "Mobil banner (tavsiya: 800×1150)",
     uploadHint: "Rasm tanlang", uploading: "Yuklanmoqda...", noImage: "Rasm yo'q",
     active: "Faol", inactive: "Faol emas", save: "Saqlash", saving: "Saqlanmoqda...", cancel: "Bekor qilish",
     required: "Kamida sarlavha yoki rasm kiriting",
@@ -42,6 +42,7 @@ const T_LOCAL = {
     searchProducts: "Mahsulot izlash...", selectedCount: "ta tanlandi",
     imagePosition: "Rasmni tekislash", posTop: "Yuqori", posCenter: "Markaz", posBottom: "Past",
     imagePositionHint: "Rasm to'liq sig'may qolsa, qaysi qismi ko'rinishini tanlang",
+    showTotalCalc: "Jami narx hisoblash", showTotalCalcHint: "Yoqilsa — ichkarida \"Jami narx\" va \"Barchasini savatga qo'shish\" ko'rinadi",
   },
   ru: {
     title: "Баннер", add: "Добавить баннер", edit: "Редактировать баннер", empty: "Пока нет баннеров",
@@ -49,7 +50,7 @@ const T_LOCAL = {
     badge: "Значок (например: Скидка)", bannerTitle: "Основной заголовок", subtitle: "Второй текст",
     bottomText: "Нижний текст", minOrder: "Минимальная сумма заказа (опционально)",
     buttonText: "Текст кнопки (опционально)", buttonLink: "Ссылка кнопки (опционально)",
-    desktop: "Десктоп баннер (рекомендуется: 1920×600)", mobile: "Мобильный баннер (рекомендуется: 1080×720)",
+    desktop: "Десктоп баннер (рекомендуется: 1920×600)", mobile: "Мобильный баннер (рекомендуется: 800×1150)",
     uploadHint: "Выберите изображение", uploading: "Загрузка...", noImage: "Нет изображения",
     active: "Активен", inactive: "Не активен", save: "Сохранить", saving: "Сохранение...", cancel: "Отмена",
     required: "Укажите хотя бы заголовок или изображение",
@@ -65,6 +66,7 @@ const T_LOCAL = {
     searchProducts: "Поиск товара...", selectedCount: "выбрано",
     imagePosition: "Выравнивание изображения", posTop: "Верх", posCenter: "Центр", posBottom: "Низ",
     imagePositionHint: "Если изображение не помещается полностью, выберите какая часть будет видна",
+    showTotalCalc: "Подсчёт итоговой цены", showTotalCalcHint: "Если включено — внутри показывается \"Итоговая цена\" и \"Добавить всё в корзину\"",
   },
 };
 
@@ -117,6 +119,7 @@ export default function BannerSettings({ lang, banners, products }) {
       active: b.active !== false,
       startDate: b.startDate || "", endDate: b.endDate || "",
       linkedProductIds: b.linkedProductIds || [],
+      showTotalCalc: b.showTotalCalc !== false,
       desktopImagePosition: b.desktopImagePosition || "center",
       mobileImagePosition: b.mobileImagePosition || "center",
     });
@@ -148,7 +151,7 @@ export default function BannerSettings({ lang, banners, products }) {
     try {
       const url = await uploadImage(`banners/${editingId}/banner-${kind}`, file);
       setForm((f) => ({ ...f, [kind === "desktop" ? "desktopImage" : "mobileImage"]: url }));
-      const targetRatio = kind === "desktop" ? 1920 / 600 : 1080 / 720;
+      const targetRatio = kind === "desktop" ? 1920 / 600 : 800 / 1150;
       const result = await checkImageRatio(url, targetRatio);
       setWarning(result.mismatch ? { width: result.width, height: result.height } : null);
     } catch (e) {
@@ -179,6 +182,7 @@ export default function BannerSettings({ lang, banners, products }) {
       startDate: form.startDate || "",
       endDate: form.endDate || "",
       linkedProductIds: form.linkedProductIds,
+      showTotalCalc: form.showTotalCalc,
       desktopImagePosition: form.desktopImagePosition,
       mobileImagePosition: form.mobileImagePosition,
       order: isNew ? banners.length : (banners.find((b) => b.id === editingId)?.order ?? 0),
@@ -388,7 +392,7 @@ export default function BannerSettings({ lang, banners, products }) {
 
           {/* Mobile banner */}
           <Field label={t.mobile}>
-            <div className="mb-2 w-full max-w-[220px] overflow-hidden rounded-lg bg-gray-50" style={{ aspectRatio: "1080 / 720" }}>
+            <div className="mb-2 w-full max-w-[220px] overflow-hidden rounded-lg bg-gray-50" style={{ aspectRatio: "800 / 1150" }}>
               {form.mobileImage ? (
                 <img src={form.mobileImage} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: form.mobileImagePosition }} />
               ) : (
@@ -479,14 +483,16 @@ export default function BannerSettings({ lang, banners, products }) {
           </div>
 
           <div className="mb-3 flex items-center justify-between rounded-lg border border-gray-100 px-3 py-2">
+            <div>
+              <span className="block text-xs font-medium text-slate-600">{t.showTotalCalc}</span>
+              <span className="block text-[10px] text-slate-400">{t.showTotalCalcHint}</span>
+            </div>
+            <Toggle checked={form.showTotalCalc} onChange={(v) => setForm({ ...form, showTotalCalc: v })} />
+          </div>
+
+          <div className="mb-3 flex items-center justify-between rounded-lg border border-gray-100 px-3 py-2">
             <span className="text-xs font-medium text-slate-600">{form.active ? t.active : t.inactive}</span>
-            <button
-              type="button"
-              onClick={() => setForm({ ...form, active: !form.active })}
-              className={`relative h-6 w-11 rounded-full transition ${form.active ? "bg-emerald-600" : "bg-gray-300"}`}
-            >
-              <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${form.active ? "translate-x-5" : "translate-x-0.5"}`} />
-            </button>
+            <Toggle checked={form.active} onChange={(v) => setForm({ ...form, active: v })} />
           </div>
 
           <div className="mt-4 flex justify-end gap-2">

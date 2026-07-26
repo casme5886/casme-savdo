@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { ChevronLeft, ChevronRight, Truck, RotateCcw, ShieldCheck } from "lucide-react";
+import useEmblaCarousel from "embla-carousel-react";
+import { WheelGesturesPlugin } from "embla-carousel-wheel-gestures";
 import { incrementBannerClicks } from "../storage.js";
 
 const SERIF = { fontFamily: "'Playfair Display', Georgia, serif" };
@@ -17,7 +19,7 @@ function HighlightedTitle({ text, className }) {
   const last = words.pop();
   return (
     <h1 style={SERIF} className={className}>
-      {words.join(" ")} <span className="text-rose-500">{last}</span>
+      {words.join(" ")} <span className="text-rose-400">{last}</span>
     </h1>
   );
 }
@@ -34,32 +36,108 @@ function isBannerLive(b) {
 /**
  * Banner (yoki uning tugmasi) bosilganda ishga tushadi:
  *  - bosishlar sonini +1 qiladi (statistika)
- *  - agar bannerga mahsulotlar biriktirilgan bo'lsa — o'shalarni
- *    AVTOMATIK savatga qo'shadi va savatni ochadi
+ *  - agar bannerga mahsulotlar biriktirilgan bo'lsa — savatga
+ *    qo'shmasdan, o'sha mahsulotlarni RO'YXAT sifatida ko'rsatadi
+ *    (katalog bo'limiga o'tkazadi, filtrlab)
  *  - aks holda, oddiy havola sifatida ishlaydi (buttonLink'ga o'tadi)
  */
-function useBannerClick(banner, products, onAddLinkedProducts) {
+function useBannerClick(banner, onViewLinkedProducts) {
   return (e) => {
     if (!banner) return;
     incrementBannerClicks(banner.id);
     const linkedIds = banner.linkedProductIds || [];
-    if (linkedIds.length > 0 && onAddLinkedProducts) {
+    if (linkedIds.length > 0 && onViewLinkedProducts) {
       e.preventDefault();
-      const linked = linkedIds.map((id) => (products || []).find((p) => p.id === id)).filter(Boolean);
-      onAddLinkedProducts(linked);
+      onViewLinkedProducts(banner, linkedIds);
     }
   };
 }
 
+/** Nuqta indikatorlari — rasm ustida, pastki qismida (yarim shaffof qora fon bilan har doim o'qiladigan). */
+function DotIndicators({ active, index, onSelect }) {
+  if (active.length <= 1) return null;
+  return (
+    <div className="absolute inset-x-0 bottom-3 z-10 flex justify-center sm:bottom-4">
+      <div className="flex items-center gap-1.5 rounded-full bg-black/25 px-2.5 py-1.5 backdrop-blur-sm">
+        {active.map((_, i) => (
+          <button
+            key={i}
+            onClick={(e) => { e.stopPropagation(); onSelect(i); }}
+            aria-label={`Banner ${i + 1}`}
+            className={`h-1.5 rounded-full transition-all ${i === index ? "w-6 bg-white" : "w-1.5 bg-white/50"}`}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Bitta banner slaydining tarkibi — rasm + (bo'lsa) matn ustidagi qatlam. */
+function BannerSlide({ banner, useMobileImage, onViewLinkedProducts }) {
+  const handleClick = useBannerClick(banner, onViewLinkedProducts);
+  const imageUrl = useMobileImage ? banner.mobileImage : banner.desktopImage;
+  const hasTextContent = !!(banner.badge || banner.title || banner.subtitle || banner.buttonText);
+  const clickable = (banner.linkedProductIds || []).length > 0;
+
+  return (
+    <div
+      className={`relative h-full w-full shrink-0 grow-0 basis-full ${clickable ? "cursor-pointer" : ""}`}
+      onClick={clickable ? handleClick : undefined}
+    >
+      {imageUrl ? (
+        <img
+          src={imageUrl}
+          alt={banner.title || ""}
+          draggable={false}
+          onDragStart={(e) => e.preventDefault()}
+          style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: positionFor(banner, useMobileImage) }}
+        />
+      ) : (
+        <div className="flex h-full w-full items-center justify-center bg-rose-100 text-stone-400">
+          <span className="text-sm">{banner.title || ""}</span>
+        </div>
+      )}
+
+      {hasTextContent && (
+        <>
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent" />
+          <div className="absolute inset-x-0 bottom-0 px-5 pb-9 pt-16 sm:px-9 sm:pb-11">
+            {banner.badge && (
+              <span className="mb-2 inline-block rounded-full bg-white/15 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.15em] text-white backdrop-blur-sm">{banner.badge}</span>
+            )}
+            {banner.title && (
+              <HighlightedTitle text={banner.title} className="max-w-md text-2xl font-bold leading-tight text-white sm:text-3xl lg:text-4xl" />
+            )}
+            {banner.subtitle && <p className="mt-2 max-w-sm text-sm text-white/85 sm:text-base">{banner.subtitle}</p>}
+            {banner.buttonText && (
+              <a
+                href={banner.buttonLink || "#"}
+                onClick={handleClick}
+                className="mt-4 inline-flex w-fit items-center gap-2 rounded-full bg-stone-900 px-6 py-3 text-sm font-semibold text-white hover:bg-stone-800"
+              >
+                {banner.buttonText} <ChevronRight size={15} />
+              </a>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 /**
- * Do'kon bosh sahifasidagi banner — "split hero": chapda matn
- * (badge, serif sarlavha, subtitle, tugma), o'ngda rasm + doira
- * chegirma nishoni. DESKTOP rasm konteyneri 1920:600 nisbatiga
- * yaqin (16:5) saqlanadi — shu tufayli to'g'ri o'lchamdagi
- * rasmlar deyarli kesilmay ko'rinadi. Bir nechta faol banner
- * bo'lsa, katta banner ular orasida 5 soniyada avtomatik almashadi.
+ * Do'kon bosh sahifasidagi banner — to'liq kенг rasm, matn (badge,
+ * serif sarlavha, subtitle, qora tugma) rasm PASTIDA, yumshoq qora
+ * gradient fon ustida chap tomonga tekislangan holda joylashadi.
+ * Burchaklar katta radius bilan dumaloqlangan. DESKTOP rasm
+ * konteyneri 1920:600 nisbatiga yaqin (16:5) saqlanadi, mobil esa
+ * 800:1150 (bo'yiga cho'zilgan) — shu tufayli rasmlar deyarli
+ * kesilmay ko'rinadi. Bir nechta faol banner bo'lsa, Embla Carousel
+ * orqali (barmoq/sichqoncha bilan qo'lda surish imkoniyati bilan)
+ * ular orasida o'tiladi, 5 soniyada avtomatik ham almashib turadi,
+ * rasm ustida pastda nuqta indikatorlari ko'rinadi.
  */
-export default function Banner({ banners, inTelegram, t, products, onAddLinkedProducts }) {
+export default function Banner({ banners, inTelegram, t, onViewLinkedProducts }) {
   const active = useMemo(
     () => (banners || []).filter(isBannerLive).sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
     [banners]
@@ -75,157 +153,63 @@ export default function Banner({ banners, inTelegram, t, products, onAddLinkedPr
     return () => window.removeEventListener("resize", check);
   }, []);
 
-  useEffect(() => {
-    if (active.length <= 1) return;
-    const timer = setInterval(() => setIndex((i) => (i + 1) % active.length), 5000);
-    return () => clearInterval(timer);
-  }, [active.length]);
+  // Qo'lda (barmoq/sichqoncha bilan) surish imkoniyati — Embla Carousel orqali.
+  const [viewportRef, emblaApi] = useEmblaCarousel(
+    { loop: active.length > 1, align: "start" },
+    [WheelGesturesPlugin({ forceWheelAxis: "x" })]
+  );
 
   useEffect(() => {
-    if (index >= active.length) setIndex(0);
-  }, [active.length, index]);
+    if (!emblaApi) return;
+    const onSelect = () => setIndex(emblaApi.selectedScrollSnap());
+    emblaApi.on("select", onSelect);
+    onSelect();
+    return () => emblaApi.off("select", onSelect);
+  }, [emblaApi]);
+
+  // Avtomatik almashish — 5 soniyada bir marta, faqat 2+ banner bo'lsa.
+  useEffect(() => {
+    if (!emblaApi || active.length <= 1) return;
+    const timer = setInterval(() => emblaApi.scrollNext(), 5000);
+    return () => clearInterval(timer);
+  }, [emblaApi, active.length]);
 
   const useMobileImage = inTelegram || isNarrow;
-  const goPrev = () => setIndex((i) => (i - 1 + active.length) % active.length);
-  const goNext = () => setIndex((i) => (i + 1) % active.length);
-
-  const promoTiles = active.slice(1, 3);
-  const banner = active[index];
-  const handleClick = useBannerClick(banner, products, onAddLinkedProducts);
+  const goPrev = () => emblaApi && emblaApi.scrollPrev();
+  const goNext = () => emblaApi && emblaApi.scrollNext();
+  const goTo = (i) => emblaApi && emblaApi.scrollTo(i);
 
   if (active.length === 0) {
     return <DefaultHero t={t} />;
   }
 
-  const imageUrl = useMobileImage ? banner.mobileImage : banner.desktopImage;
-  const hasTextContent = !!(banner.badge || banner.title || banner.subtitle || banner.buttonText);
-  const clickable = (banner.linkedProductIds || []).length > 0;
-
-  if (!hasTextContent && imageUrl) {
-    return (
-      <div>
-        <div
-          className={`relative w-full overflow-hidden rounded-2xl ${clickable ? "cursor-pointer" : ""}`}
-          style={{ aspectRatio: useMobileImage ? "1080 / 720" : "1920 / 600" }}
-          onClick={clickable ? handleClick : undefined}
-        >
-          <img src={imageUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: positionFor(banner, useMobileImage) }} />
-          {active.length > 1 && (
-            <>
-              <button onClick={(e) => { e.stopPropagation(); goPrev(); }} aria-label="Oldingi" className="absolute left-3 top-1/2 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-stone-700 shadow-sm hover:bg-white lg:flex">
-                <ChevronLeft size={18} />
-              </button>
-              <button onClick={(e) => { e.stopPropagation(); goNext(); }} aria-label="Keyingi" className="absolute right-3 top-1/2 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-stone-700 shadow-sm hover:bg-white lg:flex">
-                <ChevronRight size={18} />
-              </button>
-            </>
-          )}
-        </div>
-        {active.length > 1 && (
-          <div className="mt-3 flex justify-center gap-1.5">
-            {active.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setIndex(i)}
-                aria-label={`Banner ${i + 1}`}
-                className={`h-1.5 rounded-full transition-all ${i === index ? "w-6 bg-rose-500" : "w-1.5 bg-rose-200"}`}
-              />
-            ))}
-          </div>
-        )}
-        {promoTiles.length > 0 && (
-          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {promoTiles.map((tile) => (
-              <PromoTile key={tile.id} tile={tile} useMobileImage={useMobileImage} products={products} onAddLinkedProducts={onAddLinkedProducts} />
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  }
-
   return (
     <div>
-      <div className="relative overflow-hidden rounded-2xl bg-rose-50">
-        <div className="flex flex-col lg:flex-row lg:items-stretch">
-          {/* Matn */}
-          <div className="flex flex-1 flex-col justify-center px-6 py-8 sm:px-10 sm:py-12">
-            {banner.badge && (
-              <span className="mb-3 text-xs font-medium uppercase tracking-[0.2em] text-rose-500">{banner.badge}</span>
-            )}
-            {banner.title && (
-              <HighlightedTitle text={banner.title} className="max-w-md text-3xl font-semibold leading-tight text-stone-900 sm:text-4xl lg:text-5xl" />
-            )}
-            {banner.subtitle && <p className="mt-3 max-w-sm text-sm text-stone-500 sm:text-base">{banner.subtitle}</p>}
-            {banner.buttonText && (
-              <a
-                href={banner.buttonLink || "#"}
-                onClick={handleClick}
-                className="mt-5 inline-flex w-fit items-center gap-2 rounded-full bg-stone-900 px-6 py-3 text-sm font-medium text-white hover:bg-stone-800"
-              >
-                {banner.buttonText} <ChevronRight size={15} />
-              </a>
-            )}
-            <FeatureRow t={t} />
-          </div>
-
-          {/* Rasm — keng (1920:600 ga yaqin) nisbatda, shuning uchun to'g'ri o'lchamdagi rasm deyarli kesilmaydi */}
-          <div
-            className={`relative w-full lg:w-[55%] ${clickable ? "cursor-pointer" : ""}`}
-            style={{ aspectRatio: useMobileImage ? "1080 / 720" : "1920 / 600" }}
-            onClick={clickable ? handleClick : undefined}
-          >
-            {imageUrl ? (
-              <img src={imageUrl} alt={banner.title || ""} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: positionFor(banner, useMobileImage) }} />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center bg-rose-100 text-stone-400">
-                <span className="text-sm">{banner.title || ""}</span>
-              </div>
-            )}
-
-            {/* Chegirma doira nishoni — faqat badge bo'lsa ko'rinadi */}
-            {banner.badge && (
-              <div className="absolute right-4 top-4 flex h-20 w-20 flex-col items-center justify-center rounded-full bg-white text-center shadow-md sm:right-6 sm:top-6 sm:h-24 sm:w-24">
-                <span className="text-base font-bold text-rose-500 sm:text-lg">{banner.badge}</span>
-                {banner.buttonText && <span className="text-[9px] leading-tight text-stone-400">{t.store.newCustomerOffer}</span>}
-              </div>
-            )}
+      <div
+        className="relative w-full overflow-hidden rounded-t-none rounded-b-[28px] min-[769px]:rounded-t-[28px]"
+        style={{ aspectRatio: useMobileImage ? "800 / 1150" : "1920 / 600" }}
+      >
+        <div ref={viewportRef} className="embla-viewport h-full">
+          <div className="embla-container h-full">
+            {active.map((banner) => (
+              <BannerSlide key={banner.id} banner={banner} useMobileImage={useMobileImage} onViewLinkedProducts={onViewLinkedProducts} />
+            ))}
           </div>
         </div>
+
+        <DotIndicators active={active} index={index} onSelect={goTo} />
 
         {active.length > 1 && (
           <>
-            <button onClick={goPrev} aria-label="Oldingi" className="absolute left-3 top-1/2 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-stone-700 shadow-sm hover:bg-white lg:flex">
+            <button onClick={(e) => { e.stopPropagation(); goPrev(); }} aria-label="Oldingi" className="absolute left-3 top-1/2 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-stone-700 shadow-sm hover:bg-white lg:flex">
               <ChevronLeft size={18} />
             </button>
-            <button onClick={goNext} aria-label="Keyingi" className="absolute right-3 top-1/2 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-stone-700 shadow-sm hover:bg-white lg:flex">
+            <button onClick={(e) => { e.stopPropagation(); goNext(); }} aria-label="Keyingi" className="absolute right-3 top-1/2 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-stone-700 shadow-sm hover:bg-white lg:flex">
               <ChevronRight size={18} />
             </button>
           </>
         )}
       </div>
-
-      {active.length > 1 && (
-        <div className="mt-3 flex justify-center gap-1.5">
-          {active.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setIndex(i)}
-              aria-label={`Banner ${i + 1}`}
-              className={`h-1.5 rounded-full transition-all ${i === index ? "w-6 bg-rose-500" : "w-1.5 bg-rose-200"}`}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* Promo tayllar — 2- va 3-bannerlar bo'lsa, qo'shimcha kichik kartalar sifatida */}
-      {promoTiles.length > 0 && (
-        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {promoTiles.map((tile) => (
-            <PromoTile key={tile.id} tile={tile} useMobileImage={useMobileImage} products={products} onAddLinkedProducts={onAddLinkedProducts} />
-          ))}
-        </div>
-      )}
     </div>
   );
 }
@@ -235,7 +219,7 @@ export default function Banner({ banners, inTelegram, t, products, onAddLinkedPr
  * Admin panelda 4-bannerni (order bo'yicha 4-o'rinda, faol holatda)
  * qo'shsa, shu yerda avtomatik ko'rinadi.
  */
-export function MidPromoBanner({ banners, inTelegram, t, products, onAddLinkedProducts }) {
+export function MidPromoBanner({ banners, inTelegram, t, onViewLinkedProducts }) {
   const active = useMemo(
     () => (banners || []).filter(isBannerLive).sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
     [banners]
@@ -249,7 +233,7 @@ export function MidPromoBanner({ banners, inTelegram, t, products, onAddLinkedPr
   }, []);
 
   const banner = active[3];
-  const handleClick = useBannerClick(banner, products, onAddLinkedProducts);
+  const handleClick = useBannerClick(banner, onViewLinkedProducts);
   if (!banner) return null;
 
   const useMobileImage = inTelegram || isNarrow;
@@ -258,7 +242,7 @@ export function MidPromoBanner({ banners, inTelegram, t, products, onAddLinkedPr
 
   return (
     <div
-      className={`relative overflow-hidden rounded-2xl bg-rose-50 ${clickable ? "cursor-pointer" : ""}`}
+      className={`relative overflow-hidden rounded-[28px] bg-rose-50 ${clickable ? "cursor-pointer" : ""}`}
       style={{ aspectRatio: useMobileImage ? "1080 / 720" : "21 / 7" }}
       onClick={clickable ? handleClick : undefined}
     >
@@ -281,9 +265,9 @@ export function MidPromoBanner({ banners, inTelegram, t, products, onAddLinkedPr
   );
 }
 
-function PromoTile({ tile, useMobileImage, products, onAddLinkedProducts }) {
+function PromoTile({ tile, useMobileImage, onViewLinkedProducts }) {
   const img = useMobileImage ? tile.mobileImage : tile.desktopImage;
-  const handleClick = useBannerClick(tile, products, onAddLinkedProducts);
+  const handleClick = useBannerClick(tile, onViewLinkedProducts);
   const clickable = (tile.linkedProductIds || []).length > 0;
   return (
     <div
@@ -335,7 +319,7 @@ function FeatureRow({ t }) {
 /** Hech qanday banner sozlanmaganda ko'rinadigan standart hero. */
 function DefaultHero({ t }) {
   return (
-    <div className="overflow-hidden rounded-2xl bg-rose-50">
+    <div className="overflow-hidden rounded-[28px] bg-rose-50">
       <div className="flex flex-col lg:flex-row lg:items-stretch">
         <div className="flex flex-1 flex-col justify-center px-6 py-10 sm:px-10 sm:py-14">
           <span className="mb-3 text-xs font-medium uppercase tracking-[0.2em] text-rose-500">{t.store.bannerTag}</span>

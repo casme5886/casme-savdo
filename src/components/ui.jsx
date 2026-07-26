@@ -125,6 +125,40 @@ export function Field({ label, error, children }) {
   );
 }
 
+/**
+ * Butun admin panelda ishlatiladigan yagona ON/OFF svich (toggle).
+ * Ilgari bu tugma har bir sahifada alohida-alohida (bir xil ko'rinishda,
+ * lekin ba'zilarida `shrink-0` yo'q holda) qayta yozilgan edi — shu sababli
+ * `flex justify-between` qatorlarida (yonida uzun matn bo'lganda) tugma
+ * torayib qolib, dumaloq belgi (thumb) chegaradan tashqariga chiqib
+ * ketishi mumkin edi. Ildizidagi sabab: `w-11` ustiga `shrink-0` yo'qligi
+ * (flexbox tugmani siqib qo'ygan) va belgining boshlang'ich `left`
+ * qiymati aniq ko'rsatilmaganligi edi. Shu componentda ikkalasi ham
+ * qat'iy belgilangan — track va thumb o'lchamlari, joylashuvi barcha
+ * holatlarda bir xil va simmetrik bo'ladi:
+ *   OFF: thumb chapdan 2px, ON: thumb o'ngdan 2px (track kengligi 44px,
+ *   thumb 20px, translate-x-5 = 20px — matematik jihatdan aniq mos keladi).
+ *
+ * Ishlatilishi:
+ *   <Toggle checked={active} onChange={setActive} />
+ */
+export function Toggle({ checked, onChange, disabled = false, className = "" }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      disabled={disabled}
+      onClick={() => !disabled && onChange(!checked)}
+      className={`relative h-6 w-11 shrink-0 rounded-full transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-50 ${checked ? "bg-emerald-600" : "bg-gray-300"} ${className}`}
+    >
+      <span
+        className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${checked ? "translate-x-5" : "translate-x-0"}`}
+      />
+    </button>
+  );
+}
+
 export function EmptyState({ icon: Icon, text }) {
   return (
     <div className="flex flex-col items-center justify-center gap-2 py-16 text-slate-400">
@@ -167,9 +201,9 @@ export function StatusBadge({ status, labels }) {
  *   </div>
  *   <button onClick={scrollPrev}>‹</button>
  */
-export function useCarouselRow() {
+export function useCarouselRow(options = {}) {
   const [viewportRef, emblaApi] = useEmblaCarousel(
-    { align: "start", containScroll: "trimSnaps", loop: false, dragFree: false, skipSnaps: false },
+    { align: "start", containScroll: "trimSnaps", loop: false, dragFree: true, skipSnaps: false, ...options },
     [WheelGesturesPlugin({ forceWheelAxis: "x" })]
   );
 
