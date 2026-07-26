@@ -1,0 +1,154 @@
+// ==========================================================
+// Bu qoidalarni Firebase konsolida joylashtirasiz:
+// Firestore Database → Rules → shu matnni joylashtirib → Publish
+//
+// !!! MUHIM O'ZGARISH (avvalgi versiyaga nisbatan) !!!
+//
+// "Mening profilim" bo'limi (Buyurtmalarim) ishlashi uchun mijozning
+// brauzeri buyurtmalarni Telegram ID yoki telefon raqami bo'yicha
+// QIDIRISHI kerak — bu, texnik jihatdan, "read" (o'qish) amali.
+// Firestore qoidalari mijozning brauzeriga "faqat o'zingizning
+// buyurtmalaringizni o'qiy olasiz" deb ishonib bo'lmaydi, chunki bu
+// yerda haqiqiy login (Firebase Authentication) ishlatilmagan —
+// Telegram ID shunchaki brauzerdan yuborilgan ma'lumot, uni soxta
+// qilib yuborish (masalan dasturchi konsolidan) texnik jihatdan
+// mumkin.
+//
+// Shuning uchun BUYURTMALAR endi o'qish uchun qayta OCHILDI
+// (avvalgi versiyada faqat admin o'qiy olardi). Amalda bu degani:
+//   - Oddiy mijoz ilovada faqat OZINING buyurtmalarini ko'radi
+//     (chunki ilova shunday so'rov yuboradi)
+//   - LEKIN texnik jihatdan bilimdon odam to'g'ridan-to'g'ri bazaga
+//     so'rov yuborib, BOSHQA mijozlarning buyurtmalarini (ism,
+//     telefon, manzil, summasi) ham ko'rishi MUMKIN
+//
+// Buyurtma STATUSINI o'zgartirish va O'CHIRISH hali ham faqat admin
+// (login qilgan) uchun qoldirilgan — mijoz hech qachon buyurtmani
+// o'zgartira olmaydi, faqat yangisini yozadi yoki mavjudlarini o'qiydi.
+//
+// TO'LIQ YOPISH UCHUN: Telegramning initData'sini serverda (bot
+// tokeni bilan) tekshirib, so'ng Firebase Custom Auth token berish
+// kerak bo'ladi — shunda Firestore qoidasi request.auth.uid orqali
+// "faqat shu odamning o'zi" ekanini ISHONCHLI tekshira oladi. Bu —
+// keyingi, ancha murakkabroq bosqich; xohlasangiz shuni ham qilib
+// beraman.
+// ==========================================================
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------------- BUYURTMALAR ----------------
+    match /orders/{orderId} {
+      allow read: if true;   // "Buyurtmalarim" qidiruvi uchun kerak (yuqoridagi izohni o'qing)
+      allow create: if true;
+      allow update, delete: if request.auth != null; // status o'zgartirish/o'chirish — faqat admin
+    }
+
+    // ---------------- MIJOZLAR ----------------
+    match /customers/{customerId} {
+      allow read: if true;
+      allow create: if true;
+      allow update: if request.auth != null || (
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'orders', 'spent', 'address', 'phone',
+          'telegramUserId', 'telegramFirstName', 'telegramUsername'
+        ]) &&
+        request.resource.data.orders >= resource.data.orders &&
+        request.resource.data.spent >= resource.data.spent
+      );
+      allow delete: if request.auth != null;
+    }
+
+    // ---------------- MAHSULOTLAR ----------------
+    match /products/{productId} {
+      allow read: if true;
+      allow create, delete: if request.auth != null;
+      allow update: if request.auth != null || (
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stock']) &&
+        request.resource.data.stock <= resource.data.stock
+      );
+    }
+
+    // ---------------- KATEGORIYALAR ----------------
+    // Do'kon chip'lari uchun hammaga ko'rinadi; qo'shish/o'chirish faqat admin.
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow create, update, delete: if request.auth != null;
+    }
+
+    // ---------------- BRENDLAR ----------------
+    match /brands/{brandId} {
+      allow read: if true;
+      allow create, update, delete: if request.auth != null;
+    }
+
+    // ---------------- BANNERLAR ----------------
+    // Do'kon slideri uchun hammaga ko'rinadi; qo'shish/tahrirlash/o'chirish faqat admin.
+    // Istisno: mijoz banner bosganda "clicks" sonini oshirishi mumkin (statistika uchun).
+    match /banners/{bannerId} {
+      allow read: if true;
+      allow create, delete: if request.auth != null;
+      allow update: if request.auth != null || (
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['clicks']) &&
+        request.resource.data.clicks >= resource.data.clicks
+      );
+    }
+
+    // ---------------- EMAIL OBUNACHILAR ----------------
+    // Mijoz email qoldirishi mumkin (o'qiy olmaydi — bu boshqa
+    // odamlarning emaillarini ko'rish imkonini bermaslik uchun).
+    // Ro'yxatni faqat admin ko'radi/o'chiradi.
+    match /newsletter/{subscriberId} {
+      allow create: if true;
+      allow read, update, delete: if request.auth != null;
+    }
+
+    // ---------------- PROMO KODLAR ----------------
+    // Mijoz checkout'da kodni tekshirishi uchun o'qiy oladi;
+    // ishlatilgach "usedCount"ni +1 qila oladi (boshqa maydonlarni
+    // o'zgartira olmaydi). Qo'shish/tahrirlash/o'chirish faqat admin.
+    match /promoCodes/{codeId} {
+      allow read: if true;
+      allow create, delete: if request.auth != null;
+      allow update: if request.auth != null || (
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['usedCount']) &&
+        request.resource.data.usedCount >= resource.data.usedCount
+      );
+    }
+
+    // ---------------- KOLLEKSIYALAR ----------------
+    // Do'kon sahifasidagi "O'zingizga mos uslubni toping" bo'limi
+    // uchun — admin o'zi sarlavha/rasm/mahsulotlarni tanlaydi.
+    match /collections/{id} {
+      allow read: if true;
+      allow create, update, delete: if request.auth != null;
+    }
+
+    // ---------------- MIJOZ SHARHLARI ----------------
+    // Do'kon sahifasida hammaga ko'rinadi; qo'shish/tahrirlash/o'chirish faqat admin.
+    match /testimonials/{id} {
+      allow read: if true;
+      allow create, update, delete: if request.auth != null;
+    }
+
+    // ---------------- SAVOL-JAVOB (FAQ) ----------------
+    // Mijoz savolni ochganda "views" sonini +1 qila oladi (boshqa
+    // maydonlarni o'zgartira olmaydi). Qolgani faqat admin.
+    match /faqs/{id} {
+      allow read: if true;
+      allow create, delete: if request.auth != null;
+      allow update: if request.auth != null || (
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views']) &&
+        request.resource.data.views >= resource.data.views
+      );
+    }
+
+    // ---------------- DO'KON SOZLAMALARI ----------------
+    // Bitta hujjat (masalan settings/store) — do'kon nomi, Instagram
+    // havolasi va h.k. Hammaga ko'rinadi, faqat admin o'zgartiradi.
+    match /settings/{id} {
+      allow read: if true;
+      allow create, update, delete: if request.auth != null;
+    }
+  }
+}

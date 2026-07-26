@@ -1,0 +1,54 @@
+// ==========================================================
+// BU FAYL FIRESTORE UCHUN EMAS — Firebase STORAGE uchun!
+// Joylashtirish: Firebase konsoli → Build → Storage → Rules →
+// shu matnni joylashtiring → Publish.
+//
+// (Firestore ma'lumotlar bazasi qoidalari — firestore.rules
+// faylida, alohida joyda joylashtiriladi. Ikkisi bir-biridan
+// FARQLI joy: Storage = fayllar/rasmlar, Firestore = ma'lumotlar.)
+//
+// QOIDA: barcha rasmlarni O'QISH hammaga ochiq (do'konda va
+// bannerlarda ko'rsatish uchun), YOZISH (yuklash/o'chirish) esa
+// faqat login qilgan admin uchun.
+// ==========================================================
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Banner rasmlari (masalan: banners/{bannerId}/banner-desktop)
+    match /banners/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // Mahsulot rasmlari (masalan: products/{productId}/image)
+    match /products/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // Do'kon sozlamalari (masalan: settings/logo)
+    match /settings/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // Kategoriya rasmlari (masalan: categories/{categoryId}/image)
+    match /categories/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // Brend rasmlari (masalan: brands/{brandId}/image)
+    match /brands/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // Kolleksiya rasmlari (masalan: collections/{id}/image)
+    match /collections/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+  }
+}

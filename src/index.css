@@ -1,0 +1,53 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Qurilma/brauzer "qorong'i rejim"da bo'lsa ham, sayt HAR DOIM o'zining
+   yorug' ranglarida ishlaydi — tizim rangiga umuman qaramaydi. */
+:root {
+  color-scheme: light only;
+}
+
+html, body, #root {
+  height: 100%;
+  background-color: #FFFFFF;
+}
+
+/* Kategoriya bo'limi ochilganda ishlatiladigan "fade-up" animatsiyasi */
+@keyframes categoryFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ==========================================================
+   Embla Carousel qatorlari (Chegirmalar, Mashhur, Kategoriya,
+   Brend, Kolleksiyalar) uchun qoidalar. Embla o'zi GPU-tezlashtirilgan
+   `transform: translate3d` bilan ishlaydi — bizga faqat konteynerga
+   `will-change` va rasm sudralishini bloklash qoladi.
+   ========================================================== */
+.embla-viewport {
+  overflow: hidden;
+  will-change: transform;
+}
+.embla-container {
+  display: flex;
+  will-change: transform;
+}
+
+/* Rasm sudralib ketishining OLDINI OLADI — brauzerning o'zining
+   "rasmni ushlab tortish" (native image drag) xususiyati butunlay
+   o'chiriladi, shuning uchun sichqoncha bilan qayerdan tortmang,
+   faqat qator suriladi, rasm emas. */
+.embla-container img {
+  pointer-events: none;
+  -webkit-user-drag: none;
+  user-drag: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
