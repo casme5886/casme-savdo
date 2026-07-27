@@ -25,7 +25,7 @@ function HighlightedTitle({ text, className }) {
 }
 
 /** Banner bugungi sanada ko'rsatilishi kerakmi — boshlanish/tugash sanasi bilan tekshiradi. */
-function isBannerLive(b) {
+export function isBannerLive(b) {
   if (!b.active) return false;
   const today = new Date().toISOString().slice(0, 10);
   if (b.startDate && today < b.startDate) return false;

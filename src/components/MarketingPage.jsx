@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import {
   Mail, Tag, Percent, Plus, Trash2, Pencil, Save, Loader2, X,
   Download, MousePointerClick, Zap, AlertTriangle, CheckCircle2,
-  Trophy, Send, CalendarDays, Search, Package,
+  Trophy, Send, CalendarDays, Search, Package, Flame, Filter,
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -34,9 +34,14 @@ const T_LOCAL = {
 
     save: "Saqlash", saving: "Saqlanmoqda...", cancel: "Bekor qilish", required: "Kod va qiymatni kiriting",
 
-    discTitle: "Mahsulotlarga individual chegirma", discSearchPh: "Mahsulot izlash...",
+    discTitle: "Mega Chegirmalar", discSearchPh: "Mahsulot izlash...",
     discNone: "Chegirma yo'q", discOn: "Yoqish", discOff: "Bekor qilish", discPercentPh: "%",
     discEmpty: "Mahsulot topilmadi",
+    discFilterBtn: "Filtr", discClearFilters: "Filtrlarni tozalash", discTabAll: "Barchasi", discOnlyDiscounted: "Faqat chegirmadagilar",
+
+    hitTitle: "Xit mahsulotlar", hitHint: "Belgilangan mahsulotlar saytdagi \"Xit mahsulotlar\" bo'limida (bosh sahifada) ko'rinadi.",
+    hitSearchPh: "Mahsulot izlash...", hitSelectedCount: "ta belgilandi", hitEmpty: "Mahsulot topilmadi",
+    hitFilterBtn: "Filtr", hitClearFilters: "Filtrlarni tozalash", hitTabAll: "Barchasi", hitOnlySelected: "Faqat belgilanganlar",
 
     topTitle: "Eng samarali kampaniyalar",
     topCodes: "Eng foydali promo kodlar", topBanners: "Eng ko'p bosilgan bannerlar",
@@ -76,9 +81,14 @@ const T_LOCAL = {
 
     save: "Сохранить", saving: "Сохранение...", cancel: "Отмена", required: "Укажите код и значение",
 
-    discTitle: "Индивидуальная скидка на товары", discSearchPh: "Поиск товара...",
+    discTitle: "Мега скидки", discSearchPh: "Поиск товара...",
     discNone: "Нет скидки", discOn: "Включить", discOff: "Отменить", discPercentPh: "%",
     discEmpty: "Товар не найден",
+    discFilterBtn: "Фильтр", discClearFilters: "Сбросить фильтры", discTabAll: "Все", discOnlyDiscounted: "Только со скидкой",
+
+    hitTitle: "Хит-товары", hitHint: "Отмеченные товары появятся в разделе \"Хит-товары\" на главной странице сайта.",
+    hitSearchPh: "Поиск товара...", hitSelectedCount: "отмечено", hitEmpty: "Товар не найден",
+    hitFilterBtn: "Фильтр", hitClearFilters: "Сбросить фильтры", hitTabAll: "Все", hitOnlySelected: "Только отмеченные",
 
     topTitle: "Самые эффективные кампании",
     topCodes: "Самые выгодные промокоды", topBanners: "Самые кликабельные баннеры",
@@ -151,6 +161,7 @@ export default function MarketingPage({ lang, banners, products, orders, custome
       </div>
 
       <StorewideSale lang={lang} t={t} products={products} saleSettings={saleSettings} />
+      <HitProductsSection lang={lang} t={t} products={products} />
       <ProductDiscounts lang={lang} t={t} products={products} />
       <TopCampaigns t={t} promoCodes={promoCodes} banners={banners} orders={orders} />
       <PromoCodeChart t={t} promoCodes={promoCodes} />
@@ -280,11 +291,30 @@ function ProductDiscounts({ lang, t, products }) {
   const [search, setSearch] = useState("");
   const [pctInputs, setPctInputs] = useState({});
   const [busyId, setBusyId] = useState(null);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [catFilter, setCatFilter] = useState("all");
+  const [brandFilter, setBrandFilter] = useState("all");
+  const [onlyDiscounted, setOnlyDiscounted] = useState(false);
+
+  const categories = useMemo(
+    () => Array.from(new Set((products || []).map((p) => p.category).filter(Boolean))).sort(),
+    [products]
+  );
+  const brands = useMemo(
+    () => Array.from(new Set((products || []).map((p) => p.brand).filter(Boolean))).sort(),
+    [products]
+  );
 
   const filtered = useMemo(
-    () => (products || []).filter((p) => pname(p, lang).toLowerCase().includes(search.toLowerCase())),
-    [products, search, lang]
+    () => (products || [])
+      .filter((p) => pname(p, lang).toLowerCase().includes(search.toLowerCase()))
+      .filter((p) => catFilter === "all" || p.category === catFilter)
+      .filter((p) => brandFilter === "all" || p.brand === brandFilter)
+      .filter((p) => !onlyDiscounted || p.oldPrice > p.price),
+    [products, search, lang, catFilter, brandFilter, onlyDiscounted]
   );
+  const activeFilterCount = (catFilter !== "all" ? 1 : 0) + (brandFilter !== "all" ? 1 : 0) + (onlyDiscounted ? 1 : 0);
+  const clearAllFilters = () => { setCatFilter("all"); setBrandFilter("all"); setOnlyDiscounted(false); };
 
   const enable = async (p) => {
     const pct = Number(pctInputs[p.id]);
@@ -307,12 +337,78 @@ function ProductDiscounts({ lang, t, products }) {
     <div className="rounded-2xl bg-white p-4 shadow-sm">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-sm font-semibold text-slate-800">{t.discTitle}</h3>
-        <div className="relative">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t.discSearchPh}
-            className="w-52 rounded-lg border border-gray-200 py-1.5 pl-8 pr-3 text-xs outline-none focus:border-emerald-500" />
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t.discSearchPh}
+              className="w-52 rounded-lg border border-gray-200 py-1.5 pl-8 pr-3 text-xs outline-none focus:border-emerald-500" />
+          </div>
+          <button
+            onClick={() => setFilterOpen((v) => !v)}
+            className={`relative flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition ${filterOpen || activeFilterCount > 0 ? "border-rose-400 bg-rose-50 text-rose-600" : "border-gray-200 text-slate-600 hover:bg-gray-50"}`}
+          >
+            <Filter size={13} /> {t.discFilterBtn}
+            {activeFilterCount > 0 && (
+              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-rose-600 text-[10px] font-semibold text-white">{activeFilterCount}</span>
+            )}
+          </button>
         </div>
       </div>
+
+      {filterOpen && (
+        <div className="mb-3 space-y-2.5 rounded-xl border border-gray-100 bg-gray-50/60 p-3">
+          {activeFilterCount > 0 && (
+            <button onClick={clearAllFilters} className="flex items-center gap-1 text-xs font-medium text-rose-600 hover:underline">
+              <X size={13} /> {t.discClearFilters}
+            </button>
+          )}
+
+          <label className="flex w-fit cursor-pointer items-center gap-2 text-xs font-medium text-slate-600">
+            <input type="checkbox" checked={onlyDiscounted} onChange={(e) => setOnlyDiscounted(e.target.checked)} className="h-3.5 w-3.5 accent-rose-600" />
+            {t.discOnlyDiscounted}
+          </label>
+
+          {categories.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 border-t border-gray-200 pt-2.5">
+              <button
+                onClick={() => setCatFilter("all")}
+                className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition ${catFilter === "all" ? "bg-rose-600 text-white" : "bg-white text-slate-500 hover:bg-gray-100"}`}
+              >
+                {t.discTabAll}
+              </button>
+              {categories.map((c) => (
+                <button
+                  key={c}
+                  onClick={() => setCatFilter(c)}
+                  className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition ${catFilter === c ? "bg-rose-600 text-white" : "bg-white text-slate-500 hover:bg-gray-100"}`}
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {brands.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 border-t border-gray-200 pt-2.5">
+              <button
+                onClick={() => setBrandFilter("all")}
+                className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition ${brandFilter === "all" ? "bg-rose-600 text-white" : "bg-white text-slate-500 hover:bg-gray-100"}`}
+              >
+                {t.discTabAll}
+              </button>
+              {brands.map((b) => (
+                <button
+                  key={b}
+                  onClick={() => setBrandFilter(b)}
+                  className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition ${brandFilter === b ? "bg-rose-600 text-white" : "bg-white text-slate-500 hover:bg-gray-100"}`}
+                >
+                  {b}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {filtered.length === 0 ? (
         <EmptyState icon={Package} text={t.discEmpty} />
@@ -371,6 +467,163 @@ function ProductDiscounts({ lang, t, products }) {
                     </button>
                   </div>
                 )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * "Xit mahsulotlar" — bosh sahifadagi 🔥 bo'limida ko'rinadigan mahsulotlarni
+ * bitta ro'yxatdan (qidiruv bilan) belgilash/olib tashlash. Ichki mexanizm —
+ * mahsulotning bitta `tag` maydoni ("bestseller" bo'lsa хит hisoblanadi),
+ * shu bilan mahsulot tahrirlash oynasidagi teg tanlovi bilan bir xil ma'lumot.
+ */
+function HitProductsSection({ lang, t, products }) {
+  const [search, setSearch] = useState("");
+  const [busyId, setBusyId] = useState(null);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [catFilter, setCatFilter] = useState("all");
+  const [brandFilter, setBrandFilter] = useState("all");
+  const [onlySelected, setOnlySelected] = useState(false);
+
+  const categories = useMemo(
+    () => Array.from(new Set((products || []).map((p) => p.category).filter(Boolean))).sort(),
+    [products]
+  );
+  const brands = useMemo(
+    () => Array.from(new Set((products || []).map((p) => p.brand).filter(Boolean))).sort(),
+    [products]
+  );
+
+  const filtered = useMemo(
+    () => (products || [])
+      .filter((p) => pname(p, lang).toLowerCase().includes(search.toLowerCase()))
+      .filter((p) => catFilter === "all" || p.category === catFilter)
+      .filter((p) => brandFilter === "all" || p.brand === brandFilter)
+      .filter((p) => !onlySelected || p.tag === "bestseller"),
+    [products, search, lang, catFilter, brandFilter, onlySelected]
+  );
+  const selectedCount = useMemo(() => (products || []).filter((p) => p.tag === "bestseller").length, [products]);
+  const activeFilterCount = (catFilter !== "all" ? 1 : 0) + (brandFilter !== "all" ? 1 : 0) + (onlySelected ? 1 : 0);
+  const clearAllFilters = () => { setCatFilter("all"); setBrandFilter("all"); setOnlySelected(false); };
+
+  const toggleHit = async (p) => {
+    setBusyId(p.id);
+    await updateItem("products", p.id, { tag: p.tag === "bestseller" ? "none" : "bestseller" });
+    setBusyId(null);
+  };
+
+  return (
+    <div className="rounded-2xl bg-white p-4 shadow-sm">
+      <div className="mb-1 flex items-center gap-2">
+        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-rose-50 text-rose-600">
+          <Flame size={17} />
+        </span>
+        <div>
+          <h3 className="text-sm font-semibold text-slate-800">{t.hitTitle}</h3>
+          <p className="text-xs text-slate-400">{t.hitHint}</p>
+        </div>
+      </div>
+
+      <div className="my-3 flex flex-wrap items-center justify-between gap-2">
+        {selectedCount > 0 ? (
+          <p className="text-xs font-medium text-rose-600">{selectedCount} {t.hitSelectedCount}</p>
+        ) : <span />}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t.hitSearchPh}
+              className="w-52 rounded-lg border border-gray-200 py-1.5 pl-8 pr-3 text-xs outline-none focus:border-emerald-500" />
+          </div>
+          <button
+            onClick={() => setFilterOpen((v) => !v)}
+            className={`relative flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition ${filterOpen || activeFilterCount > 0 ? "border-rose-400 bg-rose-50 text-rose-600" : "border-gray-200 text-slate-600 hover:bg-gray-50"}`}
+          >
+            <Filter size={13} /> {t.hitFilterBtn}
+            {activeFilterCount > 0 && (
+              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-rose-600 text-[10px] font-semibold text-white">{activeFilterCount}</span>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {filterOpen && (
+        <div className="mb-3 space-y-2.5 rounded-xl border border-gray-100 bg-gray-50/60 p-3">
+          {activeFilterCount > 0 && (
+            <button onClick={clearAllFilters} className="flex items-center gap-1 text-xs font-medium text-rose-600 hover:underline">
+              <X size={13} /> {t.hitClearFilters}
+            </button>
+          )}
+
+          <label className="flex w-fit cursor-pointer items-center gap-2 text-xs font-medium text-slate-600">
+            <input type="checkbox" checked={onlySelected} onChange={(e) => setOnlySelected(e.target.checked)} className="h-3.5 w-3.5 accent-rose-600" />
+            {t.hitOnlySelected}
+          </label>
+
+          {categories.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 border-t border-gray-200 pt-2.5">
+              <button
+                onClick={() => setCatFilter("all")}
+                className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition ${catFilter === "all" ? "bg-rose-600 text-white" : "bg-white text-slate-500 hover:bg-gray-100"}`}
+              >
+                {t.hitTabAll}
+              </button>
+              {categories.map((c) => (
+                <button
+                  key={c}
+                  onClick={() => setCatFilter(c)}
+                  className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition ${catFilter === c ? "bg-rose-600 text-white" : "bg-white text-slate-500 hover:bg-gray-100"}`}
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {brands.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 border-t border-gray-200 pt-2.5">
+              <button
+                onClick={() => setBrandFilter("all")}
+                className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition ${brandFilter === "all" ? "bg-rose-600 text-white" : "bg-white text-slate-500 hover:bg-gray-100"}`}
+              >
+                {t.hitTabAll}
+              </button>
+              {brands.map((b) => (
+                <button
+                  key={b}
+                  onClick={() => setBrandFilter(b)}
+                  className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition ${brandFilter === b ? "bg-rose-600 text-white" : "bg-white text-slate-500 hover:bg-gray-100"}`}
+                >
+                  {b}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {filtered.length === 0 ? (
+        <EmptyState icon={Package} text={t.hitEmpty} />
+      ) : (
+        <div className="max-h-80 space-y-1.5 overflow-y-auto">
+          {filtered.map((p) => {
+            const thumb = (p.imageUrls && p.imageUrls[0]) || p.imageUrl || "";
+            const isHit = p.tag === "bestseller";
+            const busy = busyId === p.id;
+            return (
+              <div key={p.id} className={`flex items-center gap-2 rounded-lg border p-2 ${isHit ? "border-rose-200 bg-rose-50/50" : "border-gray-100"}`}>
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gray-50 text-slate-300">
+                  {thumb ? <img src={thumb} alt="" className="h-full w-full object-cover" /> : <Package size={14} />}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-xs font-medium text-slate-700">{pname(p, lang)}</p>
+                  <p className="text-[11px] text-slate-400">{fmtMoney(p.price)} UZS</p>
+                </div>
+                <Toggle checked={isHit} onChange={() => !busy && toggleHit(p)} disabled={busy} />
               </div>
             );
           })}

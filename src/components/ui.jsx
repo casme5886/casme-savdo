@@ -4,8 +4,8 @@
 // shu fayldan foydalanadi — shuning uchun bu yerga hech qanday
 // App.jsx-ga xos narsa (masalan tarjima lug'ati) qo'yilmaydi.
 // ==========================================================
-import React, { useCallback } from "react";
-import { X, Clock, CheckCircle2, XCircle, Truck, PackageCheck } from "lucide-react";
+import React, { useCallback, useState, useRef } from "react";
+import { X, Clock, CheckCircle2, XCircle, Truck, PackageCheck, ArrowLeft } from "lucide-react";
 import useEmblaCarousel from "embla-carousel-react";
 import { WheelGesturesPlugin } from "embla-carousel-wheel-gestures";
 
@@ -37,6 +37,69 @@ export function pdesc(p, lang) {
 export function discountPct(price, oldPrice) {
   if (!oldPrice || oldPrice <= price) return 0;
   return Math.round(100 - (price / oldPrice) * 100);
+}
+
+/** Mahsulot qoldiq holatiga ko'ra "qolmagan" (sotuvda yo'q) ekanini aniqlaydi. */
+export function isSoldOut(p) {
+  const stockType = p?.stockType || "limited";
+  return stockType === "out" || (stockType === "limited" && (p?.stock || 0) <= 0);
+}
+
+/**
+ * Mahsulotlar ro'yxatini shunday saralaydiki — "qolmagan" (sotuvda yo'q)
+ * mahsulotlar ro'yxat oxiriga tushadi, qolganlarining o'zaro tartibi
+ * (mavjud saralash/filtr natijasi) o'zgarmaydi. Mahsulot qayta qoldiqqa
+ * kelgan zahoti (yoki "cheksiz" qilib belgilansa) — keyingi renderda
+ * avtomatik o'z avvalgi o'rniga qaytadi, chunki bu funksiya har safar
+ * joriy holatga qarab qayta hisoblanadi.
+ */
+export function sortSoldOutLast(list) {
+  const inStock = [];
+  const soldOut = [];
+  for (const p of list) (isSoldOut(p) ? soldOut : inStock).push(p);
+  return [...inStock, ...soldOut];
+}
+
+/**
+ * Pastdan chiqadigan varaq (bottom sheet) oynalarni tutqichdan pastga tortib
+ * yopish imkonini beradi (mahsulot kartochkasi, savat, sevimlilar, profil
+ * kabi oynalarda ishlatiladi). `onClose` — tortish `threshold`dan oshganda
+ * chaqiriladigan funksiya. Qaytaradi: { dragHandleProps, sheetStyle } —
+ * dragHandleProps tutqich qatoriga, sheetStyle esa varaqning o'ziga beriladi.
+ */
+export function useSwipeDownToClose(onClose, threshold = 90) {
+  const [dragY, setDragY] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const dragStartY = useRef(0);
+
+  const handleDragStart = (clientY) => {
+    dragStartY.current = clientY;
+    setDragging(true);
+  };
+  const handleDragMove = (clientY) => {
+    if (!dragging) return;
+    const delta = clientY - dragStartY.current;
+    if (delta > 0) setDragY(delta);
+  };
+  const handleDragEnd = () => {
+    setDragging(false);
+    if (dragY > threshold) onClose();
+    else setDragY(0);
+  };
+
+  const dragHandleProps = {
+    onTouchStart: (e) => handleDragStart(e.touches[0].clientY),
+    onTouchMove: (e) => handleDragMove(e.touches[0].clientY),
+    onTouchEnd: handleDragEnd,
+    onMouseDown: (e) => handleDragStart(e.clientY),
+    onMouseMove: (e) => { if (dragging) handleDragMove(e.clientY); },
+    onMouseUp: handleDragEnd,
+    onMouseLeave: () => { if (dragging) handleDragEnd(); },
+  };
+
+  const sheetStyle = { transform: `translateY(${dragY}px)`, transition: dragging ? "none" : "transform 0.25s ease" };
+
+  return { dragHandleProps, sheetStyle, dragging };
 }
 
 /**
@@ -96,15 +159,20 @@ export function PhoneInput({ value, onChange, className, autoFocus }) {
 export const inputCls =
   "w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-slate-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100";
 
-export function Modal({ title, onClose, children }) {
+export function Modal({ title, onClose, onBack, children }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4" onClick={onClose}>
       <div
         className="flex max-h-[90vh] w-full max-w-md flex-col rounded-2xl bg-white shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
-          <h3 className="text-base font-semibold text-slate-800">{title}</h3>
+        <div className="flex items-center gap-2 border-b border-gray-100 px-5 py-4">
+          {onBack && (
+            <button onClick={onBack} className="rounded-lg p-1 text-slate-400 hover:bg-gray-100 hover:text-slate-600">
+              <ArrowLeft size={18} />
+            </button>
+          )}
+          <h3 className="flex-1 text-base font-semibold text-slate-800">{title}</h3>
           <button onClick={onClose} className="rounded-lg p-1 text-slate-400 hover:bg-gray-100 hover:text-slate-600">
             <X size={18} />
           </button>

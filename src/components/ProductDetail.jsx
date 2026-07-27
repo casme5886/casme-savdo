@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { X, ChevronLeft, ChevronRight, Package, Plus, Loader2 } from "lucide-react";
-import { pname, pdesc, discountPct } from "./ui.jsx";
+import { pname, pdesc, discountPct, useSwipeDownToClose } from "./ui.jsx";
 
 /**
  * Mahsulot detail oynasi — mijoz mahsulot kartasini bosganda ochiladi.
@@ -16,6 +16,10 @@ export default function ProductDetail({ product, cartQty, onClose, onAddToCart, 
   }, [product]);
 
   const [imgIndex, setImgIndex] = useState(0);
+
+  // Pastdan tortib yopish (swipe-down-to-close) — faqat tutqich/sarlavha qismidan boshlanadi,
+  // shunda rasm galereyasi va matn skrolliga xalaqit bermaydi.
+  const { dragHandleProps, sheetStyle } = useSwipeDownToClose(onClose);
 
   const stockType = product.stockType || "limited";
   const soldOut = stockType === "out" || (stockType === "limited" && (product.stock || 0) <= 0);
@@ -36,13 +40,17 @@ export default function ProductDetail({ product, cartQty, onClose, onAddToCart, 
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/50 sm:items-center sm:p-4" onClick={onClose}>
       <div
         className="flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-2xl bg-white shadow-xl sm:rounded-2xl"
+        style={sheetStyle}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Yopish tugmasi */}
-        <div className="flex items-center justify-end px-4 pt-3">
-          <button onClick={onClose} className="rounded-full bg-gray-100 p-1.5 text-slate-500 hover:bg-gray-200">
-            <X size={16} />
-          </button>
+        {/* Tutqich + yopish tugmasi — shu qismdan pastga tortib yopish mumkin */}
+        <div className="cursor-grab touch-none pt-2.5 active:cursor-grabbing" {...dragHandleProps}>
+          <div className="mx-auto h-1.5 w-10 rounded-full bg-gray-300 sm:hidden" />
+          <div className="flex items-center justify-end px-4 pt-1.5">
+            <button onClick={onClose} className="rounded-full bg-gray-100 p-1.5 text-slate-500 hover:bg-gray-200">
+              <X size={16} />
+            </button>
+          </div>
         </div>
 
         <div className="overflow-y-auto px-5 pb-5">

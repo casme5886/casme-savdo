@@ -7,21 +7,19 @@ import {
   LogIn, LogOut, Lock, Image as ImageIcon, Eye, Star, RotateCcw, ShieldCheck, Headphones,
   MessageSquareQuote, HelpCircle, Settings as SettingsIcon, Bell, Download, Phone, Send, Copy, Tag,
   ArrowUp, ArrowDown, EyeOff, ChevronLeft, ChevronRight, MessageCircle, Home,
-  SlidersHorizontal, Filter
+  SlidersHorizontal, Filter, CheckSquare, Square, MinusSquare, Check, ArrowRight
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from "recharts";
 import { initTelegram, isInTelegram, getTelegramUser, hapticFeedback, getWebApp } from "./telegram.js";
-import Banner, { MidPromoBanner } from "./components/Banner.jsx";
+import Banner, { MidPromoBanner, isBannerLive } from "./components/Banner.jsx";
 import BannerSettings from "./components/BannerSettings.jsx";
 import ProductDetail from "./components/ProductDetail.jsx";
 import ProductForm from "./components/ProductForm.jsx";
 import { CategoryIconRow, BrandIconRow, CategoryShowcase, CategoryQuickRow, CollectionShowcase, WideCollectionShowcase, collectionTitle, collectionDescription, itemThumb } from "./components/CategoryShowcase.jsx";
 import StoreFooter from "./components/StoreFooter.jsx";
 import Testimonials from "./components/Testimonials.jsx";
-import FAQSection from "./components/FAQSection.jsx";
-import InstagramGallery from "./components/InstagramGallery.jsx";
 import MapPicker from "./components/MapPicker.jsx";
 import TestimonialsSettings from "./components/TestimonialsSettings.jsx";
 import FAQSettings from "./components/FAQSettings.jsx";
@@ -101,6 +99,10 @@ const T = {
       sortStock: "Qoldiq bo'yicha", sortRating: "Reyting bo'yicha",
       duplicate: "Nusxalash", quickEditHint: "Tez o'zgartirish uchun bosing",
       categoriesBtn: "Kategoriyalar", brandsBtn: "Brendlar",
+      filterBtn: "Filtr", clearFilters: "Filtrlarni tozalash",
+      selectAll: "Barchasini belgilash", deselectAll: "Barchasini olib tashlash",
+      stockStatusAll: "Qoldiq: barchasi", stockStatusIn: "Mavjud", stockStatusOut: "Qolmagan",
+      activeCol: "Faol", activeOn: "Faol", activeOff: "Nofaol",
       newItemPh: "Yangisini kiriting...", noItems: "Hozircha yo'q",
       collectionsBtn: "Kolleksiyalar", collectionAdd: "To'plam qo'shish", collectionEdit: "To'plamni tahrirlash",
       collectionEmpty: "Hozircha to'plam yo'q — \"O'zingizga mos uslubni toping\" bo'limida bularni ko'rsatasiz",
@@ -147,6 +149,10 @@ const T = {
       tagNew: "Yangi", tagBestseller: "Top",
       cart: "Savat", cartEmpty: "Savat bo'sh", total: "Jami", checkout: "Buyurtma berish",
       subtotal: "Mahsulotlar summasi",
+      cartDeleteSelected: "Tanlanganlarni o'chirish", cartSelectAll: "Barchasini tanlash",
+      cartPerItem: "/ mahsulot", cartItemsLabel: "ta mahsulot",
+      cartDeliveryNote: "Buyurtmani rasmiylashtirish sahifasida yetkazib berishning usullari va vaqtini tanlashingiz mumkin",
+      cartCheckoutBtn: "Rasmiylashtirishga o'tish", cartRecommended: "Sizga qiziq bo'lishi mumkin",
       promoPh: "Promo kod", promoApply: "Qo'llash", promoApplied: "qo'llandi", promoRemove: "Olib tashlash",
       bonusAvailable: "Mavjud bonus", bonusUsePh: "Miqdorni kiriting", bonusMaxBtn: "Barchasi", bonusUsed: "Bonusdan foydalanildi",
       mapPick: "Xaritadan belgilash", mapPickNote: "Manzilni aniqroq ko'rsatish uchun xaritada nuqta belgilang",
@@ -203,6 +209,15 @@ const T = {
         emailLabel: "Elektron pochta", emailPlaceholder: "Email manzilingizni kiriting",
         emailRequired: "Iltimos, elektron pochtani kiriting",
         applyLabel: "Qo'llash",
+      },
+      review: {
+        btn: "Sharh qoldirish", pending: "Tasdiqlanishi kutilmoqda", done: "Sharh yuborilgan",
+        title: "Sharh qoldirish", rating: "Bahoingiz", text: "Fikringiz",
+        textPh: "Mahsulot haqida fikringizni yozing...",
+        photo: "Surat qo'shish (ixtiyoriy)", uploadBtn: "Rasm tanlang", uploading: "Yuklanmoqda...",
+        submit: "Yuborish", submitting: "Yuborilmoqda...",
+        success: "Rahmat! Sharhingiz yuborildi, tasdiqlangandan so'ng saytda ko'rinadi.",
+        required: "Iltimos fikringizni yozing",
       },
     },
     switcher: { admin: "Boshqaruv paneli", store: "Mijozlar do'koni", previewNote: "Namuna: haqiqiy loyihada bular alohida manzillar bo'ladi" },
@@ -287,6 +302,10 @@ const T = {
       sortStock: "По остатку", sortRating: "По рейтингу",
       duplicate: "Дублировать", quickEditHint: "Нажмите для быстрого изменения",
       categoriesBtn: "Категории", brandsBtn: "Бренды",
+      filterBtn: "Фильтр", clearFilters: "Очистить фильтры",
+      selectAll: "Выбрать всё", deselectAll: "Снять всё",
+      stockStatusAll: "Остаток: все", stockStatusIn: "В наличии", stockStatusOut: "Нет в наличии",
+      activeCol: "Активен", activeOn: "Активен", activeOff: "Неактивен",
       newItemPh: "Введите новое...", noItems: "Пока пусто",
       collectionsBtn: "Коллекции", collectionAdd: "Добавить коллекцию", collectionEdit: "Редактировать коллекцию",
       collectionEmpty: "Пока нет коллекций — они будут показаны в разделе \"Найдите свой стиль\"",
@@ -333,6 +352,10 @@ const T = {
       tagNew: "Новинка", tagBestseller: "Топ",
       cart: "Корзина", cartEmpty: "Корзина пуста", total: "Итого", checkout: "Оформить заказ",
       subtotal: "Сумма товаров",
+      cartDeleteSelected: "Удалить выбранные", cartSelectAll: "Выбрать все",
+      cartPerItem: "/ товар", cartItemsLabel: "товар(ов)",
+      cartDeliveryNote: "Способ и время доставки можно выбрать на странице оформления заказа",
+      cartCheckoutBtn: "Оформить заказ", cartRecommended: "Вам может понравиться",
       promoPh: "Промокод", promoApply: "Применить", promoApplied: "применён", promoRemove: "Убрать",
       bonusAvailable: "Доступный бонус", bonusUsePh: "Введите сумму", bonusMaxBtn: "Всё", bonusUsed: "Бонус использован",
       mapPick: "Отметить на карте", mapPickNote: "Отметьте точку на карте для более точного адреса",
@@ -390,6 +413,15 @@ const T = {
         emailRequired: "Пожалуйста, введите электронную почту",
         applyLabel: "Применить",
       },
+      review: {
+        btn: "Оставить отзыв", pending: "Ожидает подтверждения", done: "Отзыв отправлен",
+        title: "Оставить отзыв", rating: "Ваша оценка", text: "Ваш отзыв",
+        textPh: "Напишите ваше мнение о товаре...",
+        photo: "Добавить фото (опционально)", uploadBtn: "Выбрать фото", uploading: "Загрузка...",
+        submit: "Отправить", submitting: "Отправка...",
+        success: "Спасибо! Ваш отзыв отправлен и появится на сайте после проверки.",
+        required: "Пожалуйста, напишите отзыв",
+      },
     },
     switcher: { admin: "Панель управления", store: "Магазин для клиентов", previewNote: "Демо: в реальном проекте это разные адреса" },
     login: {
@@ -412,7 +444,7 @@ const T = {
 --------------------------------------------------------------- */
 import {
   subscribeCollection, addItem, setItem, updateItem, deleteItem,
-  findCustomerByPhone, findCustomerByTelegramId, isCollectionEmpty, placeOrderBatch, getCustomersCount,
+  findCustomerByPhone, findCustomerByTelegramId, isCollectionEmpty, placeOrderBatch, getCustomersCount, getOrdersCount,
   findPromoCode, incrementPromoCodeUsage,
   findOrdersByTelegramId, findOrdersByPhone, uploadImage,
 } from "./storage.js";
@@ -465,7 +497,7 @@ const SORT_OPTIONS = [
 import {
   uid, fmtMoney, todayISO, inputCls, Modal, Field, EmptyState, StatusBadge,
   pname, pdesc, discountPct, formatUzPhone, isValidUzPhone, PhoneInput,
-  useCarouselRow, Toggle,
+  useCarouselRow, Toggle, sortSoldOutLast, useSwipeDownToClose, isSoldOut,
 } from "./components/ui.jsx";
 
 /**
@@ -494,8 +526,9 @@ async function notifyTelegramBot(payload) {
 --------------------------------------------------------------- */
 
 /** "Mening profilim" panelida bitta buyurtmani ko'rsatadigan karta. */
-function ProfileOrderCard({ order, t }) {
+function ProfileOrderCard({ order, t, reviewedKeys, onReview }) {
   const fmt = (n) => (Number(n) || 0).toLocaleString("ru-RU");
+  const canReview = order.status === "delivered";
   return (
     <div className="rounded-xl border border-gray-100 p-3">
       <div className="mb-1.5 flex items-center justify-between">
@@ -507,20 +540,38 @@ function ProfileOrderCard({ order, t }) {
       <p className="mb-2 text-xs text-slate-400">{order.date}</p>
       {Array.isArray(order.items) && order.items.length > 0 && (
         <div className="mb-2 space-y-1.5">
-          {order.items.map((it, idx) => (
-            <div key={idx} className="flex items-center gap-2">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-rose-50 text-stone-300">
-                {it.imageUrl ? (
-                  <img src={it.imageUrl} alt="" className="h-full w-full object-cover" />
-                ) : (
-                  <Package size={16} />
+          {order.items.map((it, idx) => {
+            const key = `${order.id}__${it.productId}`;
+            const reviewState = reviewedKeys ? reviewedKeys.get(key) : null; // "pending" | "approved" | undefined
+            return (
+              <div key={idx} className="flex items-center gap-2">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-rose-50 text-stone-300">
+                  {it.imageUrl ? (
+                    <img src={it.imageUrl} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <Package size={16} />
+                  )}
+                </div>
+                <p className="min-w-0 flex-1 truncate text-xs text-slate-600">
+                  {it.productName} × {it.qty}
+                </p>
+                {canReview && it.productId && (
+                  reviewState ? (
+                    <span className="shrink-0 whitespace-nowrap text-[11px] text-stone-400">
+                      {reviewState === "pending" ? t.store.profile.review.pending : t.store.profile.review.done}
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => onReview && onReview(order, it)}
+                      className="shrink-0 whitespace-nowrap rounded-full bg-rose-50 px-2.5 py-1 text-[11px] font-medium text-rose-600 hover:bg-rose-100"
+                    >
+                      {t.store.profile.review.btn}
+                    </button>
+                  )
                 )}
               </div>
-              <p className="min-w-0 flex-1 truncate text-xs text-slate-600">
-                {it.productName} × {it.qty}
-              </p>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
       <div className="flex items-center justify-between text-sm">
@@ -529,6 +580,120 @@ function ProfileOrderCard({ order, t }) {
       </div>
       {order.address && <p className="mt-1 truncate text-xs text-slate-400">📍 {order.address}</p>}
     </div>
+  );
+}
+
+/**
+ * Mijoz xarid qilgan mahsulotga sharh (baho + matn + surat, ixtiyoriy) qoldirish
+ * oynasi. Yuborilgan sharh darhol saytda ko'rinmaydi — "active: false,
+ * status: pending" bilan saqlanadi, admin "Mijoz sharhlari" bo'limida
+ * tasdiqlaguncha (active: true) yashirin turadi.
+ */
+function ReviewFormModal({ order, item, lang, myName, myPhone, testimonialsCount, onClose }) {
+  const t = T[lang];
+  const rt = t.store.profile.review;
+  const [rating, setRating] = useState(5);
+  const [text, setText] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [done, setDone] = useState(false);
+
+  const handleUpload = async (file) => {
+    if (!file) return;
+    setUploading(true);
+    try {
+      const url = await uploadImage(`testimonials/${uid()}/photo`, file);
+      setImageUrl(url);
+    } catch (e) {
+      console.error("Rasm yuklashda xatolik:", e);
+    }
+    setUploading(false);
+  };
+
+  const submit = async () => {
+    if (!text.trim()) { setError(rt.required); return; }
+    setSaving(true);
+    await addItem(COL.testimonials, {
+      name: myName || "Mijoz",
+      phone: myPhone || "",
+      text: text.trim(),
+      rating,
+      imageUrl,
+      productId: item.productId,
+      orderId: order.id,
+      source: "customer",
+      status: "pending",
+      active: false,
+      order: testimonialsCount || 0,
+    });
+    setSaving(false);
+    setDone(true);
+  };
+
+  return (
+    <Modal title={rt.title} onClose={onClose}>
+      {done ? (
+        <div className="py-6 text-center">
+          <PartyPopper className="mx-auto mb-3 text-rose-500" size={32} />
+          <p className="text-sm text-stone-600">{rt.success}</p>
+          <button onClick={onClose} className="mt-4 rounded-lg bg-rose-600 px-4 py-2 text-sm font-medium text-white hover:bg-rose-700">
+            {t.common.close}
+          </button>
+        </div>
+      ) : (
+        <>
+          <div className="mb-3 flex items-center gap-2 rounded-lg bg-gray-50 p-2">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white text-stone-300">
+              {item.imageUrl ? <img src={item.imageUrl} alt="" className="h-full w-full object-cover" /> : <Package size={16} />}
+            </div>
+            <p className="min-w-0 flex-1 truncate text-xs font-medium text-stone-600">{item.productName}</p>
+          </div>
+
+          <Field label={rt.rating}>
+            <div className="flex gap-1">
+              {[1, 2, 3, 4, 5].map((n) => (
+                <button key={n} type="button" onClick={() => setRating(n)} className="p-0.5">
+                  <Star size={24} className={n <= rating ? "fill-amber-400 text-amber-400" : "text-stone-200"} />
+                </button>
+              ))}
+            </div>
+          </Field>
+
+          <Field label={rt.text} error={error}>
+            <textarea
+              className={`${inputCls} min-h-[90px] resize-y`}
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder={rt.textPh}
+            />
+          </Field>
+
+          <Field label={rt.photo}>
+            <div className="flex items-center gap-3">
+              {imageUrl && (
+                <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-gray-50">
+                  <img src={imageUrl} alt="" className="h-full w-full object-cover" />
+                </div>
+              )}
+              <label className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-gray-50">
+                {uploading ? <Loader2 size={14} className="animate-spin" /> : null}
+                {uploading ? rt.uploading : rt.uploadBtn}
+                <input type="file" accept="image/*" className="hidden" disabled={uploading} onChange={(e) => handleUpload(e.target.files?.[0])} />
+              </label>
+            </div>
+          </Field>
+
+          <div className="mt-4 flex justify-end gap-2">
+            <button onClick={onClose} className="rounded-lg px-3.5 py-2 text-sm font-medium text-slate-500 hover:bg-gray-100">{t.common.cancel}</button>
+            <button onClick={submit} disabled={saving || uploading} className="flex items-center gap-1.5 rounded-lg bg-rose-600 px-3.5 py-2 text-sm font-medium text-white hover:bg-rose-700 disabled:opacity-60">
+              {saving ? <Loader2 size={15} className="animate-spin" /> : null} {saving ? rt.submitting : rt.submit}
+            </button>
+          </div>
+        </>
+      )}
+    </Modal>
   );
 }
 
@@ -1979,7 +2144,7 @@ function CollectionFormModal({ lang, item, collections, products, categories, br
   const [active, setActive] = useState(item?.active !== false);
   const [displayStyle, setDisplayStyle] = useState(item?.displayStyle || "banner");
   const [discountPercent, setDiscountPercent] = useState(item?.discountPercent || 0);
-  const [showTotalCalc, setShowTotalCalc] = useState(item?.showTotalCalc !== false);
+  const [showTotalCalc, setShowTotalCalc] = useState(item ? item.showTotalCalc !== false : false);
   const [productSearch, setProductSearch] = useState("");
   const [productCategoryFilter, setProductCategoryFilter] = useState("");
   const [productBrandFilter, setProductBrandFilter] = useState("");
@@ -2009,6 +2174,17 @@ function CollectionFormModal({ lang, item, collections, products, categories, br
     .filter((p) => pname(p, lang).toLowerCase().includes(productSearch.toLowerCase()))
     .filter((p) => !productCategoryFilter || p.category === productCategoryFilter)
     .filter((p) => !productBrandFilter || p.brand === productBrandFilter);
+
+  /** Ro'yxatdagi (qidiruv/filtr natijasidagi) barcha mahsulotlarni bir bosishda belgilash/olib tashlash. */
+  const toggleSelectAllFiltered = () => {
+    const filteredIds = filteredProducts.map((p) => p.id);
+    const allSelected = filteredIds.length > 0 && filteredIds.every((fid) => productIds.includes(fid));
+    setProductIds((prev) => (
+      allSelected
+        ? prev.filter((pid) => !filteredIds.includes(pid))
+        : Array.from(new Set([...prev, ...filteredIds]))
+    ));
+  };
 
   const submit = async () => {
     if (!titleUz.trim() && !titleRu.trim()) { setError(t.common.required); return; }
@@ -2110,7 +2286,25 @@ function CollectionFormModal({ lang, item, collections, products, categories, br
 
       <div className="mb-3 rounded-lg border border-gray-100 p-3">
         <p className="mb-1 text-xs font-medium text-slate-600">{t.products.collectionProducts}</p>
-        <p className="mb-2 text-[11px] text-slate-400">{productIds.length} {t.common.ta} {t.products.collectionSelected}</p>
+        <div className="mb-2 flex items-center justify-between">
+          <p className="text-[11px] text-slate-400">{productIds.length} {t.common.ta} {t.products.collectionSelected}</p>
+          {filteredProducts.length > 0 && (() => {
+            const filteredIds = filteredProducts.map((p) => p.id);
+            const selectedInView = filteredIds.filter((fid) => productIds.includes(fid)).length;
+            const allSelected = selectedInView === filteredIds.length;
+            const someSelected = selectedInView > 0 && !allSelected;
+            const Icon = allSelected ? CheckSquare : someSelected ? MinusSquare : Square;
+            return (
+              <button
+                type="button"
+                onClick={toggleSelectAllFiltered}
+                className="flex items-center gap-1 text-[11px] font-medium text-slate-500 hover:text-emerald-600"
+              >
+                <Icon size={14} /> {allSelected ? t.products.deselectAll : t.products.selectAll}
+              </button>
+            );
+          })()}
+        </div>
         <div className="relative mb-2">
           <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
@@ -2188,6 +2382,9 @@ function ProductsPage({ lang, products, categories, brands, collections }) {
   const [editingProduct, setEditingProduct] = useState(null); // null = qo'shish
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
+  const [activeBrand, setActiveBrand] = useState("all");
+  const [stockFilter, setStockFilter] = useState("all");
+  const [filterPanelOpen, setFilterPanelOpen] = useState(false);
   const [sortBy, setSortBy] = useState("name");
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [bulkCategory, setBulkCategory] = useState("");
@@ -2196,17 +2393,22 @@ function ProductsPage({ lang, products, categories, brands, collections }) {
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
   const [brandModalOpen, setBrandModalOpen] = useState(false);
 
+  /** Mahsulot "mavjud"mi — cheksiz yoki sonli-va-qoldiq bor bo'lsa mavjud, aks holda tugagan. */
+  const isInStock = (p) => p.stockType === "unlimited" || (p.stockType !== "out" && (p.stock || 0) > 0);
+
   const filtered = useMemo(() => {
     let list = products
       .filter(p => pname(p, lang).toLowerCase().includes(search.toLowerCase()))
-      .filter(p => activeCategory === "all" || p.category === activeCategory);
+      .filter(p => activeCategory === "all" || p.category === activeCategory)
+      .filter(p => activeBrand === "all" || p.brand === activeBrand)
+      .filter(p => stockFilter === "all" || (stockFilter === "in" ? isInStock(p) : !isInStock(p)));
     if (sortBy === "priceAsc") list = [...list].sort((a, b) => (a.price || 0) - (b.price || 0));
     else if (sortBy === "priceDesc") list = [...list].sort((a, b) => (b.price || 0) - (a.price || 0));
     else if (sortBy === "stock") list = [...list].sort((a, b) => (a.stock ?? 99999) - (b.stock ?? 99999));
     else if (sortBy === "rating") list = [...list].sort((a, b) => (b.rating || 0) - (a.rating || 0));
     else list = [...list].sort((a, b) => pname(a, lang).localeCompare(pname(b, lang)));
     return list;
-  }, [products, search, activeCategory, sortBy, lang]);
+  }, [products, search, activeCategory, activeBrand, stockFilter, sortBy, lang]);
 
   /** Eski (singular) imageUrl bilan yaratilgan mahsulotlar bilan orqaga moslik. */
   const productThumb = (p) => (p.imageUrls && p.imageUrls[0]) || p.imageUrl || "";
@@ -2232,6 +2434,11 @@ function ProductsPage({ lang, products, categories, brands, collections }) {
 
   const remove = async (id) => {
     await deleteItem(COL.products, id);
+  };
+
+  /** Mahsulotni do'konda ko'rsatish/yashirish — o'chirmasdan vaqtincha faol/nofaol qilish. */
+  const toggleActive = async (p) => {
+    await updateItem(COL.products, p.id, { active: p.active === false ? true : false });
   };
 
   /** Mahsulotni nusxalaydi — bir xil ma'lumot, yangi ID, nomiga "(nusxa)" qo'shiladi. */
@@ -2279,6 +2486,9 @@ function ProductsPage({ lang, products, categories, brands, collections }) {
     setQuickEdit(null);
   };
 
+  const activeFilterCount = (activeCategory !== "all" ? 1 : 0) + (activeBrand !== "all" ? 1 : 0) + (stockFilter !== "all" ? 1 : 0);
+  const clearAllFilters = () => { setActiveCategory("all"); setActiveBrand("all"); setStockFilter("all"); };
+
   return (
     <div className="rounded-2xl bg-white p-4 shadow-sm">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -2289,6 +2499,15 @@ function ProductsPage({ lang, products, categories, brands, collections }) {
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t.products.searchPh}
               className="w-56 rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm outline-none focus:border-emerald-500" />
           </div>
+          <button
+            onClick={() => setFilterPanelOpen(v => !v)}
+            className={`relative flex items-center gap-1.5 rounded-lg border px-3.5 py-2 text-sm font-medium transition ${filterPanelOpen || activeFilterCount > 0 ? "border-emerald-500 bg-emerald-50 text-emerald-700" : "border-gray-200 text-slate-600 hover:bg-gray-50"}`}
+          >
+            <Filter size={16} /> {t.products.filterBtn}
+            {activeFilterCount > 0 && (
+              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-emerald-600 text-[10px] font-semibold text-white">{activeFilterCount}</span>
+            )}
+          </button>
           <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="rounded-lg border border-gray-200 px-2.5 py-2 text-sm text-slate-600 outline-none focus:border-emerald-500">
             <option value="name">{t.products.sortName}</option>
             <option value="priceAsc">{t.products.sortPriceAsc}</option>
@@ -2311,27 +2530,79 @@ function ProductsPage({ lang, products, categories, brands, collections }) {
         </div>
       </div>
 
-      {/* Kategoriya tablari */}
-      {categories.length > 0 && (
-        <div className="mb-4 flex flex-wrap gap-1.5 border-b border-gray-100 pb-3">
-          <button
-            onClick={() => setActiveCategory("all")}
-            className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${activeCategory === "all" ? "bg-emerald-600 text-white" : "bg-gray-50 text-slate-500 hover:bg-gray-100"}`}
-          >
-            {t.orders.tabAll} <span className={`ml-1 rounded-full px-1.5 text-[10px] ${activeCategory === "all" ? "bg-white/20" : "bg-white text-slate-400"}`}>{products.length}</span>
-          </button>
-          {categories.map(c => {
-            const count = products.filter(p => p.category === c.name).length;
-            return (
+      {/* Filtr paneli — Filtr tugmasi bosilgandagina ochiladi */}
+      {filterPanelOpen && (
+        <div className="mb-4 space-y-3 rounded-xl border border-gray-100 bg-gray-50/60 p-3">
+          {activeFilterCount > 0 && (
+            <button onClick={clearAllFilters} className="flex items-center gap-1 text-xs font-medium text-rose-600 hover:underline">
+              <X size={13} /> {t.products.clearFilters}
+            </button>
+          )}
+
+          {/* Kategoriya tablari */}
+          {categories.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
               <button
-                key={c.id}
-                onClick={() => setActiveCategory(c.name)}
-                className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${activeCategory === c.name ? "bg-emerald-600 text-white" : "bg-gray-50 text-slate-500 hover:bg-gray-100"}`}
+                onClick={() => setActiveCategory("all")}
+                className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${activeCategory === "all" ? "bg-emerald-600 text-white" : "bg-white text-slate-500 hover:bg-gray-100"}`}
               >
-                {c.name} <span className={`ml-1 rounded-full px-1.5 text-[10px] ${activeCategory === c.name ? "bg-white/20" : "bg-white text-slate-400"}`}>{count}</span>
+                {t.orders.tabAll} <span className={`ml-1 rounded-full px-1.5 text-[10px] ${activeCategory === "all" ? "bg-white/20" : "bg-gray-100 text-slate-400"}`}>{products.length}</span>
               </button>
-            );
-          })}
+              {categories.map(c => {
+                const count = products.filter(p => p.category === c.name).length;
+                return (
+                  <button
+                    key={c.id}
+                    onClick={() => setActiveCategory(c.name)}
+                    className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${activeCategory === c.name ? "bg-emerald-600 text-white" : "bg-white text-slate-500 hover:bg-gray-100"}`}
+                  >
+                    {c.name} <span className={`ml-1 rounded-full px-1.5 text-[10px] ${activeCategory === c.name ? "bg-white/20" : "bg-gray-100 text-slate-400"}`}>{count}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Brend tablari */}
+          {brands.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 border-t border-gray-200 pt-3">
+              <button
+                onClick={() => setActiveBrand("all")}
+                className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${activeBrand === "all" ? "bg-emerald-600 text-white" : "bg-white text-slate-500 hover:bg-gray-100"}`}
+              >
+                {t.orders.tabAll} <span className={`ml-1 rounded-full px-1.5 text-[10px] ${activeBrand === "all" ? "bg-white/20" : "bg-gray-100 text-slate-400"}`}>{products.length}</span>
+              </button>
+              {brands.map(b => {
+                const count = products.filter(p => p.brand === b.name).length;
+                return (
+                  <button
+                    key={b.id}
+                    onClick={() => setActiveBrand(b.name)}
+                    className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${activeBrand === b.name ? "bg-emerald-600 text-white" : "bg-white text-slate-500 hover:bg-gray-100"}`}
+                  >
+                    {b.name} <span className={`ml-1 rounded-full px-1.5 text-[10px] ${activeBrand === b.name ? "bg-white/20" : "bg-gray-100 text-slate-400"}`}>{count}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Qoldiq holati filtri */}
+          <div className="flex flex-wrap gap-1.5 border-t border-gray-200 pt-3">
+            {[
+              { key: "all", label: t.products.stockStatusAll },
+              { key: "in", label: t.products.stockStatusIn },
+              { key: "out", label: t.products.stockStatusOut },
+            ].map(opt => (
+              <button
+                key={opt.key}
+                onClick={() => setStockFilter(opt.key)}
+                className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${stockFilter === opt.key ? "bg-slate-800 text-white" : "bg-white text-slate-500 hover:bg-gray-100"}`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
@@ -2366,12 +2637,13 @@ function ProductsPage({ lang, products, categories, brands, collections }) {
                 <th className="pb-2 font-medium">{t.products.category}</th>
                 <th className="pb-2 font-medium">{t.products.price}</th>
                 <th className="pb-2 font-medium">{t.products.stock}</th>
+                <th className="pb-2 font-medium">{t.products.activeCol}</th>
                 <th className="pb-2 font-medium text-right">{t.products.actions}</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map(p => (
-                <tr key={p.id} className="border-b border-gray-50">
+                <tr key={p.id} className={`border-b border-gray-50 ${p.active === false ? "opacity-50" : ""}`}>
                   <td className="py-2.5">
                     <input type="checkbox" checked={selectedIds.has(p.id)} onChange={() => toggleSelect(p.id)} className="rounded" />
                   </td>
@@ -2436,6 +2708,11 @@ function ProductsPage({ lang, products, categories, brands, collections }) {
                         {p.stock ?? 0} {t.common.ta}
                       </button>
                     )}
+                  </td>
+
+                  {/* Faol/nofaol — o'chirmasdan do'kondan yashirish */}
+                  <td className="py-2.5">
+                    <Toggle checked={p.active !== false} onChange={() => toggleActive(p)} />
                   </td>
 
                   <td className="py-2.5 text-right">
@@ -2614,7 +2891,12 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
   // to'liq sahifada (Mega Chegirma sahifasiga o'xshash) ko'rsatiladi.
   const [bannerPageOpen, setBannerPageOpen] = useState(false);
   const [bannerCollection, setBannerCollection] = useState(null);
-  const [wishlist, setWishlist] = useState(new Set());
+  // Sevimlilar — brauzerda (localStorage) saqlanadi, mijoz telefoni/Telegram
+  // orqali tanilgan bo'lsa Firestore'dagi mijoz yozuviga ham sinxronlanadi
+  // (pastdagi "Savat/Sevimlilarni saqlash" effektiga qarang).
+  const [wishlist, setWishlist] = useState(() => {
+    try { return new Set(JSON.parse(localStorage.getItem("savdo_my_wishlist") || "[]")); } catch { return new Set(); }
+  });
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [wishlistOpen, setWishlistOpen] = useState(false);
   // "Mega Chegirma" — chegirmadagi barcha mahsulotlar to'liq sahifasi
@@ -2651,18 +2933,18 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
   const searchPageLower = search.trim().toLowerCase();
   const searchPageResults = useMemo(() => {
     if (!searchPageLower) return [];
-    return products.filter((p) =>
+    return sortSoldOutLast(products.filter((p) =>
       pname(p, lang).toLowerCase().includes(searchPageLower) ||
       (p.category || "").toLowerCase().includes(searchPageLower) ||
       (p.brand || "").toLowerCase().includes(searchPageLower)
-    );
+    ));
   }, [products, searchPageLower, lang]);
 
   // Kategoriya sahifasi — banner ostidagi "Kategoriyalar" qatoridan bosilganda ochiladi
   // (xuddi shu sahifa "brand" rejimida — "Barcha mahsulotlar" bo'limidagi
   // "Barchasini ko'rish" tugmasi orqali — bitta brendning barcha mahsulotlarini ko'rsatish uchun ham ishlatiladi)
   const [categoryPageOpen, setCategoryPageOpen] = useState(false);
-  const [categoryPageMode, setCategoryPageMode] = useState("category"); // "category" | "brand"
+  const [categoryPageMode, setCategoryPageMode] = useState("category"); // "category" | "brand" | "hits"
   const [categoryPageName, setCategoryPageName] = useState(null);
   const [categoryPageSearch, setCategoryPageSearch] = useState("");
   const [categoryPageSort, setCategoryPageSort] = useState("popular");
@@ -2703,18 +2985,33 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
     setCategoryPageOpen(true);
   };
 
+  /** "Xit mahsulotlar" (admin "Top" deb belgilagan) — "Barchasini ko'rish" tugmasi shu sahifani ochadi. */
+  const openHitsPage = () => {
+    setCategoryPageMode("hits");
+    setCategoryPageName(t.store.hitProducts);
+    setCategoryPageSearch("");
+    setCategoryPageSort("popular");
+    setAppliedPriceMin(""); setAppliedPriceMax(""); setAppliedBrandFilter([]); setAppliedCategoryFilter([]); setAppliedExtraFilters({});
+    setCategoryPageOpen(true);
+  };
+
   const categoryPageObj = useMemo(
     () => categories.find(c => c.name === categoryPageName) || null,
     [categories, categoryPageName]
   );
   const categoryPageHeroImg = categoryPageMode === "brand"
     ? (brands.find(b => b.name === categoryPageName)?.imageUrl || null)
+    : categoryPageMode === "hits"
+    ? null
     : (categoryPageObj ? itemThumb(categoryPageObj, products, "category") : null);
   const categoryPageProducts = useMemo(() => {
     // "Barchasi" (Hammasi/allBrands yoki allCategories) — bu haqiqiy brend/kategoriya
     // nomi emas, balki "filtrlamasdan hammasini ko'rsat" degan maxsus belgi.
     // Shuni literal qiymat sifatida solishtirsak — hech qanday mahsulot mos kelmay,
     // sahifa bo'sh chiqib qolardi (aynan shu xatolik "Barchasi" sahifasida yuz bergan edi).
+    if (categoryPageMode === "hits") {
+      return products.filter(p => p.tag === "bestseller");
+    }
     if (categoryPageMode === "brand") {
       return categoryPageName === t.store.allBrands ? products : products.filter(p => p.brand === categoryPageName);
     }
@@ -2763,7 +3060,8 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
     else if (categoryPageSort === "newest") list.reverse();
     else if (categoryPageSort === "rating") list.sort((a, b) => (Number(b.rating) || 0) - (Number(a.rating) || 0));
     // "popular" va "oldest" — asl tartibda qoladi
-    return list;
+    // Qoldiq tugagan mahsulotlar — tanlangan saralashdan qat'i nazar ro'yxat oxiriga tushadi.
+    return sortSoldOutLast(list);
   }, [categoryPageProducts, categoryPageSearch, categoryPageSort, appliedPriceMin, appliedPriceMax, appliedBrandFilter, appliedCategoryFilter, appliedExtraFilters, lang]);
 
   const openFilterModal = () => {
@@ -2797,6 +3095,16 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
   const [profileView, setProfileView] = useState("menu"); // "menu" | "personal" | "orders" | "addresses"
   const [myOrders, setMyOrders] = useState([]);
   const [myOrdersLoading, setMyOrdersLoading] = useState(false);
+  // Xarid qilingan mahsulotga sharh qoldirish oynasi — { order, item } yoki null.
+  const [reviewModal, setReviewModal] = useState(null);
+  // Har bir (buyurtma + mahsulot) juftligi uchun mijoz allaqachon sharh qoldirganmi va u qanday holatda ekanini bilish uchun.
+  const reviewedKeys = useMemo(() => {
+    const map = new Map();
+    (testimonials || []).forEach((x) => {
+      if (x.orderId && x.productId) map.set(`${x.orderId}__${x.productId}`, x.status === "pending" ? "pending" : "approved");
+    });
+    return map;
+  }, [testimonials]);
   // Telefon raqamini brauzerda saqlaymiz (localStorage) — shu orqali
   // Telegram tashqarisidagi mijoz ham keyingi safar "Buyurtmalarim"ni ko'radi.
   const [myPhone, setMyPhone] = useState(() => {
@@ -2858,13 +3166,24 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
     }
     setSavingEdit(false);
   };
-  const [customersCount, setCustomersCount] = useState(null);
+  // Footer'dagi "Bizga ishongan mijozlar" / "Bajarilgan buyurtmalar" — boshlang'ich
+  // (marketing) son + Firestore'dagi haqiqiy o'sish. Shu tufayli har yangi
+  // ro'yxatdan o'tgan mijoz va har yangi buyurtma bilan raqam tabiiy o'sib boradi.
+  const CUSTOMERS_BASE = 3125;
+  const ORDERS_BASE = 8752;
+  const [customersCount, setCustomersCount] = useState(CUSTOMERS_BASE);
+  const [ordersCount, setOrdersCount] = useState(ORDERS_BASE);
   useEffect(() => {
-    getCustomersCount().then(setCustomersCount);
+    getCustomersCount().then((n) => setCustomersCount(CUSTOMERS_BASE + (n || 0)));
+    getOrdersCount().then((n) => setOrdersCount(ORDERS_BASE + (n || 0)));
   }, []);
   // Mijozning bonus balansi (banner ustida ko'rsatish uchun) — Telegram
   // ID yoki saqlangan telefon raqami bo'yicha Firestore'dan olinadi.
   const [myBonus, setMyBonus] = useState(0);
+  // Ro'yxatdan o'tgan (telefon tasdiqlangan yoki Telegram orqali tanilgan)
+  // mijozning Firestore'dagi yozuv ID'si — savat/sevimlilarni o'sha yozuvga
+  // saqlash uchun ishlatiladi (pastdagi sinxronlash effektiga qarang).
+  const [myCustomerId, setMyCustomerId] = useState(null);
   useEffect(() => {
     let cancelled = false;
     const run = async () => {
@@ -2874,11 +3193,23 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
         if (!customer && myPhone) customer = await findCustomerByPhone(myPhone);
         if (!cancelled) {
           setMyBonus(customer ? Number(customer.bonusPoints) || 0 : 0);
+          setMyCustomerId(customer?.id || null);
           if (customer?.name && !myName) { setMyName(customer.name); try { localStorage.setItem("savdo_my_name", customer.name); } catch {} }
           if (customer?.email && !myEmail) { setMyEmail(customer.email); try { localStorage.setItem("savdo_my_email", customer.email); } catch {} }
           if (Array.isArray(customer?.addresses) && customer.addresses.length > 0 && myAddresses.length === 0) {
             setMyAddresses(customer.addresses);
             try { localStorage.setItem("savdo_my_addresses", JSON.stringify(customer.addresses)); } catch {}
+          }
+          // Mijozning Firestore'da saqlangan savati/sevimlilari bor va
+          // shu qurilmada hali mahalliy nusxasi bo'sh bo'lsa — o'shani tortib olamiz
+          // (masalan boshqa qurilmadan yoki brauzer tozalangandan keyin kirganda).
+          if (Array.isArray(customer?.wishlist) && customer.wishlist.length > 0 && wishlist.size === 0) {
+            setWishlist(new Set(customer.wishlist));
+            try { localStorage.setItem("savdo_my_wishlist", JSON.stringify(customer.wishlist)); } catch {}
+          }
+          if (customer?.cart && typeof customer.cart === "object" && Object.keys(customer.cart).length > 0 && Object.keys(cart).length === 0) {
+            setCart(customer.cart);
+            try { localStorage.setItem("savdo_my_cart", JSON.stringify(customer.cart)); } catch {}
           }
         }
       } catch {
@@ -2893,7 +3224,38 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
     if (!rated.length) return 0;
     return rated.reduce((s, p) => s + Number(p.rating), 0) / rated.length;
   }, [products]);
-  const [cart, setCart] = useState({}); // productId -> qty
+  // Savat — brauzerda (localStorage) saqlanadi, mijoz telefoni/Telegram
+  // orqali tanilgan bo'lsa Firestore'dagi mijoz yozuviga ham sinxronlanadi
+  // (pastdagi "Savat/Sevimlilarni saqlash" effektiga qarang). Shu tufayli
+  // mijoz sahifani yopib qaytib kirsa yoki boshqa qurilmadan kirsa ham,
+  // o'zi olib tashlamagan mahsulotlar savatda/sevimlilarda qolaveradi.
+  const [cart, setCart] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("savdo_my_cart") || "{}"); } catch { return {}; }
+  }); // productId -> qty
+
+  // Savat/Sevimlilarni saqlash — har bir o'zgarishda darhol brauzerda
+  // (localStorage) saqlanadi, mijoz telefoni/Telegram orqali tanilgan bo'lsa
+  // (myCustomerId mavjud) — Firestore'dagi mijoz yozuviga ham (biroz kechikib,
+  // ortiqcha yozuvlarning oldini olish uchun) yoziladi. Shu tufayli mijoz
+  // mahsulotni o'zi olib tashlamaguncha savat/sevimlilarda saqlanib qoladi.
+  useEffect(() => {
+    try { localStorage.setItem("savdo_my_cart", JSON.stringify(cart)); } catch {}
+    if (!myCustomerId) return;
+    const timer = setTimeout(() => {
+      updateItem(COL.customers, myCustomerId, { cart }).catch(() => {});
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [cart, myCustomerId]);
+
+  useEffect(() => {
+    const wishlistArr = Array.from(wishlist);
+    try { localStorage.setItem("savdo_my_wishlist", JSON.stringify(wishlistArr)); } catch {}
+    if (!myCustomerId) return;
+    const timer = setTimeout(() => {
+      updateItem(COL.customers, myCustomerId, { wishlist: wishlistArr }).catch(() => {});
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [wishlist, myCustomerId]);
   // Har bir mahsulot qaysi kolleksiya orqali savatga tushgani (savatda
   // guruhlab, kolleksiya nomi bilan ko'rsatish uchun). productId -> kolleksiya nomi.
   const [cartCollectionTags, setCartCollectionTags] = useState({});
@@ -2925,6 +3287,109 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
   const [error, setError] = useState("");
   const [placing, setPlacing] = useState(false);
   const [done, setDone] = useState(false);
+
+  // ---------------------------------------------------------------
+  // "Ortga qaytish" navigatsiyasi — mahsulot kartochkasi, savat,
+  // profil, qidiruv, kategoriya/brend/xit/chegirma sahifalari va h.k.
+  // ochilganda brauzer tarixiga bittadan qatlam qo'shiladi. Mijoz
+  // qaysi joydan (bo'limdan) ochgan bo'lsa, "orqaga" bosilganda
+  // (brauzer/telefon orqaga tugmasi, Telegramning BackButton'i yoki
+  // shu oynadagi X/pastga tortish) faqat o'sha bitta qatlam yopiladi —
+  // butun sahifa boshiga (asosiy sahifaga) chiqib ketmaydi.
+  // ---------------------------------------------------------------
+  const navStackRef = useRef([]); // ochiq qatlamlar tartibda (eng oxirgisi — eng tepadagisi)
+  const navPrevRef = useRef({});
+  const popGuardRef = useRef(0); // o'zimiz history.back() chaqirganda kelgan popstate'larni e'tiborsiz qoldirish uchun
+
+  const navLayers = useMemo(() => ({
+    selectedProduct: { open: !!selectedProduct, close: () => setSelectedProduct(null) },
+    checkoutOpen: { open: checkoutOpen, close: () => setCheckoutOpen(false) },
+    cartOpen: { open: cartOpen, close: () => setCartOpen(false) },
+    wishlistOpen: { open: wishlistOpen, close: () => setWishlistOpen(false) },
+    profileOpen: { open: profileOpen, close: () => setProfileOpen(false) },
+    bannerPageOpen: { open: bannerPageOpen, close: () => { setBannerPageOpen(false); setBannerCollection(null); } },
+    categoryPageOpen: { open: categoryPageOpen, close: () => setCategoryPageOpen(false) },
+    discountsPageOpen: { open: discountsPageOpen, close: () => setDiscountsPageOpen(false) },
+    categoriesPageOpen: { open: categoriesPageOpen, close: () => setCategoriesPageOpen(false) },
+    searchPageOpen: { open: searchPageOpen, close: () => setSearchPageOpen(false) },
+  }), [selectedProduct, checkoutOpen, cartOpen, wishlistOpen, profileOpen, bannerPageOpen, categoryPageOpen, discountsPageOpen, categoriesPageOpen, searchPageOpen]);
+
+  // Har bir qatlam ochilganda/yopilganda brauzer tarixini shunga moslab yangilaydi.
+  useEffect(() => {
+    if (popGuardRef.current > 0) {
+      // Bu o'zgarish popstate (orqaga tugmasi) tufayli sodir bo'ldi — tarixga qayta ta'sir qilmaymiz.
+      popGuardRef.current -= 1;
+      navPrevRef.current = Object.fromEntries(Object.entries(navLayers).map(([k, v]) => [k, v.open]));
+      return;
+    }
+    for (const key of Object.keys(navLayers)) {
+      const isOpen = navLayers[key].open;
+      const wasOpen = !!navPrevRef.current[key];
+      if (isOpen && !wasOpen) {
+        navStackRef.current.push(key);
+        window.history.pushState({ navLayer: key }, "");
+      } else if (!isOpen && wasOpen) {
+        const idx = navStackRef.current.lastIndexOf(key);
+        if (idx !== -1) {
+          navStackRef.current.splice(idx, 1);
+          popGuardRef.current += 1;
+          window.history.back();
+        }
+      }
+    }
+    navPrevRef.current = Object.fromEntries(Object.entries(navLayers).map(([k, v]) => [k, v.open]));
+  }, [navLayers]);
+
+  // Brauzer/telefonning "orqaga" gesti yoki tugmasi bosilganda — faqat eng tepadagi qatlamni yopadi.
+  useEffect(() => {
+    const onPopState = () => {
+      if (popGuardRef.current > 0) {
+        popGuardRef.current -= 1;
+        return;
+      }
+      const topKey = navStackRef.current[navStackRef.current.length - 1];
+      if (!topKey) return; // ochiq qatlam yo'q — brauzerning odatiy xatti-harakati davom etadi
+      navStackRef.current.pop();
+      popGuardRef.current += 1;
+      navLayers[topKey]?.close();
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, [navLayers]);
+
+  // Telegram Mini App ichida bo'lsak — Telegramning o'z BackButton'ini ham
+  // shu qatlamlar bilan bog'laymiz (aks holda tizim "orqaga"si to'g'ridan-to'g'ri
+  // Mini App'ni yopib yuboradi). Tugma bosilganda faqat tegishli qatlamni
+  // yopamiz — tarixni yangilash ishi yuqoridagi asosiy effekt zimmasida
+  // (xuddi oddiy X tugmasi bosilgandagidek), shu bilan ikki marta orqaga
+  // ketib qolish xavfi bo'lmaydi.
+  useEffect(() => {
+    const tg = getWebApp();
+    if (!tg || !tg.BackButton) return;
+    const hasLayer = navStackRef.current.length > 0;
+    if (hasLayer) tg.BackButton.show(); else tg.BackButton.hide();
+    const handler = () => {
+      const topKey = navStackRef.current[navStackRef.current.length - 1];
+      navLayers[topKey]?.close();
+    };
+    tg.BackButton.onClick(handler);
+    return () => { try { tg.BackButton.offClick(handler); } catch {} };
+  }, [navLayers]);
+
+  // Savat / Sevimlilar / Profil — mahsulot kartochkasi kabi pastdan chiqadigan
+  // varaq ko'rinishida ochiladi, tutqichdan pastga tortib ham yopish mumkin.
+  const wishlistSwipe = useSwipeDownToClose(() => setWishlistOpen(false));
+  const cartSwipe = useSwipeDownToClose(() => setCartOpen(false));
+  const profileSwipe = useSwipeDownToClose(() => setProfileOpen(false));
+
+  // Eslatma: avval shu yerda "varaq ochiq turganda orqadagi sahifa scroll
+  // bo'lmasin" degan maqsadda body/html'ga overflow:hidden qo'yilgan edi.
+  // Lekin bu ba'zi telefonlarda sahifani scroll qilingan joydan tepaga
+  // "sakratib" yuborar ekan (varaq orqasida har doim bosh sahifaning boshi
+  // ko'rinib qolar edi, foydalanuvchi qayerda turgan bo'lsa ham). Bu ancha
+  // jiddiy va ko'zga tashlanadigan nosozlik bo'lgani uchun scroll qulfini
+  // butunlay olib tashladik — endi varaq orqasida FOYDALANUVCHI QAYERDA
+  // TURGAN BO'LSA O'SHA JOY ko'rinadi (bu muhimroq).
 
   // Ism avtomatik to'ldiriladi — Telegram ichida bo'lsa Telegramdagi ism,
   // aks holda profilda saqlangan ism (myName) ishlatiladi. Foydalanuvchi
@@ -3212,14 +3677,18 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
     if ((p.brand || "").toLowerCase().includes(searchLower)) return true;
     return false;
   };
-  const filtered = activeCollection
-    ? products.filter(p => (activeCollection.productIds || []).includes(p.id))
-    : products.filter(p =>
-        matchesSearch(p) &&
-        (activeCategory === t.store.allCategories || p.category === activeCategory) &&
-        (activeBrand === t.store.allBrands || p.brand === activeBrand)
-      );
-  const brandFiltered = products.filter(p => activeBrand === t.store.allBrands || p.brand === activeBrand);
+  // Qoldiq tugagan mahsulotlar ro'yxat oxiriga tushadi (avtomatik, qoldiq
+  // qaytishi bilan o'z avvalgi o'rniga qaytadi) — sortSoldOutLast() shu ishni qiladi.
+  const filtered = sortSoldOutLast(
+    activeCollection
+      ? products.filter(p => (activeCollection.productIds || []).includes(p.id))
+      : products.filter(p =>
+          matchesSearch(p) &&
+          (activeCategory === t.store.allCategories || p.category === activeCategory) &&
+          (activeBrand === t.store.allBrands || p.brand === activeBrand)
+        )
+  );
+  const brandFiltered = sortSoldOutLast(products.filter(p => activeBrand === t.store.allBrands || p.brand === activeBrand));
 
   // "Mega Chegirma" sahifasi uchun — barcha chegirmadagi mahsulotlar, qidiruv/kategoriya/saralash bilan
   const discountedProducts = useMemo(() => products.filter(p => p.oldPrice > p.price), [products]);
@@ -3234,7 +3703,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
     );
     if (discountsSort === "priceAsc") list = [...list].sort((a, b) => a.price - b.price);
     if (discountsSort === "priceDesc") list = [...list].sort((a, b) => b.price - a.price);
-    return list;
+    return sortSoldOutLast(list);
   }, [discountedProducts, discountsSearch, discountsCategory, discountsSort, lang]);
 
   const toggleWishlist = (id) => {
@@ -3256,6 +3725,48 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
     .filter(i => i.product && i.qty > 0);
   const cartCount = cartItems.reduce((s, i) => s + i.qty, 0);
   const cartTotal = cartItems.reduce((s, i) => s + i.unitPrice * i.qty, 0);
+
+  // Savatdagi mahsulotlarni belgilash (checkbox) — "Tanlanganlarni o'chirish"
+  // tugmasi shu belgilangan mahsulotlarni bir zumda savatdan olib tashlaydi.
+  // Yangi qo'shilgan mahsulot avtomatik belgilangan holda keladi.
+  const [selectedCartIds, setSelectedCartIds] = useState(new Set());
+  const cartIdsKey = cartItems.map((i) => i.product.id).sort().join(",");
+  useEffect(() => {
+    const validIds = new Set(cartItems.map((i) => i.product.id));
+    setSelectedCartIds((prev) => {
+      const next = new Set([...prev].filter((id) => validIds.has(id)));
+      validIds.forEach((id) => { if (!prev.has(id)) next.add(id); });
+      return next;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cartIdsKey]);
+  const toggleCartItemSelected = (id) => {
+    setSelectedCartIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+  const allCartSelected = cartItems.length > 0 && cartItems.every((i) => selectedCartIds.has(i.product.id));
+  const toggleSelectAllCart = () => {
+    setSelectedCartIds(allCartSelected ? new Set() : new Set(cartItems.map((i) => i.product.id)));
+  };
+  const deleteSelectedCartItems = () => {
+    const toRemove = cartItems.filter((i) => selectedCartIds.has(i.product.id));
+    if (toRemove.length === 0) return;
+    removeCartGroup(toRemove);
+  };
+  // Savat ochilganda pastida ko'rsatiladigan "Sizga qiziq bo'lishi mumkin" —
+  // savatda hali yo'q, faol mahsulotlardan, iloji bo'lsa savatdagilar bilan
+  // bir xil kategoriyadan tanlanadi.
+  const cartRecommendedProducts = useMemo(() => {
+    const inCartIds = new Set(cartItems.map((i) => i.product.id));
+    const cartCategories = new Set(cartItems.map((i) => i.product.category).filter(Boolean));
+    const pool = (products || []).filter((p) => !inCartIds.has(p.id) && p.active !== false && !isSoldOut(p));
+    const sameCategory = pool.filter((p) => cartCategories.has(p.category));
+    const rest = pool.filter((p) => !cartCategories.has(p.category));
+    return [...sameCategory, ...rest].slice(0, 8);
+  }, [products, cartIdsKey]);
 
   // Savat elementlarini kolleksiya bo'yicha guruhlaymiz — shu kolleksiya
   // orqali qo'shilgan mahsulotlar savatda alohida emas, kolleksiya nomi
@@ -3317,12 +3828,26 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
 
   const cartTotalAfterDiscount = Math.max(0, cartTotal - promoDiscount);
 
+  // Savat oynasida "Jami" — FAQAT belgilangan (checkbox bosilgan)
+  // mahsulotlar bo'yicha hisoblanadi, belgilanmaganlar summaga kirmaydi.
+  const selectedCartItemsList = cartItems.filter((i) => selectedCartIds.has(i.product.id));
+  const selectedCartCount = selectedCartItemsList.length;
+  const selectedCartTotal = selectedCartItemsList.reduce((s, i) => s + i.unitPrice * i.qty, 0);
+  const selectedPromoDiscount = !appliedPromo
+    ? 0
+    : appliedPromo.discountType === "percent"
+    ? Math.round(selectedCartTotal * (appliedPromo.discountValue / 100))
+    : Math.min(appliedPromo.discountValue, selectedCartTotal);
+  const selectedCartTotalAfterDiscount = Math.max(0, selectedCartTotal - selectedPromoDiscount);
+
   // Bonusdan foydalanish — mijoz o'z bonus balansidan xohlagan miqdorini
   // (buyurtma summasidan oshmagan holda) buyurtmaga qo'llashi mumkin.
+  // Buyurtma FAQAT savatda BELGILANGAN mahsulotlar bo'yicha rasmiylashtiriladi,
+  // shuning uchun bonus va yakuniy summa ham selectedCartTotal asosida hisoblanadi.
   const [bonusToUse, setBonusToUse] = useState("");
-  const maxBonusUsable = Math.max(0, Math.min(myBonus, cartTotalAfterDiscount));
+  const maxBonusUsable = Math.max(0, Math.min(myBonus, selectedCartTotalAfterDiscount));
   const bonusApplied = Math.min(Number(bonusToUse) || 0, maxBonusUsable);
-  const cartTotalAfterBonus = Math.max(0, cartTotalAfterDiscount - bonusApplied);
+  const cartTotalAfterBonus = Math.max(0, selectedCartTotalAfterDiscount - bonusApplied);
   const setBonusToUseClamped = (v) => {
     const num = Number(v.replace(/[^\d]/g, "")) || 0;
     setBonusToUse(String(Math.min(num, maxBonusUsable)));
@@ -3342,7 +3867,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
         setPromoError(t.store.promoExpired);
       } else if (found.usageLimit > 0 && (found.usedCount || 0) >= found.usageLimit) {
         setPromoError(t.store.promoLimitReached);
-      } else if (found.minOrder > 0 && cartTotal < found.minOrder) {
+      } else if (found.minOrder > 0 && selectedCartTotal < found.minOrder) {
         setPromoError(t.store.promoMinOrder.replace("{amount}", fmtMoney(found.minOrder)));
       } else {
         setAppliedPromo(found);
@@ -3454,7 +3979,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
   };
 
   const bannerPageProducts = useMemo(
-    () => (bannerCollection ? products.filter(p => (bannerCollection.productIds || []).includes(p.id)) : []),
+    () => (bannerCollection ? sortSoldOutLast(products.filter(p => (bannerCollection.productIds || []).includes(p.id))) : []),
     [products, bannerCollection]
   );
   // Shu banner sahifasiga xos chegirma (agar admin belgilagan bo'lsa) —
@@ -3491,10 +4016,10 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
     } else {
       tg.MainButton.hide();
     }
-  }, [checkoutOpen, done, form, location, cartTotal]);
+  }, [checkoutOpen, done, form, location, cartTotalAfterBonus]);
 
   const submitOrder = async () => {
-    if (!form.name.trim() || !form.address.trim() || cartItems.length === 0) {
+    if (!form.name.trim() || !form.address.trim() || selectedCartItemsList.length === 0) {
       setError(t.common.required);
       return;
     }
@@ -3518,9 +4043,9 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
       address: form.address.trim(),
       location: location || null,
       promoCode: appliedPromo?.code || null,
-      promoDiscount: promoDiscount || 0,
+      promoDiscount: selectedPromoDiscount || 0,
       bonusUsed: bonusApplied || 0,
-      items: cartItems.map(i => ({
+      items: selectedCartItemsList.map(i => ({
         productId: i.product.id,
         productName: pname(i.product, lang),
         price: i.product.price,
@@ -3538,7 +4063,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
 
     try {
       const orderId = await placeOrderBatch({
-        cartItems,
+        cartItems: selectedCartItemsList,
         existingCustomer: existing,
         customerName: form.name.trim(),
         customerPhone: phone,
@@ -3563,9 +4088,25 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
       hapticFeedback("notification", "success");
       setPlacing(false);
       setDone(true);
-      setCart({});
-      setCartCollectionTags({});
-      setCartItemDiscounts({});
+      // Faqat BUYURTMA QILINGAN (belgilangan) mahsulotlarni savatdan olib
+      // tashlaymiz — belgilanmagan qolgan mahsulotlar savatda saqlanib qoladi.
+      const orderedIds = new Set(selectedCartItemsList.map(i => i.product.id));
+      setCart(prev => {
+        const next = { ...prev };
+        orderedIds.forEach(id => { delete next[id]; });
+        return next;
+      });
+      setCartCollectionTags(prev => {
+        const next = { ...prev };
+        orderedIds.forEach(id => { delete next[id]; });
+        return next;
+      });
+      setCartItemDiscounts(prev => {
+        const next = { ...prev };
+        orderedIds.forEach(id => { delete next[id]; });
+        return next;
+      });
+      setSelectedCartIds(new Set());
 
       // Firestore'ga yozib bo'lgandan KEYIN — botga xabar yuborishga urinamiz.
       // Bu qadam ixtiyoriy: agar tarmoq bilan muammo bo'lsa ham, buyurtma
@@ -3698,17 +4239,22 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
         </a>
       </div>
 
-      {/* Mobil qidiruv — banner ostida (mobil ilovalardagi kabi). Bosilganda alohida qidiruv sahifasi ochiladi. */}
-      <div className="relative px-[5px] pt-4 md:hidden">
-        <Search size={15} className="absolute left-7 top-1/2 -translate-y-1/2 text-stone-400" />
-        <input
-          value={search}
-          readOnly
-          onFocus={() => setSearchPageOpen(true)}
-          onClick={() => setSearchPageOpen(true)}
-          placeholder={t.store.searchPh}
-          className="w-full cursor-pointer rounded-full border border-rose-100 bg-white py-2.5 pl-9 pr-3 text-sm outline-none focus:border-stone-400"
-        />
+      {/* Mobil qidiruv — banner ostida (mobil ilovalardagi kabi). Bosilganda alohida qidiruv sahifasi ochiladi.
+          Eslatma: pt-4 (yuqori bo'shliq) atayin ALOHIDA tashqi qatlamga qo'yilgan — agar u
+          "relative" (ikonka joylashtiriladigan) qatlamning o'zida bo'lsa, ikonkaning "top-1/2"
+          markazi paddingni ham hisobga olib noto'g'ri (haqiqiy inputdan yuqoriroq) hisoblanadi. */}
+      <div className="px-[5px] pt-4 md:hidden">
+        <div className="relative">
+          <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" />
+          <input
+            value={search}
+            readOnly
+            onFocus={() => setSearchPageOpen(true)}
+            onClick={() => setSearchPageOpen(true)}
+            placeholder={t.store.searchPh}
+            className="w-full cursor-pointer rounded-full border-2 border-rose-200 bg-white py-2.5 pl-11 pr-3 text-sm shadow-sm outline-none focus:border-stone-400"
+          />
+        </div>
       </div>
 
       {/* Kategoriyalar qatori — banner ostida, admin panelda cheksiz kategoriya qo'shiladi/tahrirlanadi */}
@@ -3725,7 +4271,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
           <div className="relative">
             <div ref={discountViewportRef} className="embla-viewport">
             <div className="embla-container gap-0 pl-3 min-[769px]:gap-2 min-[769px]:pl-0">
-              {products.filter(p => p.oldPrice > p.price).map(p => {
+              {sortSoldOutLast(products.filter(p => p.oldPrice > p.price)).map(p => {
               const inCart = cart[p.id] || 0;
               const stockType = p.stockType || "limited";
               const soldOut = stockType === "out" || (stockType === "limited" && (p.stock || 0) <= 0);
@@ -3740,7 +4286,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                   onClick={() => setSelectedProduct(p)}
                   className="group flex w-[116px] shrink-0 cursor-pointer flex-col px-0.5 py-2 min-[769px]:p-2.5 transition hover:-translate-y-0.5 min-[769px]:w-[220px]"
                 >
-                  <div className="relative mb-2.5 aspect-square overflow-hidden rounded-xl border border-white/25 bg-white/10 text-white/40">
+                  <div className="relative mb-2.5 aspect-square overflow-hidden rounded-xl border border-white/25 bg-white/10 backdrop-blur-md text-white/40">
                     {thumb ? (
                       <img src={thumb} alt={name} className="h-full w-full object-contain p-1 transition-transform duration-300 ease-out group-hover:scale-105" draggable={false} onDragStart={(e) => e.preventDefault()} />
                     ) : (
@@ -3822,7 +4368,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
           <div className="mb-4 flex items-center justify-between gap-2 px-3">
             <h2 style={{ fontFamily: "'Playfair Display', Georgia, serif", color: "#FF4D4F" }} className="text-lg font-semibold sm:text-xl">🔥 {t.store.hitProducts}</h2>
             <button
-              onClick={() => document.getElementById("shop-section")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+              onClick={openHitsPage}
               className="shrink-0 whitespace-nowrap rounded-full border border-gray-300 px-4 py-2 text-sm font-medium text-stone-700 transition hover:bg-gray-50"
             >
               {t.store.viewAll}
@@ -3834,7 +4380,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
               className="flex gap-3 overflow-x-auto pb-2 scroll-smooth [&::-webkit-scrollbar]:hidden min-[769px]:gap-4"
               style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
             >
-              {products.filter(p => p.tag === "bestseller").map((p) => {
+              {sortSoldOutLast(products.filter(p => p.tag === "bestseller")).map((p) => {
               const inCart = cart[p.id] || 0;
               const stockType = p.stockType || "limited";
               const soldOut = stockType === "out" || (stockType === "limited" && (p.stock || 0) <= 0);
@@ -3931,7 +4477,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
         <div className="px-[14px] pt-[40px] min-[769px]:px-6">
           <div className="space-y-8">
             {collections.filter(c => c.displayStyle === "heroBanner" && c.active !== false && c.imageUrl).map(c => {
-              const heroProducts = products.filter(p => (c.productIds || []).includes(p.id));
+              const heroProducts = sortSoldOutLast(products.filter(p => (c.productIds || []).includes(p.id)));
               return (
                 <div key={c.id}>
                   <div className="relative overflow-hidden rounded-[28px] bg-stone-100" style={{ aspectRatio: "750 / 1200" }}>
@@ -4172,57 +4718,61 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
         </div>
       )}
 
-      {/* Ishonch belgilari (yetkazib berish / qaytarish / to'lov) */}
-      <div className="mt-16 grid grid-cols-2 gap-4 rounded-none bg-white p-4 min-[769px]:mx-6 min-[769px]:rounded-2xl min-[769px]:p-6 sm:grid-cols-4">
+      {/* Mijoz sharhlari */}
+      <div className="mt-8 px-[5px] min-[769px]:px-6">
+        <div className="rounded-none p-4 min-[769px]:rounded-[24px] min-[769px]:p-6 min-[769px]:sm:p-8" style={{ background: "#FAF3E8" }}>
+          <Testimonials testimonials={testimonials} products={products} lang={lang} t={t} onProductClick={setSelectedProduct} />
+        </div>
+      </div>
+
+      {/* Ishonch belgilari (yetkazib berish / qaytarish / to'lov) — zamonaviy kartochkalar */}
+      <div className="mt-8 grid grid-cols-2 gap-3 px-[5px] min-[769px]:px-6 sm:grid-cols-4">
         {[
           { icon: Truck, text: storeSettings?.trustFeature1 || t.store.featShipping, href: null },
-          { icon: RotateCcw, text: storeSettings?.trustFeature2 || t.store.featReturns, href: null },
-          { icon: ShieldCheck, text: storeSettings?.trustFeature3 || t.store.featSecure, href: null },
           { icon: Headphones, text: storeSettings?.trustFeature4 || t.store.featSupport, href: storeSettings?.trustFeature4Link || null },
+          { icon: ShieldCheck, text: storeSettings?.trustFeature3 || t.store.featSecure, href: null },
+          { icon: RotateCcw, text: storeSettings?.trustFeature2 || t.store.featReturns, href: null },
         ].map(({ icon: Icon, text, href }, i) => {
           const content = (
             <>
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-rose-50 text-stone-600">
-                <Icon size={16} />
+              <span
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-white shadow-sm"
+                style={{ background: "linear-gradient(135deg, #FDA4AF, #E01876)" }}
+              >
+                <Icon size={18} />
               </span>
-              <span className="text-xs font-medium text-stone-600">{text}</span>
+              <span className="text-xs font-medium leading-snug text-stone-700">{text}</span>
             </>
           );
+          const cls = "flex items-center gap-3 rounded-2xl bg-white p-3.5 shadow-[0_4px_16px_rgba(0,0,0,0.05)] ring-1 ring-stone-100 transition hover:-translate-y-0.5 hover:shadow-[0_8px_22px_rgba(0,0,0,0.08)]";
           return href ? (
-            <a key={i} href={href} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 hover:opacity-75">
+            <a key={i} href={href} target="_blank" rel="noopener noreferrer" className={cls}>
               {content}
             </a>
           ) : (
-            <div key={i} className="flex items-center gap-2.5">
+            <div key={i} className={cls}>
               {content}
             </div>
           );
         })}
       </div>
 
-      {/* Sharhlardan oldingi reklama banneri — admin panelda 4-banner qo'shilsa ko'rinadi */}
-      <div className="px-[5px] pt-16 min-[769px]:px-6">
-        <MidPromoBanner banners={banners} inTelegram={inTelegram} t={t} onViewLinkedProducts={viewLinkedProducts} />
-      </div>
-
-      {/* Mijoz sharhlari */}
-      <div className="px-[5px] pt-16 min-[769px]:px-6">
-        <div className="rounded-none p-4 min-[769px]:rounded-[24px] min-[769px]:p-6 min-[769px]:sm:p-8" style={{ background: "#FAF3E8" }}>
-          <Testimonials testimonials={testimonials} t={t} />
+      {/* Sharhlardan oldingi reklama banneri — admin panelda 4-banner qo'shilsa ko'rinadi (aks holda bo'sh joy qoldirmaydi) */}
+      {banners.filter(isBannerLive).length >= 4 && (
+        <div className="px-[5px] pt-16 min-[769px]:px-6">
+          <MidPromoBanner banners={banners} inTelegram={inTelegram} t={t} onViewLinkedProducts={viewLinkedProducts} />
         </div>
-      </div>
+      )}
 
-      {/* Instagram uslubidagi galereya (mahsulot rasmlaridan) */}
-      <div className="px-[5px] pt-16 min-[769px]:px-6">
-        <InstagramGallery products={products} settings={storeSettings} t={t} />
-      </div>
-
-      {/* Savol-javob */}
-      <div className="px-[5px] pt-16 pb-16 min-[769px]:px-6">
-        <FAQSection faqs={faqs} t={t} />
-      </div>
-
-      <StoreFooter lang={lang} storeName={storeSettings?.storeName || t.appName} settings={storeSettings} />
+      <StoreFooter
+        lang={lang}
+        storeName={storeSettings?.storeName || t.appName}
+        settings={storeSettings}
+        customersCount={customersCount}
+        ordersCount={ordersCount}
+        onShopAll={() => openBrandPage(t.store.allBrands)}
+        onCategories={() => setCategoriesPageOpen(true)}
+      />
 
       {/* "Mega Chegirma" — chegirmadagi barcha mahsulotlar to'liq sahifasi (Chegirmalar bo'limidagi "Barchasini ko'rish" tugmasidan ochiladi) */}
       {discountsPageOpen && (
@@ -4695,7 +5245,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                     return (
                       <div
                         key={p.id}
-                        onClick={() => { setSelectedProduct(p); setSearchPageOpen(false); }}
+                        onClick={() => setSelectedProduct(p)}
                         className="relative flex cursor-pointer flex-col rounded-2xl bg-white p-2.5 shadow-sm transition hover:-translate-y-0.5"
                       >
                         <div className="relative mb-2.5 aspect-square overflow-hidden rounded-xl bg-white text-stone-300">
@@ -4873,7 +5423,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                     return (
                       <div
                         key={p.id}
-                        onClick={() => { setSelectedProduct(p); setCategoryPageOpen(false); }}
+                        onClick={() => setSelectedProduct(p)}
                         className="relative flex cursor-pointer flex-col rounded-2xl bg-white p-2.5 shadow-sm transition hover:-translate-y-0.5"
                       >
                         <div className="relative mb-2.5 aspect-square overflow-hidden rounded-xl bg-white text-stone-300">
@@ -5101,35 +5651,53 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
         </div>
       )}
 
-      {/* Wishlist drawer */}
+      {/* Wishlist drawer — mahsulot kartochkasi kabi pastdan chiqadigan varaq */}
       {wishlistOpen && (
-        <div className="fixed inset-0 z-[55] flex justify-end bg-slate-900/40" onClick={() => setWishlistOpen(false)}>
-          <div className="flex h-full w-full max-w-sm flex-col bg-white shadow-xl" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
-              <h3 className="text-base font-semibold text-slate-800">{t.store.wishlist}</h3>
-              <button onClick={() => setWishlistOpen(false)} className="rounded-lg p-1 text-slate-400 hover:bg-gray-100"><X size={18} /></button>
+        <div className="fixed inset-0 z-[55] flex items-end justify-center bg-slate-900/40 sm:items-center sm:p-4" onClick={() => setWishlistOpen(false)}>
+          <div
+            className="flex max-h-[92vh] w-full max-w-sm flex-col overflow-hidden rounded-t-2xl bg-white shadow-xl sm:rounded-2xl"
+            style={wishlistSwipe.sheetStyle}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="cursor-grab touch-none active:cursor-grabbing" {...wishlistSwipe.dragHandleProps}>
+              <div className="mx-auto mt-2.5 h-1.5 w-10 rounded-full bg-gray-300 sm:hidden" />
+              <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+                <h3 className="text-base font-semibold text-slate-800">{t.store.wishlist}</h3>
+                <button onClick={() => setWishlistOpen(false)} className="rounded-lg p-1 text-slate-400 hover:bg-gray-100"><X size={18} /></button>
+              </div>
             </div>
             <div className="flex-1 overflow-y-auto px-5 py-4">
               {wishlistItems.length === 0 ? (
                 <EmptyState icon={Heart} text={t.store.wishlistEmpty} />
               ) : (
                 <div className="space-y-3">
-                  {wishlistItems.map(p => (
-                    <div key={p.id} className="flex items-center justify-between gap-2 rounded-xl border border-gray-100 p-3">
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium text-slate-700">{pname(p, lang)}</p>
-                        <p className="text-xs text-slate-400">{fmtMoney(p.price)} {t.common.uzs}</p>
+                  {wishlistItems.map(p => {
+                    const thumb = (p.imageUrls && p.imageUrls[0]) || p.imageUrl || "";
+                    return (
+                      <div key={p.id} className="flex items-center gap-3 rounded-2xl border border-gray-100 p-2.5 shadow-sm transition hover:shadow-md">
+                        <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-gray-50 text-slate-300">
+                          {thumb ? (
+                            <img src={thumb} alt="" className="h-full w-full object-cover" />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center"><Package size={20} /></div>
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          {p.brand && <p className="text-[10px] font-medium uppercase tracking-wide text-rose-400">{p.brand}</p>}
+                          <p className="truncate text-sm font-medium text-slate-700">{pname(p, lang)}</p>
+                          <p className="text-sm font-semibold text-slate-800">{fmtMoney(p.price)} <span className="text-xs font-normal text-slate-400">{t.common.uzs}</span></p>
+                        </div>
+                        <div className="flex shrink-0 flex-col items-center gap-1.5">
+                          <button onClick={() => addToCart(p)} disabled={p.stock <= 0} className="flex h-8 w-8 items-center justify-center rounded-full bg-rose-600 text-white hover:bg-rose-700 disabled:bg-gray-200">
+                            <Plus size={14} />
+                          </button>
+                          <button onClick={() => toggleWishlist(p.id)} className="flex h-8 w-8 items-center justify-center rounded-full text-slate-300 hover:bg-gray-50 hover:text-rose-500">
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1.5">
-                        <button onClick={() => addToCart(p)} disabled={p.stock <= 0} className="rounded-lg bg-emerald-600 p-1.5 text-white hover:bg-emerald-700 disabled:bg-gray-200">
-                          <Plus size={14} />
-                        </button>
-                        <button onClick={() => toggleWishlist(p.id)} className="rounded-lg border border-gray-200 p-1.5 text-slate-400 hover:bg-gray-50">
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -5248,22 +5816,29 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
       )}
 
       {profileOpen && (
-        <div className="fixed inset-0 z-[55] flex justify-end bg-slate-900/40" onClick={() => setProfileOpen(false)}>
-          <div className="flex h-full w-full max-w-sm flex-col bg-white shadow-xl" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center gap-2 border-b border-gray-100 px-5 py-4">
-              {profileView !== "menu" && (
-                <button onClick={() => setProfileView("menu")} className="rounded-lg p-1 text-slate-400 hover:bg-gray-100">
-                  <ArrowLeft size={18} />
-                </button>
-              )}
-              <h3 className="flex-1 text-base font-semibold text-slate-800">
-                {profileView === "menu" && t.store.profile.title}
-                {profileView === "personal" && t.store.profile.personalData}
-                {profileView === "orders" && t.store.profile.myOrders}
-                {profileView === "addresses" && t.store.profile.addresses}
-                {profileView === "settings" && t.store.profile.settings}
-              </h3>
-              <button onClick={() => setProfileOpen(false)} className="rounded-lg p-1 text-slate-400 hover:bg-gray-100"><X size={18} /></button>
+        <div className="fixed inset-0 z-[55] flex items-end justify-center bg-slate-900/40 sm:items-center sm:p-4" onClick={() => setProfileOpen(false)}>
+          <div
+            className="flex max-h-[92vh] w-full max-w-sm flex-col overflow-hidden rounded-t-2xl bg-white shadow-xl sm:rounded-2xl"
+            style={profileSwipe.sheetStyle}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="cursor-grab touch-none active:cursor-grabbing" {...profileSwipe.dragHandleProps}>
+              <div className="mx-auto mt-2.5 h-1.5 w-10 rounded-full bg-gray-300 sm:hidden" />
+              <div className="flex items-center gap-2 border-b border-gray-100 px-5 py-4">
+                {profileView !== "menu" && (
+                  <button onClick={() => setProfileView("menu")} className="rounded-lg p-1 text-slate-400 hover:bg-gray-100">
+                    <ArrowLeft size={18} />
+                  </button>
+                )}
+                <h3 className="flex-1 text-base font-semibold text-slate-800">
+                  {profileView === "menu" && t.store.profile.title}
+                  {profileView === "personal" && t.store.profile.personalData}
+                  {profileView === "orders" && t.store.profile.myOrders}
+                  {profileView === "addresses" && t.store.profile.addresses}
+                  {profileView === "settings" && t.store.profile.settings}
+                </h3>
+                <button onClick={() => setProfileOpen(false)} className="rounded-lg p-1 text-slate-400 hover:bg-gray-100"><X size={18} /></button>
+              </div>
             </div>
 
             <div className="flex-1 overflow-y-auto px-5 py-4">
@@ -5271,7 +5846,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
               {profileView === "menu" && (
                 <>
                   <div className="mb-5 flex items-center gap-3 rounded-xl border border-gray-100 p-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-rose-100 text-rose-700">
                       <UserRound size={20} />
                     </div>
                     <div className="min-w-0">
@@ -5348,14 +5923,14 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                         <button
                           onClick={saveMyPhone}
                           disabled={savingPhone || !isValidUzPhone(phoneInput)}
-                          className="flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-60"
+                          className="flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-rose-600 px-3 py-2 text-sm font-medium text-white hover:bg-rose-700 disabled:opacity-60"
                         >
                           {savingPhone ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
                           {t.store.profile.savePhone}
                         </button>
                       </div>
                       {phoneSaved && (
-                        <p className="mt-2 flex items-center gap-1 text-xs text-emerald-600">
+                        <p className="mt-2 flex items-center gap-1 text-xs text-rose-600">
                           <CheckCircle2 size={13} /> {t.store.profile.phoneSaved}
                         </p>
                       )}
@@ -5410,7 +5985,15 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                       {myOrders
                         .slice()
                         .sort((a, b) => (b.date || "").localeCompare(a.date || ""))
-                        .map((o) => <ProfileOrderCard key={o.id} order={o} t={t} />)}
+                        .map((o) => (
+                          <ProfileOrderCard
+                            key={o.id}
+                            order={o}
+                            t={t}
+                            reviewedKeys={reviewedKeys}
+                            onReview={(order, item) => setReviewModal({ order, item })}
+                          />
+                        ))}
                     </div>
                   )}
                 </div>
@@ -5429,12 +6012,12 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                           <div className="min-w-0 flex-1">
                             <p className="break-words">{addr.text}</p>
                             {addr.lat != null && addr.lng != null && (
-                              <p className="mt-1 flex items-center gap-1 text-[11px] text-emerald-600">
+                              <p className="mt-1 flex items-center gap-1 text-[11px] text-rose-600">
                                 <CheckCircle2 size={11} /> {t.store.locationSet}
                               </p>
                             )}
                           </div>
-                          <button onClick={() => openAddressForm(addr)} className="shrink-0 rounded-lg p-1 text-slate-300 hover:bg-emerald-50 hover:text-emerald-600">
+                          <button onClick={() => openAddressForm(addr)} className="shrink-0 rounded-lg p-1 text-slate-300 hover:bg-rose-50 hover:text-rose-600">
                             <Pencil size={14} />
                           </button>
                           <button onClick={() => deleteMyAddress(addr.id)} className="shrink-0 rounded-lg p-1 text-slate-300 hover:bg-rose-50 hover:text-rose-500">
@@ -5456,7 +6039,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                         placeholder={t.store.profile.addressPh}
                         rows={3}
                         autoFocus
-                        className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-slate-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                        className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-slate-800 outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-100"
                       />
                       <button
                         type="button"
@@ -5472,14 +6055,14 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                           <button
                             type="button"
                             onClick={() => setShowAddressMap(false)}
-                            className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg bg-emerald-600 py-2 text-xs font-semibold text-white hover:bg-emerald-700"
+                            className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg bg-rose-600 py-2 text-xs font-semibold text-white hover:bg-rose-700"
                           >
                             <CheckCircle2 size={14} /> {t.store.applyBtn}
                           </button>
                         </div>
                       )}
                       {newAddressLocation && (
-                        <p className="mt-2 flex items-center gap-1 text-xs text-emerald-600">
+                        <p className="mt-2 flex items-center gap-1 text-xs text-rose-600">
                           <CheckCircle2 size={13} /> {t.store.locationSet}
                         </p>
                       )}
@@ -5493,7 +6076,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                         <button
                           onClick={saveMyAddress}
                           disabled={savingAddress || !newAddressText.trim()}
-                          className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-60"
+                          className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-rose-600 px-3 py-2 text-sm font-medium text-white hover:bg-rose-700 disabled:opacity-60"
                         >
                           {savingAddress ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
                           {t.store.profile.saveAddress}
@@ -5562,12 +6145,35 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
       )}
 
       {cartOpen && (
-        <div className="fixed inset-0 z-[55] flex justify-end bg-slate-900/40" onClick={() => setCartOpen(false)}>
-          <div className="flex h-full w-full max-w-sm flex-col bg-white shadow-xl" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
-              <h3 className="text-base font-semibold text-slate-800">{t.store.cart}</h3>
-              <button onClick={() => setCartOpen(false)} className="rounded-lg p-1 text-slate-400 hover:bg-gray-100"><X size={18} /></button>
+        <div className="fixed inset-0 z-[55] flex items-end justify-center bg-slate-900/40 sm:items-center sm:p-4" onClick={() => setCartOpen(false)}>
+          <div
+            className="flex max-h-[92vh] w-full max-w-sm flex-col overflow-hidden rounded-t-2xl bg-white shadow-xl sm:rounded-2xl"
+            style={cartSwipe.sheetStyle}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="cursor-grab touch-none active:cursor-grabbing" {...cartSwipe.dragHandleProps}>
+              <div className="mx-auto mt-2.5 h-1.5 w-10 rounded-full bg-gray-300 sm:hidden" />
+              <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+                <h3 className="text-base font-semibold text-slate-800">{t.store.cart}</h3>
+                <button onClick={() => setCartOpen(false)} className="rounded-lg p-1 text-slate-400 hover:bg-gray-100"><X size={18} /></button>
+              </div>
             </div>
+
+            {cartItems.length > 0 && (
+              <div className="flex items-center justify-between border-b border-gray-100 px-5 py-2.5 text-xs">
+                <button
+                  onClick={deleteSelectedCartItems}
+                  disabled={selectedCartIds.size === 0}
+                  className="flex items-center gap-1 font-medium text-slate-500 hover:text-rose-600 disabled:opacity-40"
+                >
+                  <X size={13} /> {t.store.cartDeleteSelected} ({selectedCartIds.size})
+                </button>
+                <label className="flex items-center gap-2 font-medium text-slate-500">
+                  {t.store.cartSelectAll}
+                  <Toggle checked={allCartSelected} onChange={toggleSelectAllCart} />
+                </label>
+              </div>
+            )}
 
             <div className="flex-1 overflow-y-auto px-5 py-4">
               {cartItems.length === 0 ? (
@@ -5594,58 +6200,184 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                         </div>
                         {expanded && (
                           <div className="mt-2 space-y-2 border-t border-rose-200 pt-2">
-                            {items.map(({ product, qty, unitPrice, discPct }) => (
-                              <div key={product.id} className="flex items-center justify-between gap-2">
-                                <div className="min-w-0 flex-1">
-                                  <p className="truncate text-xs font-medium text-stone-600">{pname(product, lang)}</p>
-                                  <p className="text-[11px] text-stone-400">
-                                    {fmtMoney(unitPrice)} {t.common.uzs}
-                                    {discPct > 0 && <span className="ml-1 line-through text-stone-300">{fmtMoney(product.price)}</span>}
-                                  </p>
+                            {items.map(({ product, qty, unitPrice, discPct }) => {
+                              const thumb = (product.imageUrls && product.imageUrls[0]) || product.imageUrl || "";
+                              return (
+                                <div key={product.id} className="flex items-center gap-2.5 rounded-xl bg-white p-1.5">
+                                  <div className="h-11 w-11 shrink-0 overflow-hidden rounded-lg bg-gray-50 text-slate-300">
+                                    {thumb ? (
+                                      <img src={thumb} alt="" className="h-full w-full object-cover" />
+                                    ) : (
+                                      <div className="flex h-full w-full items-center justify-center"><Package size={14} /></div>
+                                    )}
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <p className="truncate text-xs font-medium text-stone-600">{pname(product, lang)}</p>
+                                    <p className="text-[11px] text-stone-400">
+                                      {fmtMoney(unitPrice)} {t.common.uzs}
+                                      {discPct > 0 && <span className="ml-1 line-through text-stone-300">{fmtMoney(product.price)}</span>}
+                                    </p>
+                                  </div>
+                                  <div className="flex shrink-0 items-center gap-1 rounded-full border border-gray-200 bg-white p-0.5">
+                                    <button onClick={() => changeQty(product.id, -1)} className="flex h-5 w-5 items-center justify-center rounded-full text-slate-500 hover:bg-gray-100"><Minus size={11} /></button>
+                                    <span className="w-4 text-center text-xs font-medium">{qty}</span>
+                                    <button onClick={() => changeQty(product.id, 1)} disabled={product.stockType === "limited" && qty >= product.stock} className="flex h-5 w-5 items-center justify-center rounded-full text-slate-500 hover:bg-gray-100 disabled:opacity-40"><Plus size={11} /></button>
+                                  </div>
                                 </div>
-                                <div className="flex items-center gap-1.5">
-                                  <button onClick={() => changeQty(product.id, -1)} className="rounded-lg border border-gray-200 bg-white p-1 text-slate-500 hover:bg-gray-50"><Minus size={12} /></button>
-                                  <span className="w-4 text-center text-xs font-medium">{qty}</span>
-                                  <button onClick={() => changeQty(product.id, 1)} disabled={product.stockType === "limited" && qty >= product.stock} className="rounded-lg border border-gray-200 bg-white p-1 text-slate-500 hover:bg-gray-50 disabled:opacity-40"><Plus size={12} /></button>
-                                </div>
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         )}
                       </div>
                     );
                   })}
-                  {cartSingles.map(({ product, qty, unitPrice, discPct }) => (
-                    <div key={product.id} className="flex items-center justify-between gap-2 rounded-xl border border-gray-100 p-3">
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium text-slate-700">{pname(product, lang)}</p>
-                        <p className="text-xs text-slate-400">
-                          {fmtMoney(unitPrice)} {t.common.uzs}
-                          {discPct > 0 && <span className="ml-1.5 line-through text-slate-300">{fmtMoney(product.price)}</span>}
-                        </p>
+                  {cartSingles.map(({ product, qty, unitPrice, discPct }) => {
+                    const thumb = (product.imageUrls && product.imageUrls[0]) || product.imageUrl || "";
+                    const checked = selectedCartIds.has(product.id);
+                    return (
+                      <div key={product.id} className="rounded-2xl border border-gray-100 p-2.5 shadow-sm transition hover:shadow-md">
+                        <div className="flex items-start gap-3">
+                          <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-gray-50 text-slate-300">
+                            {thumb ? (
+                              <img src={thumb} alt="" className="h-full w-full object-cover" />
+                            ) : (
+                              <div className="flex h-full w-full items-center justify-center"><Package size={20} /></div>
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0">
+                                {product.brand && <p className="text-[10px] font-medium uppercase tracking-wide text-rose-400">{product.brand}</p>}
+                                <p className="line-clamp-2 text-sm font-medium text-slate-700">{pname(product, lang)}</p>
+                              </div>
+                              <button
+                                onClick={() => toggleCartItemSelected(product.id)}
+                                className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition ${checked ? "border-rose-600 bg-rose-600 text-white" : "border-gray-300 bg-white text-transparent"}`}
+                              >
+                                <Check size={13} strokeWidth={3} />
+                              </button>
+                            </div>
+
+                            {discPct > 0 && (
+                              <p className="mt-1 flex items-center gap-1.5 text-xs">
+                                <span className="text-slate-300 line-through">{fmtMoney(product.price)} {t.common.uzs}</span>
+                                <span className="font-semibold text-emerald-600">-{discPct}%</span>
+                              </p>
+                            )}
+
+                            <div className="mt-1.5 flex items-center justify-between gap-2">
+                              <p className="text-sm font-semibold text-slate-800">
+                                {fmtMoney(unitPrice)} {t.common.uzs} <span className="text-xs font-normal text-slate-400">{t.store.cartPerItem}</span>
+                              </p>
+                              <div className="flex shrink-0 items-center gap-1 rounded-full border border-gray-200 bg-white p-1">
+                                <button onClick={() => changeQty(product.id, -1)} className="flex h-6 w-6 items-center justify-center rounded-full text-slate-500 hover:bg-gray-100"><Minus size={12} /></button>
+                                <span className="w-5 text-center text-xs font-semibold">{qty}</span>
+                                <button onClick={() => changeQty(product.id, 1)} disabled={product.stockType === "limited" && qty >= product.stock} className="flex h-6 w-6 items-center justify-center rounded-full text-slate-500 hover:bg-gray-100 disabled:opacity-30"><Plus size={12} /></button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
                       </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {cartItems.length > 0 && (
+                <>
+                  {/* Promo kod */}
+                  <div className="mt-4">
+                    {appliedPromo ? (
+                      <div className="flex items-center justify-between rounded-full bg-emerald-50 px-4 py-2.5 text-xs font-medium text-emerald-700">
+                        <span className="flex items-center gap-1.5"><CheckCircle2 size={14} /> {appliedPromo.code} {t.store.promoApplied}</span>
+                        <button onClick={removePromoCode} className="text-emerald-600 underline hover:text-emerald-800">{t.store.promoRemove}</button>
+                      </div>
+                    ) : (
                       <div className="flex items-center gap-2">
-                        <button onClick={() => changeQty(product.id, -1)} className="rounded-lg border border-gray-200 p-1 text-slate-500 hover:bg-gray-50"><Minus size={13} /></button>
-                        <span className="w-5 text-center text-sm font-medium">{qty}</span>
-                        <button onClick={() => changeQty(product.id, 1)} disabled={product.stockType === "limited" && qty >= product.stock} className="rounded-lg border border-gray-200 p-1 text-slate-500 hover:bg-gray-50 disabled:opacity-40"><Plus size={13} /></button>
+                        <input
+                          value={promoInput}
+                          onChange={(e) => setPromoInput(e.target.value)}
+                          placeholder={t.store.promoPh}
+                          className="flex-1 rounded-full border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm outline-none focus:border-rose-400 focus:bg-white"
+                        />
+                        <button
+                          onClick={applyPromoCode}
+                          disabled={checkingPromo || !promoInput.trim()}
+                          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-rose-600 text-white hover:bg-rose-700 disabled:opacity-50"
+                        >
+                          {checkingPromo ? <Loader2 size={16} className="animate-spin" /> : <ArrowRight size={16} />}
+                        </button>
+                      </div>
+                    )}
+                    {promoError && <p className="mt-1.5 px-1 text-xs text-rose-500">{promoError}</p>}
+                  </div>
+
+                  {/* Xulosa — FAQAT belgilangan (checkbox bosilgan) mahsulotlar bo'yicha */}
+                  <div className="mt-4 space-y-1.5 border-t border-gray-100 pt-4 text-sm">
+                    <div className="flex items-center justify-between text-slate-500">
+                      <span>{selectedCartCount} {t.store.cartItemsLabel}</span>
+                      <span>{fmtMoney(selectedCartTotal)} {t.common.uzs}</span>
+                    </div>
+                    {appliedPromo && selectedPromoDiscount > 0 && (
+                      <div className="flex items-center justify-between text-rose-600">
+                        <span>{t.store.promoApplied} ({appliedPromo.code})</span>
+                        <span>-{fmtMoney(selectedPromoDiscount)} {t.common.uzs}</span>
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between pt-1 text-base font-bold text-slate-800">
+                      <span>{t.store.total}</span>
+                      <span>{fmtMoney(selectedCartTotalAfterDiscount)} {t.common.uzs}</span>
+                    </div>
+                  </div>
+                  <p className="mt-2 text-xs text-slate-400">{t.store.cartDeliveryNote}</p>
+
+                  {/* Sizga qiziq bo'lishi mumkin */}
+                  {cartRecommendedProducts.length > 0 && (
+                    <div className="mt-6">
+                      <h4 className="mb-3 text-sm font-semibold text-slate-800">{t.store.cartRecommended}</h4>
+                      <div className="flex gap-3 overflow-x-auto pb-2 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: "none" }}>
+                        {cartRecommendedProducts.map((p) => {
+                          const thumb = (p.imageUrls && p.imageUrls[0]) || p.imageUrl || "";
+                          const liked = wishlist.has(p.id);
+                          return (
+                            <div
+                              key={p.id}
+                              onClick={() => setSelectedProduct(p)}
+                              className="w-32 shrink-0 cursor-pointer rounded-2xl border border-gray-100 p-2 transition hover:shadow-md"
+                            >
+                              <div className="relative mb-2 aspect-square overflow-hidden rounded-xl bg-gray-50 text-slate-300">
+                                {thumb ? (
+                                  <img src={thumb} alt="" className="h-full w-full object-cover" />
+                                ) : (
+                                  <div className="flex h-full w-full items-center justify-center"><Package size={20} /></div>
+                                )}
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); toggleWishlist(p.id); }}
+                                  className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-white/90 text-stone-400 shadow-sm hover:text-rose-500"
+                                >
+                                  <Heart size={12} fill={liked ? "#f43f5e" : "none"} className={liked ? "text-rose-500" : ""} />
+                                </button>
+                              </div>
+                              <p className="line-clamp-2 text-xs font-medium text-slate-700">{pname(p, lang)}</p>
+                              <p className="mt-1 text-xs font-semibold text-slate-800">{fmtMoney(p.price)} {t.common.uzs}</p>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
-                  ))}
-                </div>
+                  )}
+                </>
               )}
             </div>
 
             {cartItems.length > 0 && (
-              <div className="border-t border-gray-100 px-5 py-4">
-                <div className="mb-3 flex items-center justify-between text-sm">
-                  <span className="text-slate-500">{t.store.total}</span>
-                  <span className="text-base font-bold text-slate-800">{fmtMoney(cartTotal)} {t.common.uzs}</span>
-                </div>
+              <div className="border-t border-gray-100 px-5 py-3">
                 <button
                   onClick={() => { setCartOpen(false); setCheckoutOpen(true); }}
-                  className="w-full rounded-xl bg-emerald-600 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700"
+                  disabled={selectedCartCount === 0}
+                  className="w-full rounded-xl bg-rose-600 py-2.5 text-sm font-semibold text-white hover:bg-rose-700 disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-400"
                 >
-                  {t.store.checkout}
+                  {t.store.cartCheckoutBtn}
                 </button>
               </div>
             )}
@@ -5676,27 +6408,53 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
 
       {/* Checkout modal */}
       {checkoutOpen && (
-        <Modal title={done ? t.store.success : t.store.checkout} onClose={resetAll}>
+        <Modal
+          title={done ? t.store.success : t.store.checkout}
+          onClose={resetAll}
+          onBack={!done ? () => { setCheckoutOpen(false); setCartOpen(true); } : undefined}
+        >
           {done ? (
             <div className="flex flex-col items-center gap-2 py-4 text-center">
-              <PartyPopper className="text-emerald-500" size={32} />
+              <PartyPopper className="text-rose-500" size={32} />
               <p className="text-sm font-medium text-slate-700">{t.store.success}</p>
               <p className="text-xs text-slate-400">{t.store.successNote}</p>
-              <button onClick={resetAll} className="mt-3 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">
+              <button onClick={resetAll} className="mt-3 rounded-lg bg-rose-600 px-4 py-2 text-sm font-medium text-white hover:bg-rose-700">
                 {t.store.newOrder}
               </button>
             </div>
           ) : (
             <>
+              {/* Buyurtma qilinayotgan mahsulotlar ro'yxati (surat + nom) */}
+              <div className="mb-3 space-y-2">
+                {selectedCartItemsList.map(({ product, qty, unitPrice }) => {
+                  const thumb = (product.imageUrls && product.imageUrls[0]) || product.imageUrl || "";
+                  return (
+                    <div key={product.id} className="flex items-center gap-2.5">
+                      <div className="h-11 w-11 shrink-0 overflow-hidden rounded-lg bg-gray-50 text-slate-300">
+                        {thumb ? (
+                          <img src={thumb} alt="" className="h-full w-full object-cover" />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center"><Package size={14} /></div>
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-xs font-medium text-slate-700">{pname(product, lang)}</p>
+                        <p className="text-[11px] text-slate-400">{qty} × {fmtMoney(unitPrice)} {t.common.uzs}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
               <div className="mb-3 rounded-xl bg-gray-50 p-3 text-sm">
                 <div className="flex justify-between text-slate-500">
                   <span>{t.store.subtotal}</span>
-                  <span>{fmtMoney(cartTotal)} {t.common.uzs}</span>
+                  <span>{fmtMoney(selectedCartTotal)} {t.common.uzs}</span>
                 </div>
-                {appliedPromo && (
+                {appliedPromo && selectedPromoDiscount > 0 && (
                   <div className="mt-1 flex justify-between text-rose-600">
                     <span>{t.store.promoApplied} ({appliedPromo.code})</span>
-                    <span>-{fmtMoney(promoDiscount)} {t.common.uzs}</span>
+                    <span>-{fmtMoney(selectedPromoDiscount)} {t.common.uzs}</span>
                   </div>
                 )}
                 {bonusApplied > 0 && (
@@ -5714,11 +6472,11 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
               {/* Promo kod */}
               <div className="mb-3">
                 {appliedPromo ? (
-                  <div className="flex items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2">
-                    <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-700">
+                  <div className="flex items-center justify-between rounded-lg border border-rose-200 bg-rose-50 px-3 py-2">
+                    <span className="flex items-center gap-1.5 text-xs font-medium text-rose-700">
                       <CheckCircle2 size={14} /> {appliedPromo.code} {t.store.promoApplied}
                     </span>
-                    <button onClick={removePromoCode} className="text-xs font-medium text-emerald-700 hover:underline">{t.store.promoRemove}</button>
+                    <button onClick={removePromoCode} className="text-xs font-medium text-rose-700 hover:underline">{t.store.promoRemove}</button>
                   </div>
                 ) : (
                   <div>
@@ -5792,7 +6550,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                 <button
                   type="button"
                   onClick={() => setShowPhone2(true)}
-                  className="mb-3 flex items-center gap-1.5 text-xs font-medium text-emerald-600 hover:underline"
+                  className="mb-3 flex items-center gap-1.5 text-xs font-medium text-rose-600 hover:underline"
                 >
                   <Plus size={13} /> {t.store.addPhone2}
                 </button>
@@ -5809,7 +6567,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                       type="button"
                       onClick={() => setForm({ ...form, payment: opt.key })}
                       className={`rounded-lg border px-2 py-2 text-xs font-medium transition ${
-                        form.payment === opt.key ? "border-emerald-600 bg-emerald-50 text-emerald-700" : "border-gray-200 text-slate-500 hover:bg-gray-50"
+                        form.payment === opt.key ? "border-rose-600 bg-rose-50 text-rose-700" : "border-gray-200 text-slate-500 hover:bg-gray-50"
                       }`}
                     >
                       {opt.label}
@@ -5829,14 +6587,14 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                           type="button"
                           onClick={() => pickAddressForOrder(addr)}
                           className={`flex w-full items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left text-xs font-medium transition ${
-                            active ? "border-emerald-600 bg-emerald-50 text-emerald-700" : "border-gray-200 text-slate-600 hover:border-gray-300 hover:bg-gray-50"
+                            active ? "border-rose-600 bg-rose-50 text-rose-700" : "border-gray-200 text-slate-600 hover:border-gray-300 hover:bg-gray-50"
                           }`}
                         >
-                          <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition ${active ? "bg-emerald-600 text-white" : "bg-gray-100 text-slate-400"}`}>
+                          <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition ${active ? "bg-rose-600 text-white" : "bg-gray-100 text-slate-400"}`}>
                             <MapPin size={14} />
                           </span>
                           <span className="min-w-0 flex-1 truncate">{addr.text}</span>
-                          {active && <CheckCircle2 size={16} className="shrink-0 text-emerald-600" />}
+                          {active && <CheckCircle2 size={16} className="shrink-0 text-rose-600" />}
                         </button>
                       );
                     })}
@@ -5865,14 +6623,14 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                     <button
                       type="button"
                       onClick={() => setShowCheckoutMap(false)}
-                      className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg bg-emerald-600 py-2 text-xs font-semibold text-white hover:bg-emerald-700"
+                      className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg bg-rose-600 py-2 text-xs font-semibold text-white hover:bg-rose-700"
                     >
                       <CheckCircle2 size={14} /> {t.store.applyBtn}
                     </button>
                   </div>
                 )}
                 {location && (
-                  <div className="mt-2 flex items-center justify-between rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
+                  <div className="mt-2 flex items-center justify-between rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700">
                     <span className="flex items-center gap-1"><CheckCircle2 size={13} /> {t.store.locationSet}</span>
                     <span className="flex gap-2">
                       <a href={`https://www.google.com/maps?q=${location.lat},${location.lng}`} target="_blank" rel="noopener noreferrer" className="underline">
@@ -5888,7 +6646,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
 
               <div className="mt-4 flex justify-end gap-2">
                 <button onClick={resetAll} className="rounded-lg px-3.5 py-2 text-sm font-medium text-slate-500 hover:bg-gray-100">{t.common.cancel}</button>
-                <button onClick={submitOrder} disabled={placing} className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-60">
+                <button onClick={submitOrder} disabled={placing} className="flex items-center gap-1.5 rounded-lg bg-rose-600 px-3.5 py-2 text-sm font-medium text-white hover:bg-rose-700 disabled:opacity-60">
                   {placing ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle2 size={15} />} {placing ? t.store.placing : t.store.placeOrder}
                 </button>
               </div>
@@ -5940,6 +6698,19 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
       </nav>
       {/* Pastki panel ostida kontent yashirinib qolmasligi uchun bo'shliq */}
       <div className="h-20 md:hidden" />
+
+      {/* Xarid qilingan mahsulotga sharh qoldirish oynasi */}
+      {reviewModal && (
+        <ReviewFormModal
+          order={reviewModal.order}
+          item={reviewModal.item}
+          lang={lang}
+          myName={myName}
+          myPhone={myPhone}
+          testimonialsCount={testimonials.length}
+          onClose={() => setReviewModal(null)}
+        />
+      )}
     </div>
   );
 }
@@ -6064,7 +6835,7 @@ export default function App() {
   if (loading) {
     return (
       <div className="flex h-full min-h-[500px] items-center justify-center bg-gray-50">
-        <Loader2 className="animate-spin text-emerald-500" size={28} />
+        <Loader2 className="animate-spin text-rose-500" size={28} />
       </div>
     );
   }
@@ -6073,7 +6844,7 @@ export default function App() {
   if (route === "store") {
     return (
       <StorefrontPage
-        lang={lang} setLang={setLang} products={products} categories={categories} banners={banners}
+        lang={lang} setLang={setLang} products={products.filter(p => p.active !== false)} categories={categories} banners={banners}
         brands={brands} collections={collections} testimonials={testimonials} faqs={faqs} storeSettings={storeSettings}
         tgUser={tgUser} inTelegram={inTelegram}
       />
@@ -6170,7 +6941,7 @@ export default function App() {
                   <LayoutGrid size={16} /> {t.products.collectionsBtn}
                 </button>
               </div>
-              <BannerSettings lang={lang} banners={banners} products={products} />
+              <BannerSettings lang={lang} banners={banners} products={products} categories={categories} brands={brands} />
               {collectionsModalOpen && (
                 <CollectionsModal
                   lang={lang}
@@ -6184,7 +6955,7 @@ export default function App() {
               )}
             </div>
           )}
-          {page === "testimonials" && <TestimonialsSettings lang={lang} testimonials={testimonials} />}
+          {page === "testimonials" && <TestimonialsSettings lang={lang} testimonials={testimonials} products={products} />}
           {page === "faqs" && <FAQSettings lang={lang} faqs={faqs} />}
           {page === "marketing" && <MarketingPage lang={lang} banners={banners} products={products} orders={orders} customers={customers} />}
           {page === "settings" && <StoreSettings lang={lang} settings={storeSettings} />}

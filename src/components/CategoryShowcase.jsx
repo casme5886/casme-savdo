@@ -74,7 +74,11 @@ function IconRow({ items, products, field, activeValue, onSelect, allLabel, bare
   const hoverFx = th.circleHover || "hover:scale-110";
 
   const inner = (
-    <div className="flex gap-5 overflow-x-auto pb-1">
+    // pt-2 — dumaloq ikonkalarning soyasi (box-shadow) va faol/hover holatidagi
+    // "yuqoriga siljish" effekti (gold mavzu) qatorning o'zi tomonidan
+    // (overflow-x-auto avtomatik ravishda vertikal tarafdan ham cheklab
+    // qo'yishi sababli) kesib tashlanmasligi uchun yetarli bo'sh joy beradi.
+    <div className="flex gap-5 overflow-x-auto pb-1 pt-2">
       <button onClick={() => onSelect(allLabel)} className="flex shrink-0 flex-col items-center gap-2">
           <span
             className={`flex items-center justify-center rounded-full text-xs font-semibold shadow-sm transition-transform duration-200 ${hoverFx} ${
@@ -168,7 +172,7 @@ export function CategoryQuickRow({ categories, products, onSelect, t }) {
 
   return (
     <div>
-      <h2 style={SERIF} className="mb-4 text-xl font-semibold text-rose-600 sm:text-2xl">{t.store.navCategories}</h2>
+      <h2 style={SERIF} className="mb-4 pl-2 text-xl font-semibold text-rose-600 sm:pl-0 sm:text-2xl">{t.store.navCategories}</h2>
       <div className="flex overflow-x-auto pb-2 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: "none", msOverflowStyle: "none", gap: "0px" }}>
         {withThumbs.map((c, i) => (
           <button

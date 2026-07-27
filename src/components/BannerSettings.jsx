@@ -2,6 +2,7 @@ import React, { useState, useMemo } from "react";
 import {
   Plus, Pencil, Trash2, Loader2, Save, ImageOff, ArrowUp, ArrowDown, Eye, EyeOff,
   AlertTriangle, MousePointerClick, Search, Package, ChevronRight,
+  CheckSquare, Square, MinusSquare, Filter, X,
 } from "lucide-react";
 import { setItem, updateItem, deleteItem, uploadImage } from "../storage.js";
 import { Modal, Field, EmptyState, inputCls, uid, fmtMoney, pname, Toggle } from "./ui.jsx";
@@ -9,7 +10,7 @@ import { Modal, Field, EmptyState, inputCls, uid, fmtMoney, pname, Toggle } from
 const EMPTY_FORM = {
   badge: "", title: "", subtitle: "", bottomText: "", minOrder: "",
   buttonText: "", buttonLink: "", desktopImage: "", mobileImage: "", active: true,
-  startDate: "", endDate: "", linkedProductIds: [], showTotalCalc: true,
+  startDate: "", endDate: "", linkedProductIds: [], showTotalCalc: false,
   desktopImagePosition: "center", mobileImagePosition: "center",
 };
 
@@ -39,7 +40,10 @@ const T_LOCAL = {
     clicks: "bosildi",
     linkProducts: "Mahsulot biriktirish (ixtiyoriy)",
     linkProductsHint: "Biriktirilgan mahsulotlar banner bosilganda avtomatik savatga qo'shiladi",
-    searchProducts: "Mahsulot izlash...", selectedCount: "ta tanlandi",
+    searchProducts: "Nomi, brend yoki kategoriya bo'yicha izlash...", selectedCount: "ta tanlandi",
+    selectAll: "Barchasini belgilash", deselectAll: "Barchasini olib tashlash",
+    filterBtn: "Filtr", clearFilters: "Filtrlarni tozalash",
+    allBrandsChip: "Barcha brendlar", allCategoriesChip: "Barcha kategoriyalar",
     imagePosition: "Rasmni tekislash", posTop: "Yuqori", posCenter: "Markaz", posBottom: "Past",
     imagePositionHint: "Rasm to'liq sig'may qolsa, qaysi qismi ko'rinishini tanlang",
     showTotalCalc: "Jami narx hisoblash", showTotalCalcHint: "Yoqilsa — ichkarida \"Jami narx\" va \"Barchasini savatga qo'shish\" ko'rinadi",
@@ -63,7 +67,10 @@ const T_LOCAL = {
     clicks: "кликов",
     linkProducts: "Привязать товары (опционально)",
     linkProductsHint: "Привязанные товары автоматически добавятся в корзину при клике на баннер",
-    searchProducts: "Поиск товара...", selectedCount: "выбрано",
+    searchProducts: "Поиск по названию, бренду или категории...", selectedCount: "выбрано",
+    selectAll: "Выбрать всё", deselectAll: "Снять всё",
+    filterBtn: "Фильтр", clearFilters: "Очистить фильтры",
+    allBrandsChip: "Все бренды", allCategoriesChip: "Все категории",
     imagePosition: "Выравнивание изображения", posTop: "Верх", posCenter: "Центр", posBottom: "Низ",
     imagePositionHint: "Если изображение не помещается полностью, выберите какая часть будет видна",
     showTotalCalc: "Подсчёт итоговой цены", showTotalCalcHint: "Если включено — внутри показывается \"Итоговая цена\" и \"Добавить всё в корзину\"",
@@ -84,7 +91,7 @@ function checkImageRatio(url, targetRatio) {
   });
 }
 
-export default function BannerSettings({ lang, banners, products }) {
+export default function BannerSettings({ lang, banners, products, categories, brands }) {
   const t = T_LOCAL[lang] || T_LOCAL.uz;
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -96,6 +103,9 @@ export default function BannerSettings({ lang, banners, products }) {
   const [desktopWarning, setDesktopWarning] = useState(null);
   const [mobileWarning, setMobileWarning] = useState(null);
   const [productSearch, setProductSearch] = useState("");
+  const [productFilterOpen, setProductFilterOpen] = useState(false);
+  const [productBrandFilter, setProductBrandFilter] = useState("");
+  const [productCategoryFilter, setProductCategoryFilter] = useState("");
 
   const sorted = [...banners].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
@@ -135,6 +145,9 @@ export default function BannerSettings({ lang, banners, products }) {
     setForm(EMPTY_FORM);
     setError("");
     setProductSearch("");
+    setProductFilterOpen(false);
+    setProductBrandFilter("");
+    setProductCategoryFilter("");
   };
 
   const applyTemplate = (tpl) => {
@@ -219,9 +232,32 @@ export default function BannerSettings({ lang, banners, products }) {
     });
   };
 
+  /** Ro'yxatdagi (qidiruv natijasidagi) barcha mahsulotlarni bir bosishda belgilash/olib tashlash. */
+  const toggleSelectAllFiltered = () => {
+    setForm((f) => {
+      const filteredIds = filteredProducts.map((p) => p.id);
+      const allSelected = filteredIds.length > 0 && filteredIds.every((id) => f.linkedProductIds.includes(id));
+      if (allSelected) {
+        return { ...f, linkedProductIds: f.linkedProductIds.filter((id) => !filteredIds.includes(id)) };
+      }
+      return { ...f, linkedProductIds: Array.from(new Set([...f.linkedProductIds, ...filteredIds])) };
+    });
+  };
+
   const filteredProducts = useMemo(
-    () => (products || []).filter((p) => pname(p, lang).toLowerCase().includes(productSearch.toLowerCase())),
-    [products, productSearch, lang]
+    () => (products || [])
+      .filter((p) => {
+        const q = productSearch.toLowerCase();
+        if (!q) return true;
+        return (
+          pname(p, lang).toLowerCase().includes(q) ||
+          (p.brand || "").toLowerCase().includes(q) ||
+          (p.category || "").toLowerCase().includes(q)
+        );
+      })
+      .filter((p) => !productBrandFilter || p.brand === productBrandFilter)
+      .filter((p) => !productCategoryFilter || p.category === productCategoryFilter),
+    [products, productSearch, productBrandFilter, productCategoryFilter, lang]
   );
 
   const MAX_BANNERS = 10;
@@ -452,18 +488,106 @@ export default function BannerSettings({ lang, banners, products }) {
           <div className="mb-3 rounded-lg border border-gray-100 p-3">
             <p className="mb-1 text-xs font-medium text-slate-600">{t.linkProducts}</p>
             <p className="mb-2 text-[11px] text-slate-400">{t.linkProductsHint}</p>
-            <div className="relative mb-2">
-              <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                className={`${inputCls} pl-8 text-xs`}
-                value={productSearch}
-                onChange={(e) => setProductSearch(e.target.value)}
-                placeholder={t.searchProducts}
-              />
+            <div className="mb-2 flex items-center gap-1.5">
+              <div className="relative flex-1">
+                <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  className={`${inputCls} pl-8 text-xs`}
+                  value={productSearch}
+                  onChange={(e) => setProductSearch(e.target.value)}
+                  placeholder={t.searchProducts}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => setProductFilterOpen((v) => !v)}
+                className={`relative flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border transition ${productFilterOpen || productBrandFilter || productCategoryFilter ? "border-emerald-500 bg-emerald-50 text-emerald-600" : "border-gray-200 text-slate-500 hover:bg-gray-50"}`}
+                title={t.filterBtn}
+              >
+                <Filter size={14} />
+                {(productBrandFilter || productCategoryFilter) && (
+                  <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-emerald-500" />
+                )}
+              </button>
             </div>
-            {form.linkedProductIds.length > 0 && (
-              <p className="mb-2 text-[11px] font-medium text-emerald-600">{form.linkedProductIds.length} {t.selectedCount}</p>
+
+            {productFilterOpen && (
+              <div className="mb-2 space-y-2 rounded-lg border border-gray-100 bg-gray-50/60 p-2">
+                {(productBrandFilter || productCategoryFilter) && (
+                  <button
+                    type="button"
+                    onClick={() => { setProductBrandFilter(""); setProductCategoryFilter(""); }}
+                    className="flex items-center gap-1 text-[11px] font-medium text-rose-600 hover:underline"
+                  >
+                    <X size={12} /> {t.clearFilters}
+                  </button>
+                )}
+                {(brands || []).length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setProductBrandFilter("")}
+                      className={`rounded-full px-2 py-1 text-[11px] font-medium transition ${!productBrandFilter ? "bg-emerald-600 text-white" : "bg-white text-slate-500 hover:bg-gray-100"}`}
+                    >
+                      {t.allBrandsChip}
+                    </button>
+                    {brands.map((b) => (
+                      <button
+                        key={b.id}
+                        type="button"
+                        onClick={() => setProductBrandFilter(b.name)}
+                        className={`rounded-full px-2 py-1 text-[11px] font-medium transition ${productBrandFilter === b.name ? "bg-emerald-600 text-white" : "bg-white text-slate-500 hover:bg-gray-100"}`}
+                      >
+                        {b.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {(categories || []).length > 0 && (
+                  <div className="flex flex-wrap gap-1 border-t border-gray-200 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setProductCategoryFilter("")}
+                      className={`rounded-full px-2 py-1 text-[11px] font-medium transition ${!productCategoryFilter ? "bg-emerald-600 text-white" : "bg-white text-slate-500 hover:bg-gray-100"}`}
+                    >
+                      {t.allCategoriesChip}
+                    </button>
+                    {categories.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => setProductCategoryFilter(c.name)}
+                        className={`rounded-full px-2 py-1 text-[11px] font-medium transition ${productCategoryFilter === c.name ? "bg-emerald-600 text-white" : "bg-white text-slate-500 hover:bg-gray-100"}`}
+                      >
+                        {c.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             )}
+
+            <div className="mb-2 flex items-center justify-between">
+              {form.linkedProductIds.length > 0 ? (
+                <p className="text-[11px] font-medium text-emerald-600">{form.linkedProductIds.length} {t.selectedCount}</p>
+              ) : <span />}
+              {filteredProducts.length > 0 && (() => {
+                const filteredIds = filteredProducts.map((p) => p.id);
+                const selectedInView = filteredIds.filter((id) => form.linkedProductIds.includes(id)).length;
+                const allSelected = selectedInView === filteredIds.length;
+                const someSelected = selectedInView > 0 && !allSelected;
+                const Icon = allSelected ? CheckSquare : someSelected ? MinusSquare : Square;
+                return (
+                  <button
+                    type="button"
+                    onClick={toggleSelectAllFiltered}
+                    className="flex items-center gap-1 text-[11px] font-medium text-slate-500 hover:text-emerald-600"
+                  >
+                    <Icon size={14} /> {allSelected ? t.deselectAll : t.selectAll}
+                  </button>
+                );
+              })()}
+            </div>
             <div className="max-h-40 space-y-1 overflow-y-auto">
               {filteredProducts.map((p) => {
                 const thumb = (p.imageUrls && p.imageUrls[0]) || p.imageUrl || "";

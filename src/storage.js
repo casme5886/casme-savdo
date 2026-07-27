@@ -163,6 +163,22 @@ export async function getCustomersCount() {
 }
 
 /**
+ * Faqat SONNI qaytaradi — bekor qilinganlardan tashqari barcha
+ * buyurtmalar soni ("1200+ buyurtma bajarildi" kabi statistika uchun).
+ * Hech qanday buyurtma tafsilotini (mijoz, manzil, mahsulot) o'qimaydi,
+ * shuning uchun do'kon sahifasida (mijozlar tomonida) xavfsiz ishlatiladi.
+ */
+export async function getOrdersCount() {
+  try {
+    const snap = await getCountFromServer(collection(db, "orders"));
+    return snap.data().count;
+  } catch (e) {
+    console.warn("Buyurtmalar sonini olishda xatolik:", e);
+    return 0;
+  }
+}
+
+/**
  * "Mening profilim" bo'limi uchun: shu Telegram foydalanuvchisi
  * (telegramUserId) nomiga yozilgan barcha buyurtmalarni qaytaradi.
  */

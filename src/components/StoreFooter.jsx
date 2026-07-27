@@ -1,6 +1,5 @@
-import React, { useState } from "react";
-import { Instagram, Send, Loader2, CheckCircle2, Phone, MapPin, Clock, Music2 } from "lucide-react";
-import { addItem } from "../storage.js";
+import React from "react";
+import { Instagram, Send, Phone, MapPin, Clock, Music2, Users, PackageCheck } from "lucide-react";
 
 const SERIF = { fontFamily: "'Playfair Display', Georgia, serif" };
 
@@ -41,97 +40,100 @@ const T_LOCAL = {
     tagline: "Har lahza uchun tanlangan uslub. Siz uchun, siz bilan.",
     shop: "Do'kon", shopAll: "Barcha mahsulotlar", shopCategories: "Kategoriyalar",
     care: "Mijozlarga g'amxo'rlik", contact: "Biz bilan bog'lanish", delivery: "Yetkazib berish",
-    about: "Biz haqimizda", follow: "Ijtimoiy tarmoqlar",
-    subscribeTitle: "Yangiliklardan xabardor bo'ling",
-    subscribeNote: "Chegirmalar va yangi mahsulotlar haqida birinchi bo'lib biling",
-    emailPh: "Email manzilingiz", subscribe: "Obuna bo'lish", subscribing: "Yuborilmoqda...",
-    subscribed: "Rahmat! Obuna bo'ldingiz", invalidEmail: "Email manzilini to'g'ri kiriting",
+    follow: "Ijtimoiy tarmoqlar",
+    statsCustomers: "Bizga ishongan mijozlar", statsOrders: "Bajarilgan buyurtmalar",
     rights: "Barcha huquqlar himoyalangan.",
   },
   ru: {
     tagline: "Стиль, подобранный для каждого момента. Для вас и с вами.",
     shop: "Магазин", shopAll: "Все товары", shopCategories: "Категории",
     care: "Забота о клиентах", contact: "Связаться с нами", delivery: "Доставка",
-    about: "О нас", follow: "Мы в соцсетях",
-    subscribeTitle: "Будьте в курсе новостей",
-    subscribeNote: "Узнавайте первыми о скидках и новых товарах",
-    emailPh: "Ваш email", subscribe: "Подписаться", subscribing: "Отправка...",
-    subscribed: "Спасибо! Вы подписались", invalidEmail: "Введите корректный email",
+    follow: "Мы в соцсетях",
+    statsCustomers: "Клиентов доверяют нам", statsOrders: "Выполненных заказов",
     rights: "Все права защищены.",
   },
 };
 
-export default function StoreFooter({ lang, storeName, settings }) {
-  const t = T_LOCAL[lang] || T_LOCAL.uz;
-  const [email, setEmail] = useState("");
-  const [status, setStatus] = useState("idle"); // idle | saving | done | error
+/** Sonni "1 240+" ko'rinishida chiroyli formatlaydi; hali yuklanmagan bo'lsa (null) — placeholder qaytaradi. */
+function fmtStat(n) {
+  if (n === null || n === undefined) return "—";
+  return `${(Number(n) || 0).toLocaleString("ru-RU")}+`;
+}
 
-  const subscribe = async () => {
-    const value = email.trim();
-    if (!/^\S+@\S+\.\S+$/.test(value)) {
-      setStatus("error");
-      return;
-    }
-    setStatus("saving");
-    try {
-      await addItem("newsletter", { email: value, date: new Date().toISOString().slice(0, 10) });
-      setStatus("done");
-      setEmail("");
-    } catch (e) {
-      console.error("Obunani saqlashda xatolik:", e);
-      setStatus("error");
-    }
-  };
+export default function StoreFooter({ lang, storeName, settings, customersCount, ordersCount, onShopAll, onCategories }) {
+  const t = T_LOCAL[lang] || T_LOCAL.uz;
 
   return (
-    <footer className="mt-12 bg-stone-900 text-stone-300">
-      {/* Obuna bo'lish paneli */}
-      <div className="border-b border-white/10 px-6 py-8 sm:px-10">
-        <div className="mx-auto flex max-w-3xl flex-col items-center gap-3 text-center">
-          <h3 style={SERIF} className="text-xl font-semibold text-white sm:text-2xl">{t.subscribeTitle}</h3>
-          <p className="text-sm text-stone-400">{t.subscribeNote}</p>
-          <div className="mt-2 flex w-full max-w-sm gap-2">
-            <input
-              value={email}
-              onChange={(e) => { setEmail(e.target.value); if (status !== "idle") setStatus("idle"); }}
-              placeholder={t.emailPh}
-              className="w-full rounded-full border border-white/15 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-stone-500 outline-none focus:border-white/40"
-            />
-            <button
-              onClick={subscribe}
-              disabled={status === "saving"}
-              className="flex shrink-0 items-center gap-1.5 rounded-full bg-white px-5 py-2.5 text-sm font-medium text-stone-900 hover:bg-rose-50 disabled:opacity-60"
+    <footer className="mt-6 bg-stone-900 text-stone-300">
+      {/* Ishonch statistikasi — ro'yxatdan o'tgan mijozlar va bajarilgan buyurtmalar soni */}
+      <div className="border-b border-white/10 px-6 py-8 sm:px-10" style={{ background: "linear-gradient(135deg, rgba(224,24,118,0.18), rgba(28,25,23,0) 60%)" }}>
+        <div className="mx-auto grid max-w-3xl grid-cols-2 gap-4">
+          <div className="flex items-center gap-3 rounded-2xl bg-white/5 p-4 ring-1 ring-white/10 sm:gap-4 sm:p-5">
+            <span
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-white sm:h-12 sm:w-12"
+              style={{ background: "linear-gradient(135deg, #FDA4AF, #E01876)" }}
             >
-              {status === "saving" ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
-              {status === "saving" ? t.subscribing : t.subscribe}
-            </button>
+              <Users size={20} />
+            </span>
+            <div className="min-w-0">
+              <p style={SERIF} className="text-xl font-bold text-white sm:text-2xl">{fmtStat(customersCount)}</p>
+              <p className="text-[11px] leading-tight text-stone-400 sm:text-xs">{t.statsCustomers}</p>
+            </div>
           </div>
-          {status === "done" && (
-            <p className="flex items-center gap-1.5 text-xs text-emerald-400"><CheckCircle2 size={13} /> {t.subscribed}</p>
-          )}
-          {status === "error" && <p className="text-xs text-rose-400">{t.invalidEmail}</p>}
+          <div className="flex items-center gap-3 rounded-2xl bg-white/5 p-4 ring-1 ring-white/10 sm:gap-4 sm:p-5">
+            <span
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-white sm:h-12 sm:w-12"
+              style={{ background: "linear-gradient(135deg, #FDA4AF, #E01876)" }}
+            >
+              <PackageCheck size={20} />
+            </span>
+            <div className="min-w-0">
+              <p style={SERIF} className="text-xl font-bold text-white sm:text-2xl">{fmtStat(ordersCount)}</p>
+              <p className="text-[11px] leading-tight text-stone-400 sm:text-xs">{t.statsOrders}</p>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Havolalar */}
-      <div className="mx-auto grid max-w-6xl grid-cols-2 gap-8 px-6 py-10 sm:grid-cols-4 sm:px-10">
+      <div className="mx-auto grid max-w-6xl grid-cols-2 gap-x-8 gap-y-10 px-6 py-12 sm:grid-cols-3 sm:px-10">
         <div className="col-span-2 sm:col-span-1">
-          <p style={SERIF} className="text-lg font-semibold text-white">{storeName}</p>
-          <p className="mt-2 text-sm text-stone-400">{t.tagline}</p>
+          <div className="flex items-center gap-2.5">
+            <span
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sm font-bold text-white"
+              style={{ background: "linear-gradient(135deg, #FDA4AF, #E01876)" }}
+            >
+              {(storeName || "?").trim().charAt(0).toUpperCase()}
+            </span>
+            <p style={SERIF} className="text-lg font-semibold text-white">{storeName}</p>
+          </div>
+          <p className="mt-3 text-sm leading-relaxed text-stone-400">{t.tagline}</p>
           {(settings?.instagramLink || settings?.telegramLink || settings?.tiktokLink) && (
-            <div className="mt-4 flex gap-3">
+            <div className="mt-4 flex gap-2.5">
               {settings?.instagramLink && (
-                <a href={settings.instagramLink} target="_blank" rel="noopener noreferrer" className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-stone-300 hover:bg-white/20 hover:text-white">
+                <a
+                  href={settings.instagramLink} target="_blank" rel="noopener noreferrer"
+                  className="flex h-9 w-9 items-center justify-center rounded-xl text-white/80 shadow-sm transition hover:-translate-y-0.5 hover:text-white"
+                  style={{ background: "linear-gradient(135deg, rgba(253,164,175,0.25), rgba(224,24,118,0.25))" }}
+                >
                   <Instagram size={15} />
                 </a>
               )}
               {settings?.telegramLink && (
-                <a href={settings.telegramLink} target="_blank" rel="noopener noreferrer" className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-stone-300 hover:bg-white/20 hover:text-white">
+                <a
+                  href={settings.telegramLink} target="_blank" rel="noopener noreferrer"
+                  className="flex h-9 w-9 items-center justify-center rounded-xl text-white/80 shadow-sm transition hover:-translate-y-0.5 hover:text-white"
+                  style={{ background: "linear-gradient(135deg, rgba(253,164,175,0.25), rgba(224,24,118,0.25))" }}
+                >
                   <Send size={15} />
                 </a>
               )}
               {settings?.tiktokLink && (
-                <a href={settings.tiktokLink} target="_blank" rel="noopener noreferrer" className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-stone-300 hover:bg-white/20 hover:text-white">
+                <a
+                  href={settings.tiktokLink} target="_blank" rel="noopener noreferrer"
+                  className="flex h-9 w-9 items-center justify-center rounded-xl text-white/80 shadow-sm transition hover:-translate-y-0.5 hover:text-white"
+                  style={{ background: "linear-gradient(135deg, rgba(253,164,175,0.25), rgba(224,24,118,0.25))" }}
+                >
                   <Music2 size={15} />
                 </a>
               )}
@@ -139,23 +141,27 @@ export default function StoreFooter({ lang, storeName, settings }) {
           )}
         </div>
         <div>
-          <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-stone-500">{t.shop}</p>
-          <ul className="space-y-2 text-sm text-stone-400">
-            <li>{t.shopAll}</li>
-            <li>{t.shopCategories}</li>
+          <p className="mb-3.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-stone-500">
+            <span className="h-3 w-0.5 rounded-full" style={{ background: "#E01876" }} /> {t.shop}
+          </p>
+          <ul className="space-y-2.5 text-sm text-stone-400">
+            <li><button onClick={onShopAll} className="transition hover:text-white">{t.shopAll}</button></li>
+            <li><button onClick={onCategories} className="transition hover:text-white">{t.shopCategories}</button></li>
           </ul>
         </div>
         <div>
-          <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-stone-500">{t.contact}</p>
-          <ul className="space-y-2 text-sm text-stone-400">
+          <p className="mb-3.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-stone-500">
+            <span className="h-3 w-0.5 rounded-full" style={{ background: "#E01876" }} /> {t.contact}
+          </p>
+          <ul className="space-y-2.5 text-sm text-stone-400">
             {settings?.contactPhone && (
-              <li className="flex items-center gap-1.5"><Phone size={13} className="shrink-0 text-stone-500" /> {settings.contactPhone}</li>
+              <li className="flex items-center gap-1.5"><Phone size={13} className="shrink-0 text-rose-400" /> {settings.contactPhone}</li>
             )}
             {settings?.contactAddress && (
-              <li className="flex items-center gap-1.5"><MapPin size={13} className="shrink-0 text-stone-500" /> {settings.contactAddress}</li>
+              <li className="flex items-center gap-1.5"><MapPin size={13} className="shrink-0 text-rose-400" /> {settings.contactAddress}</li>
             )}
             {formatWorkingHours(settings?.workingHours, lang) && (
-              <li className="flex items-center gap-1.5"><Clock size={13} className="shrink-0 text-stone-500" /> {formatWorkingHours(settings.workingHours, lang)}</li>
+              <li className="flex items-center gap-1.5"><Clock size={13} className="shrink-0 text-rose-400" /> {formatWorkingHours(settings.workingHours, lang)}</li>
             )}
             {!settings?.contactPhone && !settings?.contactAddress && !formatWorkingHours(settings?.workingHours, lang) && (
               <>
@@ -163,12 +169,6 @@ export default function StoreFooter({ lang, storeName, settings }) {
                 <li>{t.delivery}</li>
               </>
             )}
-          </ul>
-        </div>
-        <div>
-          <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-stone-500">{t.about}</p>
-          <ul className="space-y-2 text-sm text-stone-400">
-            <li>{storeName}</li>
           </ul>
         </div>
       </div>
