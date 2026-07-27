@@ -13,6 +13,12 @@ html, body, #root {
   background-color: #FFFFFF;
 }
 
+/* CASME yuklanish ekranidagi uchta nuqtaning ketma-ket "sakrashi" */
+@keyframes casmeDotBounce {
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.5; }
+  40% { transform: translateY(-6px); opacity: 1; }
+}
+
 /* Kategoriya bo'limi ochilganda ishlatiladigan "fade-up" animatsiyasi */
 @keyframes categoryFadeUp {
   from {

@@ -3365,7 +3365,11 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
   // ketib qolish xavfi bo'lmaydi.
   useEffect(() => {
     const tg = getWebApp();
-    if (!tg || !tg.BackButton) return;
+    // BackButton Telegram SDK'sining 6.1+ versiyasida bor. Brauzerda (Telegram
+    // tashqarisida) ochilganda SDK "6.0" deb ko'rsatadi va bu metodlar
+    // chaqirilsa konsolga keraksiz ogohlantirish chiqadi — shuning uchun
+    // avval versiyani tekshiramiz.
+    if (!tg || !tg.BackButton || !tg.isVersionAtLeast?.("6.1")) return;
     const hasLayer = navStackRef.current.length > 0;
     if (hasLayer) tg.BackButton.show(); else tg.BackButton.hide();
     const handler = () => {
@@ -6833,6 +6837,30 @@ export default function App() {
   ];
 
   if (loading) {
+    // Do'kon (mijozlar) tomoni uchun — yalang'och spinner o'rniga CASME
+    // brend yozuvi bilan chiroyliroq "yuklanmoqda" ekrani. Admin panel
+    // uchun esa neytral spinner qoladi (brendlash shart emas).
+    if (route === "store") {
+      return (
+        <div className="flex h-full min-h-screen flex-col items-center justify-center gap-4 bg-white">
+          <p
+            style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
+            className="text-4xl font-bold tracking-wide text-stone-900"
+          >
+            CASME
+          </p>
+          <div className="flex gap-1.5">
+            {[0, 1, 2].map((i) => (
+              <span
+                key={i}
+                className="h-2 w-2 rounded-full bg-rose-500"
+                style={{ animation: "casmeDotBounce 1s ease-in-out infinite", animationDelay: `${i * 0.15}s` }}
+              />
+            ))}
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="flex h-full min-h-[500px] items-center justify-center bg-gray-50">
         <Loader2 className="animate-spin text-rose-500" size={28} />

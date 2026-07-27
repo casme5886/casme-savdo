@@ -55,9 +55,16 @@ export function applyTelegramTheme(tg) {
   if (p.bg_color) {
     document.body.style.backgroundColor = p.bg_color;
   }
+  // setBackgroundColor/setHeaderColor Telegram Mini App SDK'sining 6.1+
+  // versiyasida qo'llab-quvvatlanadi. Sayt oddiy brauzerda (Telegram
+  // tashqarisida) ochilganda SDK o'zini "6.0" versiya deb ko'rsatadi va bu
+  // metodlar chaqirilsa konsolga keraksiz ogohlantirish chiqaradi — shuning
+  // uchun avval versiyani tekshiramiz.
   try {
-    tg.setBackgroundColor?.(p.bg_color || "#ffffff");
-    tg.setHeaderColor?.(p.bg_color || "#ffffff");
+    if (tg.isVersionAtLeast?.("6.1")) {
+      tg.setBackgroundColor?.(p.bg_color || "#ffffff");
+      tg.setHeaderColor?.(p.bg_color || "#ffffff");
+    }
   } catch {
     // Eski Telegram versiyalarida bu metodlar bo'lmasligi mumkin — e'tiborsiz qoldiramiz.
   }
