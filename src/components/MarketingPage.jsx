@@ -35,6 +35,8 @@ const T_LOCAL = {
     save: "Saqlash", saving: "Saqlanmoqda...", cancel: "Bekor qilish", required: "Kod va qiymatni kiriting",
 
     discTitle: "Mega Chegirmalar", discSearchPh: "Mahsulot izlash...",
+    discHint: "Belgilangan mahsulotlar saytdagi \"Mega Chegirmalar\" bo'limida (bosh sahifada) ko'rinadi.",
+    discSelectedCount: "ta yoqilgan",
     discNone: "Chegirma yo'q", discOn: "Yoqish", discOff: "Bekor qilish", discPercentPh: "%",
     discEmpty: "Mahsulot topilmadi",
     discFilterBtn: "Filtr", discClearFilters: "Filtrlarni tozalash", discTabAll: "Barchasi", discOnlyDiscounted: "Faqat chegirmadagilar",
@@ -82,6 +84,8 @@ const T_LOCAL = {
     save: "Сохранить", saving: "Сохранение...", cancel: "Отмена", required: "Укажите код и значение",
 
     discTitle: "Мега скидки", discSearchPh: "Поиск товара...",
+    discHint: "Отмеченные товары появятся в разделе \"Мега скидки\" на главной странице сайта.",
+    discSelectedCount: "включено",
     discNone: "Нет скидки", discOn: "Включить", discOff: "Отменить", discPercentPh: "%",
     discEmpty: "Товар не найден",
     discFilterBtn: "Фильтр", discClearFilters: "Сбросить фильтры", discTabAll: "Все", discOnlyDiscounted: "Только со скидкой",
@@ -320,6 +324,10 @@ function ProductDiscounts({ lang, t, products }) {
       .filter((p) => !(p.oldPrice > p.price && !p.megaDiscountActive)),
     [products, search, lang, catFilter, brandFilter, onlyDiscounted]
   );
+  const selectedCount = useMemo(
+    () => (products || []).filter((p) => p.oldPrice > p.price && p.megaDiscountActive).length,
+    [products]
+  );
   const activeFilterCount = (catFilter !== "all" ? 1 : 0) + (brandFilter !== "all" ? 1 : 0) + (onlyDiscounted ? 1 : 0);
   const clearAllFilters = () => { setCatFilter("all"); setBrandFilter("all"); setOnlyDiscounted(false); };
 
@@ -342,8 +350,20 @@ function ProductDiscounts({ lang, t, products }) {
 
   return (
     <div className="rounded-2xl bg-white p-4 shadow-sm">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold text-slate-800">{t.discTitle}</h3>
+      <div className="mb-1 flex items-center gap-2">
+        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-rose-50 text-rose-600">
+          <Percent size={17} />
+        </span>
+        <div>
+          <h3 className="text-sm font-semibold text-slate-800">{t.discTitle}</h3>
+          <p className="text-xs text-slate-400">{t.discHint}</p>
+        </div>
+      </div>
+
+      <div className="my-3 flex flex-wrap items-center justify-between gap-2">
+        {selectedCount > 0 ? (
+          <p className="text-xs font-medium text-rose-600">{selectedCount} {t.discSelectedCount}</p>
+        ) : <span />}
         <div className="flex flex-wrap items-center gap-2">
           <div className="relative">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -426,8 +446,9 @@ function ProductDiscounts({ lang, t, products }) {
             const hasDiscount = p.oldPrice > p.price;
             const pct = hasDiscount ? discountPct(p.price, p.oldPrice) : 0;
             const busy = busyId === p.id;
+            const canEnable = !!pctInputs[p.id];
             return (
-              <div key={p.id} className="flex flex-wrap items-center gap-2 rounded-lg border border-gray-100 p-2">
+              <div key={p.id} className={`flex flex-wrap items-center gap-2 rounded-lg border p-2 ${hasDiscount ? "border-rose-200 bg-rose-50/50" : "border-gray-100"}`}>
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gray-50 text-slate-300">
                   {thumb ? <img src={thumb} alt="" className="h-full w-full object-cover" /> : <Package size={14} />}
                 </div>
@@ -443,19 +464,10 @@ function ProductDiscounts({ lang, t, products }) {
                     )}
                   </p>
                 </div>
-                {hasDiscount ? (
-                  <div className="flex shrink-0 items-center gap-1.5">
+                <div className="flex shrink-0 items-center gap-1.5">
+                  {hasDiscount ? (
                     <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[11px] font-semibold text-rose-600">-{pct}%</span>
-                    <button
-                      onClick={() => disable(p)}
-                      disabled={busy}
-                      className="rounded-lg border border-gray-200 px-2 py-1 text-[11px] font-medium text-slate-500 hover:bg-gray-50 disabled:opacity-60"
-                    >
-                      {busy ? <Loader2 size={12} className="animate-spin" /> : t.discOff}
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex shrink-0 items-center gap-1.5">
+                  ) : (
                     <input
                       type="number"
                       min="1"
@@ -465,15 +477,17 @@ function ProductDiscounts({ lang, t, products }) {
                       onChange={(e) => setPctInputs((prev) => ({ ...prev, [p.id]: e.target.value }))}
                       className="w-14 rounded-lg border border-gray-200 px-2 py-1 text-[11px] outline-none focus:border-emerald-500"
                     />
-                    <button
-                      onClick={() => enable(p)}
-                      disabled={busy || !pctInputs[p.id]}
-                      className="rounded-lg bg-emerald-600 px-2 py-1 text-[11px] font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
-                    >
-                      {busy ? <Loader2 size={12} className="animate-spin" /> : t.discOn}
-                    </button>
-                  </div>
-                )}
+                  )}
+                  {busy ? (
+                    <Loader2 size={16} className="shrink-0 animate-spin text-rose-500" />
+                  ) : (
+                    <Toggle
+                      checked={hasDiscount}
+                      onChange={() => { if (hasDiscount) disable(p); else if (canEnable) enable(p); }}
+                      disabled={!hasDiscount && !canEnable}
+                    />
+                  )}
+                </div>
               </div>
             );
           })}
