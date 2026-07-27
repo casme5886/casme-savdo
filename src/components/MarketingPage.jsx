@@ -305,12 +305,19 @@ function ProductDiscounts({ lang, t, products }) {
     [products]
   );
 
+  // Mahsulot yaratishda ("Narx" + "Eski narx / chegirmadan oldingi narx"
+  // maydonlari) to'g'ridan-to'g'ri kiritilgan chegirma — bu "oddiy" chegirma
+  // hisoblanadi va Mega Chegirmalar bo'limida BOSHQARILMAYDI (ro'yxatda
+  // ko'rinmaydi). Faqat shu bo'lim orqali (pastdagi % + Yoqish tugmasi bilan)
+  // yoqilgan chegirmalar `megaDiscountActive: true` belgisiga ega bo'ladi va
+  // shu ro'yxatda boshqariladi.
   const filtered = useMemo(
     () => (products || [])
       .filter((p) => pname(p, lang).toLowerCase().includes(search.toLowerCase()))
       .filter((p) => catFilter === "all" || p.category === catFilter)
       .filter((p) => brandFilter === "all" || p.brand === brandFilter)
-      .filter((p) => !onlyDiscounted || p.oldPrice > p.price),
+      .filter((p) => !onlyDiscounted || p.oldPrice > p.price)
+      .filter((p) => !(p.oldPrice > p.price && !p.megaDiscountActive)),
     [products, search, lang, catFilter, brandFilter, onlyDiscounted]
   );
   const activeFilterCount = (catFilter !== "all" ? 1 : 0) + (brandFilter !== "all" ? 1 : 0) + (onlyDiscounted ? 1 : 0);
@@ -322,14 +329,14 @@ function ProductDiscounts({ lang, t, products }) {
     setBusyId(p.id);
     const original = Number(p.price) || 0;
     const newPrice = Math.round(original * (1 - pct / 100));
-    await updateItem("products", p.id, { oldPrice: original, price: newPrice });
+    await updateItem("products", p.id, { oldPrice: original, price: newPrice, megaDiscountActive: true });
     setBusyId(null);
     setPctInputs((prev) => ({ ...prev, [p.id]: "" }));
   };
 
   const disable = async (p) => {
     setBusyId(p.id);
-    await updateItem("products", p.id, { price: p.oldPrice, oldPrice: 0 });
+    await updateItem("products", p.id, { price: p.oldPrice, oldPrice: 0, megaDiscountActive: false });
     setBusyId(null);
   };
 
