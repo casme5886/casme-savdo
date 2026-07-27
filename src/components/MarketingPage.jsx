@@ -10,7 +10,7 @@ import {
 import {
   subscribeCollection, updateItem, deleteItem, setItem,
 } from "../storage.js";
-import { Modal, Field, EmptyState, inputCls, uid, fmtMoney, pname, discountPct, Toggle } from "./ui.jsx";
+import { Modal, Field, EmptyState, inputCls, uid, fmtMoney, pname, Toggle } from "./ui.jsx";
 
 const T_LOCAL = {
   uz: {
@@ -290,15 +290,22 @@ function StorewideSale({ lang, t, products, saleSettings }) {
   );
 }
 
-/** Har bir mahsulotga alohida chegirma yoqish/bekor qilish — mavjud price/oldPrice maydonlaridan foydalanadi. */
+/**
+ * "Mega Chegirmalar" — bosh sahifadagi maxsus reklama qatorida ko'rinadigan
+ * mahsulotlarni bitta ro'yxatdan (qidiruv bilan) belgilash/olib tashlash.
+ * Ichki mexanizm — mahsulotning bitta `megaDiscountActive` (true/false)
+ * maydoni, xuddi "Xit mahsulotlar"dagi `tag` kabi. MUHIM: bu yerda narx
+ * bilan hech qanday bog'liqlik yo'q — mahsulotni foiz yozmasdan ham shu
+ * ro'yxatga qo'shish mumkin, va mahsulot yaratishda "Narx"/"Eski narx"
+ * maydonlariga kiritilgan chegirma bu yerga umuman ta'sir qilmaydi.
+ */
 function ProductDiscounts({ lang, t, products }) {
   const [search, setSearch] = useState("");
-  const [pctInputs, setPctInputs] = useState({});
   const [busyId, setBusyId] = useState(null);
   const [filterOpen, setFilterOpen] = useState(false);
   const [catFilter, setCatFilter] = useState("all");
   const [brandFilter, setBrandFilter] = useState("all");
-  const [onlyDiscounted, setOnlyDiscounted] = useState(false);
+  const [onlySelected, setOnlySelected] = useState(false);
 
   const categories = useMemo(
     () => Array.from(new Set((products || []).map((p) => p.category).filter(Boolean))).sort(),
@@ -309,42 +316,24 @@ function ProductDiscounts({ lang, t, products }) {
     [products]
   );
 
-  // Mahsulot yaratishda ("Narx" + "Eski narx / chegirmadan oldingi narx"
-  // maydonlari) to'g'ridan-to'g'ri kiritilgan chegirma — bu "oddiy" chegirma
-  // hisoblanadi va Mega Chegirmalar bo'limida BOSHQARILMAYDI (ro'yxatda
-  // ko'rinmaydi). Faqat shu bo'lim orqali (pastdagi % + Yoqish tugmasi bilan)
-  // yoqilgan chegirmalar `megaDiscountActive: true` belgisiga ega bo'ladi va
-  // shu ro'yxatda boshqariladi.
   const filtered = useMemo(
     () => (products || [])
       .filter((p) => pname(p, lang).toLowerCase().includes(search.toLowerCase()))
       .filter((p) => catFilter === "all" || p.category === catFilter)
       .filter((p) => brandFilter === "all" || p.brand === brandFilter)
-      .filter((p) => !onlyDiscounted || p.oldPrice > p.price)
-      .filter((p) => !(p.oldPrice > p.price && !p.megaDiscountActive)),
-    [products, search, lang, catFilter, brandFilter, onlyDiscounted]
+      .filter((p) => !onlySelected || p.megaDiscountActive === true),
+    [products, search, lang, catFilter, brandFilter, onlySelected]
   );
   const selectedCount = useMemo(
-    () => (products || []).filter((p) => p.oldPrice > p.price && p.megaDiscountActive).length,
+    () => (products || []).filter((p) => p.megaDiscountActive === true).length,
     [products]
   );
-  const activeFilterCount = (catFilter !== "all" ? 1 : 0) + (brandFilter !== "all" ? 1 : 0) + (onlyDiscounted ? 1 : 0);
-  const clearAllFilters = () => { setCatFilter("all"); setBrandFilter("all"); setOnlyDiscounted(false); };
+  const activeFilterCount = (catFilter !== "all" ? 1 : 0) + (brandFilter !== "all" ? 1 : 0) + (onlySelected ? 1 : 0);
+  const clearAllFilters = () => { setCatFilter("all"); setBrandFilter("all"); setOnlySelected(false); };
 
-  const enable = async (p) => {
-    const pct = Number(pctInputs[p.id]);
-    if (!pct || pct <= 0 || pct >= 100) return;
+  const toggleMega = async (p) => {
     setBusyId(p.id);
-    const original = Number(p.price) || 0;
-    const newPrice = Math.round(original * (1 - pct / 100));
-    await updateItem("products", p.id, { oldPrice: original, price: newPrice, megaDiscountActive: true });
-    setBusyId(null);
-    setPctInputs((prev) => ({ ...prev, [p.id]: "" }));
-  };
-
-  const disable = async (p) => {
-    setBusyId(p.id);
-    await updateItem("products", p.id, { price: p.oldPrice, oldPrice: 0, megaDiscountActive: false });
+    await updateItem("products", p.id, { megaDiscountActive: !p.megaDiscountActive });
     setBusyId(null);
   };
 
@@ -391,7 +380,7 @@ function ProductDiscounts({ lang, t, products }) {
           )}
 
           <label className="flex w-fit cursor-pointer items-center gap-2 text-xs font-medium text-slate-600">
-            <input type="checkbox" checked={onlyDiscounted} onChange={(e) => setOnlyDiscounted(e.target.checked)} className="h-3.5 w-3.5 accent-rose-600" />
+            <input type="checkbox" checked={onlySelected} onChange={(e) => setOnlySelected(e.target.checked)} className="h-3.5 w-3.5 accent-rose-600" />
             {t.discOnlyDiscounted}
           </label>
 
@@ -443,51 +432,18 @@ function ProductDiscounts({ lang, t, products }) {
         <div className="max-h-80 space-y-1.5 overflow-y-auto">
           {filtered.map((p) => {
             const thumb = (p.imageUrls && p.imageUrls[0]) || p.imageUrl || "";
-            const hasDiscount = p.oldPrice > p.price;
-            const pct = hasDiscount ? discountPct(p.price, p.oldPrice) : 0;
+            const isSelected = p.megaDiscountActive === true;
             const busy = busyId === p.id;
-            const canEnable = !!pctInputs[p.id];
             return (
-              <div key={p.id} className={`flex flex-wrap items-center gap-2 rounded-lg border p-2 ${hasDiscount ? "border-rose-200 bg-rose-50/50" : "border-gray-100"}`}>
+              <div key={p.id} className={`flex items-center gap-2 rounded-lg border p-2 ${isSelected ? "border-rose-200 bg-rose-50/50" : "border-gray-100"}`}>
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gray-50 text-slate-300">
                   {thumb ? <img src={thumb} alt="" className="h-full w-full object-cover" /> : <Package size={14} />}
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-xs font-medium text-slate-700">{pname(p, lang)}</p>
-                  <p className="text-[11px] text-slate-400">
-                    {hasDiscount ? (
-                      <>
-                        <span className="text-rose-500 line-through">{fmtMoney(p.oldPrice)}</span> {fmtMoney(p.price)} UZS
-                      </>
-                    ) : (
-                      `${fmtMoney(p.price)} UZS`
-                    )}
-                  </p>
+                  <p className="text-[11px] text-slate-400">{fmtMoney(p.price)} UZS</p>
                 </div>
-                <div className="flex shrink-0 items-center gap-1.5">
-                  {hasDiscount ? (
-                    <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[11px] font-semibold text-rose-600">-{pct}%</span>
-                  ) : (
-                    <input
-                      type="number"
-                      min="1"
-                      max="99"
-                      placeholder="%"
-                      value={pctInputs[p.id] || ""}
-                      onChange={(e) => setPctInputs((prev) => ({ ...prev, [p.id]: e.target.value }))}
-                      className="w-14 rounded-lg border border-gray-200 px-2 py-1 text-[11px] outline-none focus:border-emerald-500"
-                    />
-                  )}
-                  {busy ? (
-                    <Loader2 size={16} className="shrink-0 animate-spin text-rose-500" />
-                  ) : (
-                    <Toggle
-                      checked={hasDiscount}
-                      onChange={() => { if (hasDiscount) disable(p); else if (canEnable) enable(p); }}
-                      disabled={!hasDiscount && !canEnable}
-                    />
-                  )}
-                </div>
+                <Toggle checked={isSelected} onChange={() => !busy && toggleMega(p)} disabled={busy} />
               </div>
             );
           })}

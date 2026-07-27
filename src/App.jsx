@@ -3694,8 +3694,10 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
   );
   const brandFiltered = sortSoldOutLast(products.filter(p => activeBrand === t.store.allBrands || p.brand === activeBrand));
 
-  // "Mega Chegirma" sahifasi uchun — barcha chegirmadagi mahsulotlar, qidiruv/kategoriya/saralash bilan
-  const discountedProducts = useMemo(() => products.filter(p => p.oldPrice > p.price), [products]);
+  // "Mega Chegirma" sahifasi uchun — admin tomonidan Marketing sahifasida
+  // maxsus BELGILANGAN mahsulotlar (narxida haqiqiy chegirma bo'lishi shart
+  // emas — bu alohida, qo'lda tanlanadigan reklama ro'yxati).
+  const discountedProducts = useMemo(() => products.filter(p => p.megaDiscountActive === true), [products]);
   const discountCategories = useMemo(() => {
     const names = new Set(discountedProducts.map(p => p.category).filter(Boolean));
     return categories.filter(c => names.has(c.name));
@@ -4268,14 +4270,14 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
         </div>
       )}
 
-      {/* Chegirmadagi mahsulotlar — narxi kamaytirilgan mahsulotlar, bitta gorizontal qatorda */}
-      {!search && !activeCollection && products.some(p => p.oldPrice > p.price) && (
+      {/* Mega Chegirmalar — admin tomonidan Marketing sahifasida belgilangan mahsulotlar, bitta gorizontal qatorda */}
+      {!search && !activeCollection && discountedProducts.length > 0 && (
         <div className="px-0 pt-10 min-[769px]:px-6">
           <div className="rounded-[28px] px-0 pb-7 pt-[6px] min-[769px]:p-[36px] min-[769px]:pb-8" style={{ background: "#B03060" }}>
           <div className="relative">
             <div ref={discountViewportRef} className="embla-viewport">
             <div className="embla-container gap-0 pl-3 min-[769px]:gap-2 min-[769px]:pl-0">
-              {sortSoldOutLast(products.filter(p => p.oldPrice > p.price)).map(p => {
+              {sortSoldOutLast(discountedProducts).map(p => {
               const inCart = cart[p.id] || 0;
               const stockType = p.stockType || "limited";
               const soldOut = stockType === "out" || (stockType === "limited" && (p.stock || 0) <= 0);
