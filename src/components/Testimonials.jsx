@@ -71,7 +71,7 @@ export default function Testimonials({ testimonials, products, lang, t, onProduc
                 >
                   {item.imageUrl && (
                     <div className="h-40 w-full shrink-0 overflow-hidden bg-stone-100">
-                      <img src={item.imageUrl} alt={item.name} className="h-full w-full object-cover" draggable={false} onDragStart={(e) => e.preventDefault()} />
+                      <img loading="lazy" src={item.imageUrl} alt={item.name} className="h-full w-full object-cover" draggable={false} onDragStart={(e) => e.preventDefault()} />
                     </div>
                   )}
                   <div className="flex flex-1 flex-col p-5">
@@ -90,7 +90,7 @@ export default function Testimonials({ testimonials, products, lang, t, onProduc
                       className="mb-4 flex items-center gap-2 rounded-2xl bg-rose-50/70 p-2 text-left transition hover:bg-rose-50"
                     >
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white text-stone-300">
-                        {thumb ? <img src={thumb} alt="" className="h-full w-full object-contain p-1" /> : <Package size={16} />}
+                        {thumb ? <img loading="lazy" src={thumb} alt="" className="h-full w-full object-contain p-1" /> : <Package size={16} />}
                       </div>
                       <div className="min-w-0">
                         <p className="truncate text-xs font-medium text-stone-700">{pname(product, lang)}</p>

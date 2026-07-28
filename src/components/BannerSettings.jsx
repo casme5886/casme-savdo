@@ -292,7 +292,7 @@ export default function BannerSettings({ lang, banners, products, categories, br
             <div key={b.id} className="flex items-center gap-3 rounded-xl border border-gray-100 p-3">
               <div className="flex h-14 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gray-50 text-slate-300">
                 {b.desktopImage || b.mobileImage ? (
-                  <img src={b.desktopImage || b.mobileImage} alt="" className="h-full w-full object-cover" />
+                  <img loading="lazy" src={b.desktopImage || b.mobileImage} alt="" className="h-full w-full object-cover" />
                 ) : (
                   <ImageOff size={20} />
                 )}
@@ -382,7 +382,7 @@ export default function BannerSettings({ lang, banners, products, categories, br
           <Field label={t.desktop}>
             <div className="mb-2 w-full overflow-hidden rounded-lg bg-gray-50" style={{ aspectRatio: "1920 / 600" }}>
               {form.desktopImage ? (
-                <img src={form.desktopImage} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: form.desktopImagePosition }} />
+                <img loading="lazy" src={form.desktopImage} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: form.desktopImagePosition }} />
               ) : (
                 <div className="flex h-full w-full items-center justify-center">
                   <span className="text-xs text-slate-400">{t.noImage}</span>
@@ -430,7 +430,7 @@ export default function BannerSettings({ lang, banners, products, categories, br
           <Field label={t.mobile}>
             <div className="mb-2 w-full max-w-[220px] overflow-hidden rounded-lg bg-gray-50" style={{ aspectRatio: "800 / 1150" }}>
               {form.mobileImage ? (
-                <img src={form.mobileImage} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: form.mobileImagePosition }} />
+                <img loading="lazy" src={form.mobileImage} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: form.mobileImagePosition }} />
               ) : (
                 <div className="flex h-full w-full items-center justify-center">
                   <span className="text-xs text-slate-400">{t.noImage}</span>
@@ -596,7 +596,7 @@ export default function BannerSettings({ lang, banners, products, categories, br
                   <label key={p.id} className={`flex cursor-pointer items-center gap-2 rounded-lg p-1.5 text-xs ${checked ? "bg-emerald-50" : "hover:bg-gray-50"}`}>
                     <input type="checkbox" checked={checked} onChange={() => toggleLinkedProduct(p.id)} className="rounded" />
                     <div className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded bg-gray-100 text-slate-300">
-                      {thumb ? <img src={thumb} alt="" className="h-full w-full object-cover" /> : <Package size={12} />}
+                      {thumb ? <img loading="lazy" src={thumb} alt="" className="h-full w-full object-cover" /> : <Package size={12} />}
                     </div>
                     <span className="flex-1 truncate">{pname(p, lang)}</span>
                     <span className="shrink-0 text-slate-400">{fmtMoney(p.price)}</span>

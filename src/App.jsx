@@ -547,7 +547,7 @@ function ProfileOrderCard({ order, t, reviewedKeys, onReview }) {
               <div key={idx} className="flex items-center gap-2">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-rose-50 text-stone-300">
                   {it.imageUrl ? (
-                    <img src={it.imageUrl} alt="" className="h-full w-full object-cover" />
+                    <img loading="lazy" src={it.imageUrl} alt="" className="h-full w-full object-cover" />
                   ) : (
                     <Package size={16} />
                   )}
@@ -646,7 +646,7 @@ function ReviewFormModal({ order, item, lang, myName, myPhone, testimonialsCount
         <>
           <div className="mb-3 flex items-center gap-2 rounded-lg bg-gray-50 p-2">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white text-stone-300">
-              {item.imageUrl ? <img src={item.imageUrl} alt="" className="h-full w-full object-cover" /> : <Package size={16} />}
+              {item.imageUrl ? <img loading="lazy" src={item.imageUrl} alt="" className="h-full w-full object-cover" /> : <Package size={16} />}
             </div>
             <p className="min-w-0 flex-1 truncate text-xs font-medium text-stone-600">{item.productName}</p>
           </div>
@@ -674,7 +674,7 @@ function ReviewFormModal({ order, item, lang, myName, myPhone, testimonialsCount
             <div className="flex items-center gap-3">
               {imageUrl && (
                 <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-gray-50">
-                  <img src={imageUrl} alt="" className="h-full w-full object-cover" />
+                  <img loading="lazy" src={imageUrl} alt="" className="h-full w-full object-cover" />
                 </div>
               )}
               <label className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-gray-50">
@@ -952,7 +952,7 @@ function DashboardPage({ lang, orders, customers, products, setPage }) {
                 <div key={p.productId || i} className="flex items-center gap-3 rounded-xl border border-gray-100 p-2.5">
                   <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-xs font-semibold text-emerald-600">{i + 1}</span>
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gray-50 text-slate-300">
-                    {p.imageUrl ? <img src={p.imageUrl} alt="" className="h-full w-full object-cover" /> : <Package size={14} />}
+                    {p.imageUrl ? <img loading="lazy" src={p.imageUrl} alt="" className="h-full w-full object-cover" /> : <Package size={14} />}
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium text-slate-700">{p.productName}</p>
@@ -1243,7 +1243,7 @@ function OrdersPage({ lang, orders, setOrders, customers }) {
                       <div className="flex items-center gap-1.5">
                         <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gray-50 text-slate-300">
                           {o.items[0].imageUrl ? (
-                            <img src={o.items[0].imageUrl} alt="" className="h-full w-full object-cover" />
+                            <img loading="lazy" src={o.items[0].imageUrl} alt="" className="h-full w-full object-cover" />
                           ) : (
                             <Package size={14} />
                           )}
@@ -1481,7 +1481,7 @@ function OrderDetailModal({ order, t, onClose, onChangeStatus }) {
                 <div key={i} className="flex items-center gap-3 rounded-xl border border-gray-100 p-2.5">
                   <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gray-50 text-slate-300">
                     {it.imageUrl ? (
-                      <img src={it.imageUrl} alt={it.productName} className="h-full w-full object-cover" />
+                      <img loading="lazy" src={it.imageUrl} alt={it.productName} className="h-full w-full object-cover" />
                     ) : (
                       <Package size={18} />
                     )}
@@ -1884,7 +1884,7 @@ function CustomerDetailModal({ customer, orders, t, onClose, onEdit, onSelectOrd
                         {items.slice(0, 5).map((it, i) => (
                           <div key={i} className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-white bg-gray-50 text-slate-300 shadow-sm">
                             {it.imageUrl ? (
-                              <img src={it.imageUrl} alt={it.productName} className="h-full w-full object-cover" />
+                              <img loading="lazy" src={it.imageUrl} alt={it.productName} className="h-full w-full object-cover" />
                             ) : (
                               <Package size={14} />
                             )}
@@ -2019,7 +2019,7 @@ function TaxonomyModal({ title, items, collectionName, productField, products, o
                 {uploadingId === item.id ? (
                   <Loader2 size={14} className="animate-spin text-emerald-600" />
                 ) : item.imageUrl ? (
-                  <img src={item.imageUrl} alt="" className="h-full w-full object-cover" />
+                  <img loading="lazy" src={item.imageUrl} alt="" className="h-full w-full object-cover" />
                 ) : (
                   <ImageIcon size={14} />
                 )}
@@ -2098,7 +2098,7 @@ function CollectionsModal({ lang, collections, products, categories, brands, onC
             {sorted.map((item, i) => (
               <div key={item.id} className="flex items-center gap-2 rounded-lg border border-gray-100 p-2">
                 <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gray-50 text-slate-300">
-                  {item.imageUrl ? <img src={item.imageUrl} alt="" className="h-full w-full object-cover" /> : <ImageIcon size={16} />}
+                  {item.imageUrl ? <img loading="lazy" src={item.imageUrl} alt="" className="h-full w-full object-cover" /> : <ImageIcon size={16} />}
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium text-slate-700">{collectionTitle(item, lang) || "—"}</p>
@@ -2235,7 +2235,7 @@ function CollectionFormModal({ lang, item, collections, products, categories, br
       <Field label={t.products.collectionImage}>
         <div className="flex items-center gap-3">
           <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gray-50 text-slate-300">
-            {imageUrl ? <img src={imageUrl} alt="" className="h-full w-full object-cover" /> : <ImageIcon size={20} />}
+            {imageUrl ? <img loading="lazy" src={imageUrl} alt="" className="h-full w-full object-cover" /> : <ImageIcon size={20} />}
           </div>
           <label className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-gray-50">
             {uploading ? <Loader2 size={14} className="animate-spin" /> : null}
@@ -2344,7 +2344,7 @@ function CollectionFormModal({ lang, item, collections, products, categories, br
               <label key={p.id} className={`flex cursor-pointer items-center gap-2 rounded-lg p-1.5 text-xs ${checked ? "bg-emerald-50" : "hover:bg-gray-50"}`}>
                 <input type="checkbox" checked={checked} onChange={() => toggleProduct(p.id)} className="rounded" />
                 <div className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded bg-gray-100 text-slate-300">
-                  {thumb ? <img src={thumb} alt="" className="h-full w-full object-cover" /> : <Package size={12} />}
+                  {thumb ? <img loading="lazy" src={thumb} alt="" className="h-full w-full object-cover" /> : <Package size={12} />}
                 </div>
                 <span className="flex-1 truncate">{pname(p, lang)}</span>
               </label>
@@ -2651,7 +2651,7 @@ function ProductsPage({ lang, products, categories, brands, collections }) {
                     <div className="flex items-center gap-2">
                       <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gray-50 text-slate-300">
                         {productThumb(p) ? (
-                          <img src={productThumb(p)} alt={pname(p, lang)} className="h-full w-full object-cover" onError={(e) => { e.target.style.display = "none"; }} />
+                          <img loading="lazy" src={productThumb(p)} alt={pname(p, lang)} className="h-full w-full object-cover" onError={(e) => { e.target.style.display = "none"; }} />
                         ) : (
                           <Package size={14} />
                         )}
@@ -4157,7 +4157,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2.5">
             {storeSettings?.logoUrl ? (
-              <img src={storeSettings.logoUrl} alt="" className="h-9 w-9 shrink-0 rounded-xl object-cover" />
+              <img loading="lazy" src={storeSettings.logoUrl} alt="" className="h-9 w-9 shrink-0 rounded-xl object-cover" />
             ) : (
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-stone-900 text-white">
                 <ShoppingBag size={18} />
@@ -4294,7 +4294,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                 >
                   <div className="relative mb-2.5 aspect-square overflow-hidden rounded-xl border border-white/25 bg-white/10 backdrop-blur-md text-white/40">
                     {thumb ? (
-                      <img src={thumb} alt={name} className="h-full w-full object-contain p-1 transition-transform duration-300 ease-out group-hover:scale-105" draggable={false} onDragStart={(e) => e.preventDefault()} />
+                      <img loading="lazy" src={thumb} alt={name} className="h-full w-full object-contain p-1 transition-transform duration-300 ease-out group-hover:scale-105" draggable={false} onDragStart={(e) => e.preventDefault()} />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center"><Package size={32} strokeWidth={1.3} /></div>
                     )}
@@ -4403,7 +4403,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                 >
                   <div className={`relative mb-2 aspect-square overflow-hidden rounded-xl text-stone-300 ${p.tint || "bg-gray-50"}`}>
                     {thumb ? (
-                      <img src={thumb} alt={name} className="h-full w-full object-cover transition-transform duration-300 ease-out group-hover:scale-105" draggable={false} onDragStart={(e) => e.preventDefault()} />
+                      <img loading="lazy" src={thumb} alt={name} className="h-full w-full object-cover transition-transform duration-300 ease-out group-hover:scale-105" draggable={false} onDragStart={(e) => e.preventDefault()} />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center"><Package size={24} strokeWidth={1.3} /></div>
                     )}
@@ -4519,7 +4519,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                               >
                                 <div className="relative mb-1.5 aspect-square overflow-hidden rounded-xl border border-white/25 bg-white/10 backdrop-blur-md text-white/40">
                                   {thumb ? (
-                                    <img src={thumb} alt={name} className="relative h-full w-full object-contain p-1.5 transition-transform duration-300 ease-out group-hover:scale-105" draggable={false} onDragStart={(e) => e.preventDefault()} />
+                                    <img loading="lazy" src={thumb} alt={name} className="relative h-full w-full object-contain p-1.5 transition-transform duration-300 ease-out group-hover:scale-105" draggable={false} onDragStart={(e) => e.preventDefault()} />
                                   ) : (
                                     <div className="flex h-full w-full items-center justify-center"><Package size={22} strokeWidth={1.3} /></div>
                                   )}
@@ -4652,7 +4652,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                         <span className="flex items-center gap-1 rounded-full bg-white/95 py-0.5 pl-0.5 pr-2 shadow-sm">
                           <span className="flex h-4 w-4 shrink-0 items-center justify-center overflow-hidden rounded-full bg-rose-50 text-stone-300">
                             {brandInfo?.imageUrl ? (
-                              <img src={brandInfo.imageUrl} alt="" className="h-full w-full object-cover" />
+                              <img loading="lazy" src={brandInfo.imageUrl} alt="" className="h-full w-full object-cover" />
                             ) : (
                               <Tag size={8} />
                             )}
@@ -4858,7 +4858,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                     >
                       <div className="relative mb-2.5 aspect-square overflow-hidden rounded-xl bg-white text-stone-300">
                         {thumb ? (
-                          <img src={thumb} alt={name} className="h-full w-full object-contain p-2" draggable={false} onDragStart={(e) => e.preventDefault()} />
+                          <img loading="lazy" src={thumb} alt={name} className="h-full w-full object-contain p-2" draggable={false} onDragStart={(e) => e.preventDefault()} />
                         ) : (
                           <div className="flex h-full w-full items-center justify-center"><Package size={28} strokeWidth={1.3} /></div>
                         )}
@@ -5001,7 +5001,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                     >
                       <div className="relative mb-2.5 aspect-square overflow-hidden rounded-xl bg-white text-stone-300">
                         {thumb ? (
-                          <img src={thumb} alt={name} className="h-full w-full object-contain p-2" draggable={false} onDragStart={(e) => e.preventDefault()} />
+                          <img loading="lazy" src={thumb} alt={name} className="h-full w-full object-contain p-2" draggable={false} onDragStart={(e) => e.preventDefault()} />
                         ) : (
                           <div className="flex h-full w-full items-center justify-center"><Package size={28} strokeWidth={1.3} /></div>
                         )}
@@ -5118,7 +5118,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                             style={{ boxShadow: "inset 0 2px 4px rgba(0,0,0,0.12), inset 0 -1px 2px rgba(255,255,255,0.8)" }}
                           >
                             {thumb ? (
-                              <img src={thumb} alt={c.name} className="h-full w-full object-cover" />
+                              <img loading="lazy" src={thumb} alt={c.name} className="h-full w-full object-cover" />
                             ) : (
                               <Package size={26} className="text-stone-400" />
                             )}
@@ -5154,7 +5154,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                           style={{ boxShadow: "inset 0 2px 4px rgba(0,0,0,0.12), inset 0 -1px 2px rgba(255,255,255,0.8)" }}
                         >
                           {thumb ? (
-                            <img src={thumb} alt={b.name} className="h-full w-full object-cover" />
+                            <img loading="lazy" src={thumb} alt={b.name} className="h-full w-full object-cover" />
                           ) : (
                             <Tag size={26} className="text-stone-400" />
                           )}
@@ -5256,7 +5256,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                       >
                         <div className="relative mb-2.5 aspect-square overflow-hidden rounded-xl bg-white text-stone-300">
                           {thumb ? (
-                            <img src={thumb} alt={name} className="h-full w-full object-contain p-2" draggable={false} onDragStart={(e) => e.preventDefault()} />
+                            <img loading="lazy" src={thumb} alt={name} className="h-full w-full object-contain p-2" draggable={false} onDragStart={(e) => e.preventDefault()} />
                           ) : (
                             <div className="flex h-full w-full items-center justify-center"><Package size={28} strokeWidth={1.3} /></div>
                           )}
@@ -5324,7 +5324,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                           >
                             <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-stone-100">
                               {thumb ? (
-                                <img src={thumb} alt={c.name} className="h-full w-full object-cover" />
+                                <img loading="lazy" src={thumb} alt={c.name} className="h-full w-full object-cover" />
                               ) : (
                                 <Package size={18} className="text-stone-400" />
                               )}
@@ -5375,7 +5375,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
           <div className="flex-1 overflow-y-auto pb-28">
             <div className="relative h-40 w-full overflow-hidden rounded-b-[28px] bg-rose-100 sm:h-52">
               {categoryPageHeroImg ? (
-                <img src={categoryPageHeroImg} alt={categoryPageName || ""} className="h-full w-full object-cover" />
+                <img loading="lazy" src={categoryPageHeroImg} alt={categoryPageName || ""} className="h-full w-full object-cover" />
               ) : (
                 <div className="flex h-full w-full items-center justify-center"><Package size={40} className="text-rose-300" /></div>
               )}
@@ -5434,7 +5434,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                       >
                         <div className="relative mb-2.5 aspect-square overflow-hidden rounded-xl bg-white text-stone-300">
                           {thumb ? (
-                            <img src={thumb} alt={name} className="h-full w-full object-contain p-2" draggable={false} onDragStart={(e) => e.preventDefault()} />
+                            <img loading="lazy" src={thumb} alt={name} className="h-full w-full object-contain p-2" draggable={false} onDragStart={(e) => e.preventDefault()} />
                           ) : (
                             <div className="flex h-full w-full items-center justify-center"><Package size={28} strokeWidth={1.3} /></div>
                           )}
@@ -5683,7 +5683,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                       <div key={p.id} className="flex items-center gap-3 rounded-2xl border border-gray-100 p-2.5 shadow-sm transition hover:shadow-md">
                         <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-gray-50 text-slate-300">
                           {thumb ? (
-                            <img src={thumb} alt="" className="h-full w-full object-cover" />
+                            <img loading="lazy" src={thumb} alt="" className="h-full w-full object-cover" />
                           ) : (
                             <div className="flex h-full w-full items-center justify-center"><Package size={20} /></div>
                           )}
@@ -6212,7 +6212,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                                 <div key={product.id} className="flex items-center gap-2.5 rounded-xl bg-white p-1.5">
                                   <div className="h-11 w-11 shrink-0 overflow-hidden rounded-lg bg-gray-50 text-slate-300">
                                     {thumb ? (
-                                      <img src={thumb} alt="" className="h-full w-full object-cover" />
+                                      <img loading="lazy" src={thumb} alt="" className="h-full w-full object-cover" />
                                     ) : (
                                       <div className="flex h-full w-full items-center justify-center"><Package size={14} /></div>
                                     )}
@@ -6245,7 +6245,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                         <div className="flex items-start gap-3">
                           <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-gray-50 text-slate-300">
                             {thumb ? (
-                              <img src={thumb} alt="" className="h-full w-full object-cover" />
+                              <img loading="lazy" src={thumb} alt="" className="h-full w-full object-cover" />
                             ) : (
                               <div className="flex h-full w-full items-center justify-center"><Package size={20} /></div>
                             )}
@@ -6353,7 +6353,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                             >
                               <div className="relative mb-2 aspect-square overflow-hidden rounded-xl bg-gray-50 text-slate-300">
                                 {thumb ? (
-                                  <img src={thumb} alt="" className="h-full w-full object-cover" />
+                                  <img loading="lazy" src={thumb} alt="" className="h-full w-full object-cover" />
                                 ) : (
                                   <div className="flex h-full w-full items-center justify-center"><Package size={20} /></div>
                                 )}
@@ -6438,7 +6438,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                     <div key={product.id} className="flex items-center gap-2.5">
                       <div className="h-11 w-11 shrink-0 overflow-hidden rounded-lg bg-gray-50 text-slate-300">
                         {thumb ? (
-                          <img src={thumb} alt="" className="h-full w-full object-cover" />
+                          <img loading="lazy" src={thumb} alt="" className="h-full w-full object-cover" />
                         ) : (
                           <div className="flex h-full w-full items-center justify-center"><Package size={14} /></div>
                         )}
@@ -6899,7 +6899,7 @@ export default function App() {
       <aside className="hidden w-60 flex-col border-r border-gray-100 bg-white sm:flex">
         <div className="flex items-center gap-2 px-5 py-5">
           {storeSettings?.logoUrl ? (
-            <img src={storeSettings.logoUrl} alt="" className="h-8 w-8 shrink-0 rounded-xl object-cover" />
+            <img loading="lazy" src={storeSettings.logoUrl} alt="" className="h-8 w-8 shrink-0 rounded-xl object-cover" />
           ) : (
             <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-600 text-white">
               <ShoppingCart size={17} />

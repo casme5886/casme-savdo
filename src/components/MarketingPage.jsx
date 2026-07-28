@@ -437,7 +437,7 @@ function ProductDiscounts({ lang, t, products }) {
             return (
               <div key={p.id} className={`flex items-center gap-2 rounded-lg border p-2 ${isSelected ? "border-rose-200 bg-rose-50/50" : "border-gray-100"}`}>
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gray-50 text-slate-300">
-                  {thumb ? <img src={thumb} alt="" className="h-full w-full object-cover" /> : <Package size={14} />}
+                  {thumb ? <img loading="lazy" src={thumb} alt="" className="h-full w-full object-cover" /> : <Package size={14} />}
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-xs font-medium text-slate-700">{pname(p, lang)}</p>
@@ -594,7 +594,7 @@ function HitProductsSection({ lang, t, products }) {
             return (
               <div key={p.id} className={`flex items-center gap-2 rounded-lg border p-2 ${isHit ? "border-rose-200 bg-rose-50/50" : "border-gray-100"}`}>
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gray-50 text-slate-300">
-                  {thumb ? <img src={thumb} alt="" className="h-full w-full object-cover" /> : <Package size={14} />}
+                  {thumb ? <img loading="lazy" src={thumb} alt="" className="h-full w-full object-cover" /> : <Package size={14} />}
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-xs font-medium text-slate-700">{pname(p, lang)}</p>

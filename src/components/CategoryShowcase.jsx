@@ -100,7 +100,7 @@ function IconRow({ items, products, field, activeValue, onSelect, allLabel, bare
                 style={{ height: size, width: size, boxShadow: th.circleShadow }}
               >
                 {thumb ? (
-                  <img src={thumb} alt={item.name} className="h-full w-full object-cover" />
+                  <img loading="lazy" src={thumb} alt={item.name} className="h-full w-full object-cover" />
                 ) : (
                   <Tag size={20} className="text-stone-400" />
                 )}
@@ -185,7 +185,7 @@ export function CategoryQuickRow({ categories, products, onSelect, t }) {
               style={{ boxShadow: "0 10px 20px -4px rgba(0,0,0,0.28), 0 3px 6px rgba(0,0,0,0.16), inset 0 1px 1px rgba(255,255,255,0.5)" }}
             >
               {c.thumb ? (
-                <img src={c.thumb} alt={c.name} className="h-full w-full object-cover" />
+                <img loading="lazy" src={c.thumb} alt={c.name} className="h-full w-full object-cover" />
               ) : (
                 <Package size={28} className="text-stone-400" />
               )}
@@ -227,7 +227,7 @@ export function CategoryShowcase({ categories, products, onSelect, t }) {
             className="group relative aspect-[3/4] overflow-hidden rounded-2xl bg-rose-50 text-left"
           >
             {c.thumb ? (
-              <img src={c.thumb} alt={c.name} className="h-full w-full object-cover transition duration-300 group-hover:scale-105" />
+              <img loading="lazy" src={c.thumb} alt={c.name} className="h-full w-full object-cover transition duration-300 group-hover:scale-105" />
             ) : (
               <div className="flex h-full w-full items-center justify-center">
                 <Package size={32} className="text-stone-300" />
@@ -259,7 +259,7 @@ function CollectionCard({ c, lang, t, onSelect, aspectRatio, widthClass = "", sh
   return (
     <button onClick={() => onSelect(c)} className={`group flex shrink-0 flex-col text-left ${widthClass}`}>
       <div className="overflow-hidden rounded-2xl bg-rose-50" style={{ aspectRatio }}>
-        <img src={c.imageUrl} alt={title} className="h-full w-full object-cover transition duration-300 group-hover:scale-105" draggable={false} onDragStart={(e) => e.preventDefault()} />
+        <img loading="lazy" src={c.imageUrl} alt={title} className="h-full w-full object-cover transition duration-300 group-hover:scale-105" draggable={false} onDragStart={(e) => e.preventDefault()} />
       </div>
       {showTitle && title && <p className="mt-3 w-full line-clamp-2 text-center text-sm font-medium text-stone-800">{title}</p>}
     </button>

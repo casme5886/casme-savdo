@@ -57,7 +57,7 @@ export default function ProductDetail({ product, cartQty, onClose, onAddToCart, 
           {/* Rasmlar galereyasi — aspect-square: karta va detail bir xil nisbatda, cho'zilib ko'rinmaydi */}
           <div className="relative mb-4 aspect-square w-full overflow-hidden rounded-xl bg-gray-50 text-slate-300">
             {images.length > 0 ? (
-              <img src={images[imgIndex]} alt={name} className="h-full w-full object-cover" />
+              <img loading="lazy" src={images[imgIndex]} alt={name} className="h-full w-full object-cover" />
             ) : (
               <div className="flex h-full w-full items-center justify-center">
                 <Package size={48} strokeWidth={1.3} />
@@ -112,7 +112,7 @@ export default function ProductDetail({ product, cartQty, onClose, onAddToCart, 
                   onClick={() => setImgIndex(i)}
                   className={`aspect-square h-12 w-12 shrink-0 overflow-hidden rounded-lg border-2 ${i === imgIndex ? "border-emerald-600" : "border-transparent"}`}
                 >
-                  <img src={url} alt="" className="h-full w-full object-cover" />
+                  <img loading="lazy" src={url} alt="" className="h-full w-full object-cover" />
                 </button>
               ))}
             </div>

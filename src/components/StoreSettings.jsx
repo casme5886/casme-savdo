@@ -2,6 +2,10 @@ import React, { useState, useEffect } from "react";
 import { Save, Loader2, CheckCircle2, ImageOff, Download, Search as SeoIcon } from "lucide-react";
 import { setItem, uploadImage, getAllDocs } from "../storage.js";
 import { Field, inputCls } from "./ui.jsx";
+// VAQTINCHALIK — eski (siqilmagan) rasmlarni bir martalik siqish vositasi.
+// Ishlatib bo'lgach shu import va pastdagi <ImageMigrationTool /> qatori,
+// keyin components/ImageMigrationTool.jsx fayli butunlay o'chiriladi.
+import ImageMigrationTool from "./ImageMigrationTool.jsx";
 
 const T_LOCAL = {
   uz: {
@@ -189,7 +193,7 @@ export default function StoreSettings({ lang, settings }) {
         <Field label={t.logo}>
           <div className="flex items-center gap-3">
             <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gray-50 text-slate-300">
-              {form.logoUrl ? <img src={form.logoUrl} alt="" className="h-full w-full object-cover" /> : <ImageOff size={22} />}
+              {form.logoUrl ? <img loading="lazy" src={form.logoUrl} alt="" className="h-full w-full object-cover" /> : <ImageOff size={22} />}
             </div>
             <label className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-gray-50">
               {uploadingLogo ? <Loader2 size={14} className="animate-spin" /> : null}
@@ -368,6 +372,9 @@ export default function StoreSettings({ lang, settings }) {
           {backingUp ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />} {backingUp ? t.backingUp : t.backupBtn}
         </button>
       </div>
+
+      {/* VAQTINCHALIK — bir martalik ishlatib bo'lgach olib tashlanadi */}
+      <ImageMigrationTool lang={lang} />
     </div>
   );
 }

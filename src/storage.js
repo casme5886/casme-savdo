@@ -55,15 +55,70 @@ export async function deleteItem(name, id) {
 }
 
 /**
+ * Telefon kamerasidan yuklangan rasmlar odatda juda katta (3-8 MB, 3000-4000px)
+ * bo'ladi — saytda esa ular ancha kichik joyda (masalan 300-600px) ko'rsatiladi.
+ * Shu sabab ular sekin internetda "asta-sekin ochilib" ko'rinadi. Bu funksiya
+ * yuklashdan OLDIN rasmni brauzerning o'zida (canvas orqali) eng katta tomoni
+ * 1600px'gacha kichraytiradi va sifatini ~85%'da saqlagan holda siqadi — bu
+ * ko'zga sezilarli darajada emas, lekin fayl hajmini bir necha barobar
+ * kamaytiradi. Kichik yoki allaqachon yengil (700 KB dan kam) fayllarga
+ * tegilmaydi, shaffoflik (PNG) saqlanadi.
+ */
+function compressImageFile(file, { maxDimension = 1600, quality = 0.85 } = {}) {
+  return new Promise((resolve) => {
+    if (!file || !file.type || !file.type.startsWith("image/") || file.type === "image/svg+xml" || file.type === "image/gif") {
+      resolve(file);
+      return;
+    }
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const { width, height } = img;
+      if (width <= maxDimension && height <= maxDimension && file.size < 700 * 1024) {
+        resolve(file);
+        return;
+      }
+      const scale = Math.min(1, maxDimension / Math.max(width, height));
+      const targetW = Math.max(1, Math.round(width * scale));
+      const targetH = Math.max(1, Math.round(height * scale));
+      const canvas = document.createElement("canvas");
+      canvas.width = targetW;
+      canvas.height = targetH;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) { resolve(file); return; }
+      ctx.drawImage(img, 0, 0, targetW, targetH);
+      const keepPng = file.type === "image/png";
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) { resolve(file); return; }
+          const baseName = (file.name || "image").replace(/\.[^.]+$/, "");
+          const newFile = new File([blob], `${baseName}.${keepPng ? "png" : "jpg"}`, {
+            type: keepPng ? "image/png" : "image/jpeg",
+          });
+          resolve(newFile.size < file.size ? newFile : file);
+        },
+        keepPng ? "image/png" : "image/jpeg",
+        quality
+      );
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+    img.src = url;
+  });
+}
+
+/**
  * Rasmni Firebase Storage'ga yuklaydi va ochiq (public) havolasini
  * qaytaradi. `path` bir xil bo'lsa — eski rasm AVTOMATIK almashadi
- * (Storage shu manzildagi faylni ustidan yozadi).
+ * (Storage shu manzildagi faylni ustidan yozadi). Yuklashdan oldin rasm
+ * avtomatik siqiladi/kichraytiriladi (yuqoridagi compressImageFile'ga qarang).
  * Masalan: uploadImage(`banners/abc123/banner-desktop`, file)
  *          uploadImage(`products/abc123/image-0`, file)
  */
 export async function uploadImage(path, file) {
+  const optimized = await compressImageFile(file);
   const storageRef = ref(storage, path);
-  await uploadBytes(storageRef, file);
+  await uploadBytes(storageRef, optimized);
   return getDownloadURL(storageRef);
 }
 

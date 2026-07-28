@@ -44,7 +44,7 @@ export default function InstagramGallery({ products, settings, t }) {
             rel={link ? "noopener noreferrer" : undefined}
             className="group relative aspect-square overflow-hidden rounded-xl bg-rose-50"
           >
-            <img src={url} alt="" className="h-full w-full object-cover transition duration-300 group-hover:scale-110" />
+            <img loading="lazy" src={url} alt="" className="h-full w-full object-cover transition duration-300 group-hover:scale-110" />
             <div className="absolute inset-0 flex items-center justify-center bg-black/0 text-white opacity-0 transition group-hover:bg-black/30 group-hover:opacity-100">
               <Instagram size={20} />
             </div>

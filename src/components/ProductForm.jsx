@@ -208,7 +208,7 @@ export default function ProductForm({ lang, product, products, categories, brand
             <div className="grid grid-cols-3 gap-3 sm:grid-cols-5">
               {form.imageUrls.map((url, i) => (
                 <div key={i} className="group relative aspect-square overflow-hidden rounded-xl bg-gray-50">
-                  <img src={url} alt="" className="h-full w-full object-cover" />
+                  <img loading="lazy" src={url} alt="" className="h-full w-full object-cover" />
                   <button
                     type="button"
                     onClick={() => removeImage(i)}
