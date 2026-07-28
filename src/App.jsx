@@ -521,6 +521,36 @@ async function notifyTelegramBot(payload) {
   }
 }
 
+/**
+ * Buyurtma HOLATI o'zgarganda (admin panelidan) — agar buyurtma Telegram
+ * orqali berilgan bo'lsa (order.telegramUserId mavjud bo'lsa) — MIJOZNING
+ * o'ziga xolat yangilanishi haqida xabar yuboradi (mahsulotlar, summa bilan).
+ * Xato bo'lsa ham jim o'tkazib yuboriladi — buyurtma holati allaqachon
+ * saqlangan, mijozga bu bildirishnoma faqat qo'shimcha qulaylik.
+ */
+async function notifyCustomerOrderStatus(order, status) {
+  if (!order?.telegramUserId) return;
+  try {
+    const res = await fetch("/api/telegram-order-status", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        telegramUserId: order.telegramUserId,
+        status,
+        orderId: order.id,
+        items: order.items || [],
+        amount: order.amount,
+        deliveryPrice: order.deliveryPrice,
+      }),
+    });
+    if (!res.ok) {
+      console.warn("Mijozga buyurtma holati xabari yuborilmadi (server javobi):", res.status);
+    }
+  } catch (e) {
+    console.warn("Mijozga buyurtma holati xabari yuborilmadi (tarmoq xatosi):", e);
+  }
+}
+
 /* ---------------------------------------------------------------
    SMALL UI PRIMITIVES (App.jsx'ga xos, umumiy bo'lmaganlari)
 --------------------------------------------------------------- */
@@ -1097,8 +1127,8 @@ function OrdersPage({ lang, orders, setOrders, customers }) {
   // qayta-qayta "yetkazib berildi" qilib qo'yilsa ham ikki marta yozilmaydi).
   const changeStatus = async (id, status) => {
     await updateItem(COL.orders, id, { status });
+    const order = orders.find(o => o.id === id);
     if (status === "delivered") {
-      const order = orders.find(o => o.id === id);
       if (order && !order.bonusCredited) {
         const customer = customers.find(c =>
           (order.telegramUserId && c.telegramUserId === order.telegramUserId) ||
@@ -1111,6 +1141,7 @@ function OrdersPage({ lang, orders, setOrders, customers }) {
         await updateItem(COL.orders, id, { bonusCredited: true });
       }
     }
+    if (order) notifyCustomerOrderStatus(order, status);
   };
 
   const toggleSelect = (id) => {
@@ -1608,8 +1639,8 @@ function CustomersPage({ lang, customers, setCustomers, orders }) {
   // o'zgartirilsa, mijozga buyurtma summasining 1%i bonus sifatida yoziladi.
   const changeOrderStatus = async (id, status) => {
     await updateItem(COL.orders, id, { status });
+    const order = orders.find(o => o.id === id);
     if (status === "delivered") {
-      const order = orders.find(o => o.id === id);
       if (order && !order.bonusCredited) {
         const customer = customers.find(c =>
           (order.telegramUserId && c.telegramUserId === order.telegramUserId) ||
@@ -1622,6 +1653,7 @@ function CustomersPage({ lang, customers, setCustomers, orders }) {
         await updateItem(COL.orders, id, { bonusCredited: true });
       }
     }
+    if (order) notifyCustomerOrderStatus(order, status);
   };
 
   return (
@@ -3184,6 +3216,9 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
   // mijozning Firestore'dagi yozuv ID'si — savat/sevimlilarni o'sha yozuvga
   // saqlash uchun ishlatiladi (pastdagi sinxronlash effektiga qarang).
   const [myCustomerId, setMyCustomerId] = useState(null);
+  // Bir vaqtda ikki marta mijoz yozuvi yaratib yubormaslik uchun himoya
+  // (effekt bir necha marta ishga tushishi mumkin, masalan profil ochilib-yopilganda).
+  const creatingTgCustomerRef = useRef(false);
   useEffect(() => {
     let cancelled = false;
     const run = async () => {
@@ -3191,6 +3226,30 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
         let customer = null;
         if (tgUser?.id) customer = await findCustomerByTelegramId(tgUser.id);
         if (!customer && myPhone) customer = await findCustomerByPhone(myPhone);
+
+        // Telegram orqali kirgan, lekin Firestore'da hali hech qanday yozuvi
+        // bo'lmagan (birinchi marta kirgan) mijozga BIR MARTALIK "xush kelibsiz"
+        // bonusini (20 000 so'm) DARHOL beramiz — buyurtma berishini yoki
+        // telefon qo'shishini kutib o'tirmaymiz, chunki Telegram identifikatsiyasi
+        // (haqiqiy foydalanuvchi ekanini) o'zi yetarli tasdiq hisoblanadi.
+        if (!customer && tgUser?.id && !creatingTgCustomerRef.current) {
+          creatingTgCustomerRef.current = true;
+          try {
+            const docRef = await addItem(COL.customers, {
+              name: [tgUser.first_name, tgUser.last_name].filter(Boolean).join(" "),
+              phone: "",
+              telegramUserId: tgUser.id,
+              telegramFirstName: tgUser.first_name || "",
+              telegramUsername: tgUser.username || "",
+              address: "", orders: 0, spent: 0, date: todayISO(),
+              bonusPoints: 20000, // Telegram orqali ro'yxatdan o'tgan mijozga bir martalik xush kelibsiz bonusi
+            });
+            customer = { id: docRef.id, bonusPoints: 20000 };
+          } catch (e) {
+            console.error("Telegram mijozini avtomatik yaratishda xatolik:", e);
+          }
+        }
+
         if (!cancelled) {
           setMyBonus(customer ? Number(customer.bonusPoints) || 0 : 0);
           setMyCustomerId(customer?.id || null);
