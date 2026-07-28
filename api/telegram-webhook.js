@@ -34,7 +34,7 @@
 
 import crypto from "node:crypto";
 import { initializeApp, getApps } from "firebase/app";
-import { getFirestore, doc, getDoc } from "firebase/firestore/lite";
+import { getFirestore, doc, getDoc, setDoc, increment } from "firebase/firestore/lite";
 
 const OTP_WINDOW_MINUTES = 5;
 
@@ -72,6 +72,35 @@ async function getWelcomeMessage() {
   return DEFAULT_WELCOME;
 }
 
+/**
+ * Har bir "/start" bosilganda shu Telegram foydalanuvchisi haqida
+ * telegramStarts/{telegramUserId} hujjatini yozadi/yangilaydi — admin
+ * panelning "Telegram" sahifasida "kimlar start bosgan" ro'yxati uchun.
+ * Birinchi marta bo'lsa firstStartAt, har safar lastStartAt va startCount
+ * yangilanadi.
+ */
+async function recordStart(chatId, from) {
+  try {
+    const db = getDb();
+    const ref = doc(db, "telegramStarts", String(chatId));
+    const existing = await getDoc(ref);
+    const data = {
+      telegramUserId: chatId,
+      firstName: from?.first_name || "",
+      lastName: from?.last_name || "",
+      username: from?.username || "",
+      lastStartAt: new Date().toISOString(),
+      startCount: increment(1),
+    };
+    if (!existing.exists()) {
+      data.firstStartAt = new Date().toISOString();
+    }
+    await setDoc(ref, data, { merge: true });
+  } catch (e) {
+    console.error("Start yozuvini saqlashda xatolik:", e);
+  }
+}
+
 function computeCode(phone, secret, windowOffset = 0) {
   const timeWindow = Math.floor(Date.now() / (OTP_WINDOW_MINUTES * 60 * 1000)) - windowOffset;
   const hmac = crypto.createHmac("sha256", secret).update(`${phone}:${timeWindow}`).digest("hex");
@@ -96,6 +125,11 @@ export default async function handler(req, res) {
     const message = update?.message;
     const text = message?.text || "";
     const chatId = message?.chat?.id;
+
+    // Har qanday "/start" (parametrli yoki oddiy) — kim bosganini qayd etamiz.
+    if (text.trim().startsWith("/start") && chatId) {
+      await recordStart(chatId, message.from);
+    }
 
     // "/start otp_+998901234567" yoki "/start otp_998901234567" formatini kutamiz
     const match = text.match(/^\/start\s+otp_(.+)$/);
