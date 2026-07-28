@@ -1,9 +1,10 @@
 // ==========================================================
 // /api/telegram-webhook
 //
-// Telegram bot ORQALI tasdiqlash kodini yetkazish uchun.
+// Telegram bot ORQALI tasdiqlash kodini yetkazish uchun, "/start" bosgan
+// mijozlarni qayd etish va ularga "xush kelibsiz" xabarini yuborish uchun.
 //
-// QANDAY ISHLAYDI:
+// QANDAY ISHLAYDI (OTP):
 // 1. Mijoz saytda telefon raqamini kiritadi.
 // 2. Sayt "https://t.me/<BOT_USERNAME>?start=otp_<telefon>" havolasini
 //    ochadi — bu Telegram'ni ochib, botga "/start otp_<telefon>"
@@ -15,6 +16,20 @@
 //    o'sha CHATga (mijozning o'ziga) SMS o'rniga Telegram xabari
 //    sifatida yuboramiz.
 //
+// QANDAY ISHLAYDI ("/start" va xush kelibsiz xabari):
+// Oddiy "/start" (otp_ parametrisiz) kelsa — Firestore'dagi
+// settings/telegramWelcome hujjatidan xabar matnini o'qib, mijozga
+// yuboramiz, va telegramStarts/{chatId} hujjatiga yozib qo'yamiz (admin
+// panelning "Telegram" sahifasidagi "kimlar start bosgan" ro'yxati uchun).
+//
+// MUHIM: Firestore bilan ishlash uchun "firebase" paketi IMPORT QILINMAYDI —
+// buning o'rniga to'g'ridan-to'g'ri Firestore REST API'ga oddiy fetch()
+// so'rovlari yuboriladi. Sabab: Vercel'ning serverless funksiya muhitida
+// "firebase/firestore" paketini import qilish ba'zan qurilish (build)
+// vaqtida muammo keltirib chiqarishi mumkin va BUTUN funksiyani (shu
+// jumladan OTP yuborishni ham) ishlamay qo'yishi mumkin edi. Oddiy
+// fetch() esa hech qanday qo'shimcha paketga bog'liq emas — eng ishonchli yo'l.
+//
 // BIR MARTALIK SOZLASH (webhook'ni Telegram'ga tanishtirish):
 // Quyidagi manzilni brauzerda oching (BOT_TOKEN va domeningizni almashtirib):
 //
@@ -25,47 +40,73 @@
 // KERAKLI ENVIRONMENT VARIABLES:
 //   TELEGRAM_BOT_TOKEN  — allaqachon bor (telegram-order.js bilan bir xil)
 //   OTP_SECRET          — allaqachon bor (send-otp.js bilan bir xil)
-//
-// YANGI: oddiy "/start" (otp_ parametrisiz) yuborilganda — botga birinchi
-// marta kirgan mijozga "xush kelibsiz" xabari yuboriladi. Bu xabar matni
-// Firestore'dagi settings/telegramWelcome hujjatidan o'qiladi — admin panelda
-// "Telegram" sahifasida tahrirlanadi (src/components/TelegramSettings.jsx).
 // ==========================================================
 
 import crypto from "node:crypto";
-import { initializeApp, getApps } from "firebase/app";
-import { getFirestore, doc, getDoc, setDoc, increment } from "firebase/firestore/lite";
 
 const OTP_WINDOW_MINUTES = 5;
-
-// Do'kon konfiguratsiyasi ochiq (client) qiymat — src/firebase.js dagi bilan
-// bir xil. Bu serverless funksiya src/firebase.js'ni to'g'ridan-to'g'ri import
-// qilmaydi, chunki o'sha fayl getAuth()'ni ham ishga tushiradi — bu yerda
-// Firestore'dan FAQAT bitta hujjatni o'qish kifoya, shuning uchun alohida,
-// eng yengil ("lite") mijoz ishlatiladi.
-const firebaseConfig = {
-  apiKey: "AIzaSyAW8EbpfKrUPc3eI6zjQCWn2N8HU5g9CvM",
-  authDomain: "casme-savdo.firebaseapp.com",
-  projectId: "casme-savdo",
-  storageBucket: "casme-savdo.firebasestorage.app",
-  messagingSenderId: "333618332367",
-  appId: "1:333618332367:web:0469ca47a9fc1d4f91edba",
-};
-
-function getDb() {
-  const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
-  return getFirestore(app);
-}
+const FIREBASE_PROJECT_ID = "casme-savdo";
+const FIRESTORE_BASE = `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/databases/(default)/documents`;
 
 const DEFAULT_WELCOME =
   "👋 Assalomu alaykum va CASME'ga xush kelibsiz!\n\nBiz orqali original Koreya kosmetikasini qulay narxlarda xarid qilishingiz mumkin.\n\nQuyidagi tugma orqali do'konni oching va xaridni boshlang! 🛍️";
 
+// ---------- Firestore REST yordamchi funksiyalari (firebase paketisiz) ----------
+
+/** Firestore'ning "typed value" formatidagi maydonlarni oddiy JS obyektiga aylantiradi. */
+function decodeFields(fields) {
+  const out = {};
+  for (const [key, val] of Object.entries(fields || {})) {
+    if (val.stringValue !== undefined) out[key] = val.stringValue;
+    else if (val.integerValue !== undefined) out[key] = parseInt(val.integerValue, 10);
+    else if (val.doubleValue !== undefined) out[key] = val.doubleValue;
+    else if (val.booleanValue !== undefined) out[key] = val.booleanValue;
+    else out[key] = null;
+  }
+  return out;
+}
+
+/** Oddiy JS obyektni Firestore'ning "typed value" formatiga aylantiradi. */
+function encodeFields(obj) {
+  const fields = {};
+  for (const [key, val] of Object.entries(obj)) {
+    if (typeof val === "string") fields[key] = { stringValue: val };
+    else if (typeof val === "number") fields[key] = Number.isInteger(val) ? { integerValue: String(val) } : { doubleValue: val };
+    else if (typeof val === "boolean") fields[key] = { booleanValue: val };
+    else fields[key] = { nullValue: null };
+  }
+  return fields;
+}
+
+/** Bitta hujjatni o'qiydi. Mavjud bo'lmasa — null qaytaradi. */
+async function firestoreGet(path) {
+  const res = await fetch(`${FIRESTORE_BASE}/${path}`);
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`Firestore GET xatosi (${path}): ${res.status}`);
+  const data = await res.json();
+  return decodeFields(data.fields || {});
+}
+
+/** Berilgan maydonlarni hujjatga yozadi/yangilaydi (mavjud bo'lmasa — yaratadi). */
+async function firestorePatch(path, data) {
+  const fields = encodeFields(data);
+  const mask = Object.keys(data).map((k) => `updateMask.fieldPaths=${encodeURIComponent(k)}`).join("&");
+  const res = await fetch(`${FIRESTORE_BASE}/${path}?${mask}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ fields }),
+  });
+  if (!res.ok) {
+    const errText = await res.text().catch(() => "");
+    throw new Error(`Firestore PATCH xatosi (${path}): ${res.status} ${errText}`);
+  }
+}
+
 /** settings/telegramWelcome hujjatidan xabar matnini o'qiydi (bo'lmasa — standart matn). */
 async function getWelcomeMessage() {
   try {
-    const db = getDb();
-    const snap = await getDoc(doc(db, "settings", "telegramWelcome"));
-    if (snap.exists() && snap.data()?.message) return snap.data().message;
+    const data = await firestoreGet("settings/telegramWelcome");
+    if (data?.message) return data.message;
   } catch (e) {
     console.error("Xush kelibsiz xabarini o'qishda xatolik:", e);
   }
@@ -76,26 +117,22 @@ async function getWelcomeMessage() {
  * Har bir "/start" bosilganda shu Telegram foydalanuvchisi haqida
  * telegramStarts/{telegramUserId} hujjatini yozadi/yangilaydi — admin
  * panelning "Telegram" sahifasida "kimlar start bosgan" ro'yxati uchun.
- * Birinchi marta bo'lsa firstStartAt, har safar lastStartAt va startCount
- * yangilanadi.
  */
 async function recordStart(chatId, from) {
   try {
-    const db = getDb();
-    const ref = doc(db, "telegramStarts", String(chatId));
-    const existing = await getDoc(ref);
+    const path = `telegramStarts/${chatId}`;
+    const existing = await firestoreGet(path);
+    const now = new Date().toISOString();
     const data = {
       telegramUserId: chatId,
       firstName: from?.first_name || "",
       lastName: from?.last_name || "",
       username: from?.username || "",
-      lastStartAt: new Date().toISOString(),
-      startCount: increment(1),
+      lastStartAt: now,
+      startCount: (Number(existing?.startCount) || 0) + 1,
     };
-    if (!existing.exists()) {
-      data.firstStartAt = new Date().toISOString();
-    }
-    await setDoc(ref, data, { merge: true });
+    if (!existing) data.firstStartAt = now;
+    await firestorePatch(path, data);
   } catch (e) {
     console.error("Start yozuvini saqlashda xatolik:", e);
   }
@@ -127,8 +164,14 @@ export default async function handler(req, res) {
     const chatId = message?.chat?.id;
 
     // Har qanday "/start" (parametrli yoki oddiy) — kim bosganini qayd etamiz.
+    // Bu qadam ixtiyoriy (xato bo'lsa ham pastdagi OTP/xush kelibsiz
+    // yuborilishiga xalaqit bermaydi — shuning uchun alohida try/catch ichida).
     if (text.trim().startsWith("/start") && chatId) {
-      await recordStart(chatId, message.from);
+      try {
+        await recordStart(chatId, message.from);
+      } catch (e) {
+        console.error("recordStart xatoligi:", e);
+      }
     }
 
     // "/start otp_+998901234567" yoki "/start otp_998901234567" formatini kutamiz
