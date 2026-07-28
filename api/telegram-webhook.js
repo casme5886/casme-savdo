@@ -78,6 +78,20 @@ function encodeFields(obj) {
   return fields;
 }
 
+/** Yangi hujjat qo'shadi (avtomatik ID bilan) — kolleksiya manziliga POST qilinadi. */
+async function firestoreAdd(collectionPath, data) {
+  const fields = encodeFields(data);
+  const res = await fetch(`${FIRESTORE_BASE}/${collectionPath}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ fields }),
+  });
+  if (!res.ok) {
+    const errText = await res.text().catch(() => "");
+    throw new Error(`Firestore POST xatosi (${collectionPath}): ${res.status} ${errText}`);
+  }
+}
+
 /** Bitta hujjatni o'qiydi. Mavjud bo'lmasa — null qaytaradi. */
 async function firestoreGet(path) {
   const res = await fetch(`${FIRESTORE_BASE}/${path}`);
@@ -138,6 +152,29 @@ async function recordStart(chatId, from) {
   }
 }
 
+/**
+ * Har bir xabarni (kiruvchi yoki chiquvchi) admin panelning "Telegram"
+ * sahifasi → "Chat" bo'limida ko'rsatish uchun saqlaydi. Xato bo'lsa ham
+ * (masalan tarmoq muammosi) butun webhook ishlashiga xalaqit bermaydi —
+ * shuning uchun o'z ichida try/catch bilan o'ralgan.
+ */
+async function saveChatMessage(chatId, direction, text, from, sender) {
+  try {
+    await firestoreAdd("telegramChatMessages", {
+      chatId: Number(chatId),
+      direction, // "in" — mijozdan, "out" — botdan/admindan
+      text: text || "",
+      sender: sender || (direction === "in" ? "customer" : "bot"),
+      firstName: from?.first_name || "",
+      lastName: from?.last_name || "",
+      username: from?.username || "",
+      createdAt: new Date().toISOString(),
+    });
+  } catch (e) {
+    console.error("Chat xabarini saqlashda xatolik:", e);
+  }
+}
+
 function computeCode(phone, secret, windowOffset = 0) {
   const timeWindow = Math.floor(Date.now() / (OTP_WINDOW_MINUTES * 60 * 1000)) - windowOffset;
   const hmac = crypto.createHmac("sha256", secret).update(`${phone}:${timeWindow}`).digest("hex");
@@ -174,6 +211,12 @@ export default async function handler(req, res) {
       }
     }
 
+    // Mijozdan kelgan HAR bir xabarni ("Chat" bo'limida ko'rish uchun)
+    // qayd etamiz — /start, oddiy matn, hammasi.
+    if (text && chatId) {
+      await saveChatMessage(chatId, "in", text, message.from);
+    }
+
     // "/start otp_+998901234567" yoki "/start otp_998901234567" formatini kutamiz
     const match = text.match(/^\/start\s+otp_(.+)$/);
     if (match && chatId) {
@@ -189,6 +232,7 @@ export default async function handler(req, res) {
           parse_mode: "Markdown",
         }),
       });
+      await saveChatMessage(chatId, "out", `🔐 Tasdiqlash kodingiz: ${code}`, null, "bot");
     } else if (text.trim() === "/start" && chatId) {
       // Oddiy "/start" (parametrsiz) — botga birinchi (yoki qayta) kirgan
       // mijozga "xush kelibsiz" xabarini yuboramiz. parse_mode ATAYIN
@@ -203,6 +247,7 @@ export default async function handler(req, res) {
           text: welcomeText,
         }),
       });
+      await saveChatMessage(chatId, "out", welcomeText, null, "bot");
     }
   } catch (e) {
     console.error("Telegram webhook xatoligi:", e);
