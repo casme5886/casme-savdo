@@ -215,7 +215,17 @@ service firebase.storage {
               {(result.savedBytes / (1024 * 1024)).toFixed(1)} MB {t.saved}.
             </p>
             {result.errors.length > 0 && (
-              <p className="mt-1 text-amber-700">{result.errors.length} {t.errors}</p>
+              <div className="mt-1.5">
+                <p className="font-medium text-amber-700">{result.errors.length} {t.errors}</p>
+                <div className="mt-1 max-h-40 overflow-y-auto rounded bg-amber-50 p-2">
+                  {result.errors.slice(0, 30).map((err, i) => (
+                    <p key={i} className="font-mono text-[10px] leading-snug text-amber-800">{err}</p>
+                  ))}
+                  {result.errors.length > 30 && (
+                    <p className="mt-1 text-[10px] text-amber-600">... va yana {result.errors.length - 30} ta</p>
+                  )}
+                </div>
+              </div>
             )}
           </div>
         </div>
