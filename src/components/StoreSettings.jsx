@@ -2,10 +2,6 @@ import React, { useState, useEffect } from "react";
 import { Save, Loader2, CheckCircle2, ImageOff, Download, Search as SeoIcon } from "lucide-react";
 import { setItem, uploadImage, getAllDocs } from "../storage.js";
 import { Field, inputCls } from "./ui.jsx";
-// VAQTINCHALIK — eski (siqilmagan) rasmlarni bir martalik siqish vositasi.
-// Ishlatib bo'lgach shu import va pastdagi <ImageMigrationTool /> qatori,
-// keyin components/ImageMigrationTool.jsx fayli butunlay o'chiriladi.
-import ImageMigrationTool from "./ImageMigrationTool.jsx";
 
 const T_LOCAL = {
   uz: {
@@ -372,9 +368,6 @@ export default function StoreSettings({ lang, settings }) {
           {backingUp ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />} {backingUp ? t.backingUp : t.backupBtn}
         </button>
       </div>
-
-      {/* VAQTINCHALIK — bir martalik ishlatib bo'lgach olib tashlanadi */}
-      <ImageMigrationTool lang={lang} />
     </div>
   );
 }
