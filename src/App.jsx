@@ -3130,6 +3130,26 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
   const [profileView, setProfileView] = useState("menu"); // "menu" | "personal" | "orders" | "addresses"
   const [myOrders, setMyOrders] = useState([]);
   const [myOrdersLoading, setMyOrdersLoading] = useState(false);
+
+  // Telegram botidagi "📦 Mening buyurtmalarim" tugmasi (?view=orders bilan
+  // ochiladi) bosilganda ilova to'g'ridan-to'g'ri profil/buyurtmalar
+  // bo'limini ochib yuborishi uchun — sahifa birinchi ochilganda bir marta
+  // URL manzilidagi "view" parametrini tekshiradi.
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const view = params.get("view");
+      if (view === "orders") {
+        setProfileOpen(true);
+        setProfileView("orders");
+      } else if (view === "profile") {
+        setProfileOpen(true);
+      }
+    } catch {
+      // URL o'qilmasa ham (masalan eski brauzer) — oddiy ochilishga xalaqit bermaydi
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   // Xarid qilingan mahsulotga sharh qoldirish oynasi — { order, item } yoki null.
   const [reviewModal, setReviewModal] = useState(null);
   // Har bir (buyurtma + mahsulot) juftligi uchun mijoz allaqachon sharh qoldirganmi va u qanday holatda ekanini bilish uchun.

@@ -51,6 +51,29 @@ const FIRESTORE_BASE = `https://firestore.googleapis.com/v1/projects/${FIREBASE_
 const DEFAULT_WELCOME =
   "👋 Assalomu alaykum va CASME'ga xush kelibsiz!\n\nBiz orqali original Koreya kosmetikasini qulay narxlarda xarid qilishingiz mumkin.\n\nQuyidagi tugma orqali do'konni oching va xaridni boshlang! 🛍️";
 
+// Mini App (do'kon) manzili — pastdagi doimiy tugmalar shu yerga olib boradi.
+const STORE_URL = "https://www.casme.uz";
+
+/**
+ * Botning pastki qismidagi DOIMIY tugmalar (ReplyKeyboard) — "Do'kon" va
+ * "Mening buyurtmalarim" to'g'ridan-to'g'ri Mini App'ni ochadi (web_app),
+ * "Til" va "Chat" esa oddiy matn tugmalari — bosilganda ularning matni
+ * mijozdan kelgan xabar sifatida shu webhook'ga keladi (pastda ushlanadi).
+ * Bu klaviatura faqat xush kelibsiz xabariga qo'shiladi — Telegram uni
+ * boshqa xabar bilan almashtirilmaguncha ekranda saqlab turadi.
+ */
+function mainKeyboardMarkup() {
+  return {
+    keyboard: [
+      [{ text: "🛍 Do'kon", web_app: { url: STORE_URL } }],
+      [{ text: "🌐 Til" }, { text: "💬 Chat" }],
+      [{ text: "📦 Mening buyurtmalarim", web_app: { url: `${STORE_URL}/?view=orders` } }],
+    ],
+    resize_keyboard: true,
+    is_persistent: true,
+  };
+}
+
 // ---------- Firestore REST yordamchi funksiyalari (firebase paketisiz) ----------
 
 /** Firestore'ning "typed value" formatidagi maydonlarni oddiy JS obyektiga aylantiradi. */
@@ -196,6 +219,38 @@ export default async function handler(req, res) {
 
   try {
     const update = req.body;
+
+    // Inline tugma bosilganda (masalan "Til" tugmasidagi til tanlovi) —
+    // bu oddiy xabar emas, alohida turdagi "callback_query" yangilanishi.
+    if (update?.callback_query) {
+      const cq = update.callback_query;
+      const cbChatId = cq.message?.chat?.id;
+      const data = cq.data || "";
+
+      // Tugmadagi "yuklanmoqda" aylanishini to'xtatish uchun har doim javob berish shart.
+      try {
+        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/answerCallbackQuery`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ callback_query_id: cq.id }),
+        });
+      } catch (e) {
+        console.error("answerCallbackQuery xatoligi:", e);
+      }
+
+      if (cbChatId && (data === "lang_uz" || data === "lang_ru")) {
+        const reply = data === "lang_uz" ? "✅ Til: O'zbek tili tanlandi." : "✅ Язык: выбран русский.";
+        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ chat_id: cbChatId, text: reply }),
+        });
+        await saveChatMessage(cbChatId, "out", reply, null, "bot");
+      }
+
+      return res.status(200).json({ ok: true });
+    }
+
     const message = update?.message;
     const text = message?.text || "";
     const chatId = message?.chat?.id;
@@ -245,9 +300,39 @@ export default async function handler(req, res) {
         body: JSON.stringify({
           chat_id: chatId,
           text: welcomeText,
+          reply_markup: mainKeyboardMarkup(),
         }),
       });
       await saveChatMessage(chatId, "out", welcomeText, null, "bot");
+    } else if (text.trim() === "🌐 Til" && chatId) {
+      // Pastdagi doimiy "Til" tugmasi bosilganda — til tanlash uchun
+      // inline tugmalar bilan javob beramiz.
+      const reply = "Tilni tanlang / Выберите язык:";
+      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: reply,
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: "O'zbek 🇺🇿", callback_data: "lang_uz" }, { text: "Русский 🇷🇺", callback_data: "lang_ru" }],
+            ],
+          },
+        }),
+      });
+      await saveChatMessage(chatId, "out", reply, null, "bot");
+    } else if (text.trim() === "💬 Chat" && chatId) {
+      // Pastdagi doimiy "Chat" tugmasi bosilganda — mijozni yozishga
+      // undaydigan qisqa xabar. Mijoz shu yerdan keyin yozgan HAR bir
+      // xabari admin panelning "Telegram" → "Chat" bo'limida ko'rinadi.
+      const reply = "✍️ Savolingizni shu yerga yozing — administratorimiz tez orada javob beradi.";
+      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chat_id: chatId, text: reply }),
+      });
+      await saveChatMessage(chatId, "out", reply, null, "bot");
     }
   } catch (e) {
     console.error("Telegram webhook xatoligi:", e);
