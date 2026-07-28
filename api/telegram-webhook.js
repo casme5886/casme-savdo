@@ -25,11 +25,52 @@
 // KERAKLI ENVIRONMENT VARIABLES:
 //   TELEGRAM_BOT_TOKEN  — allaqachon bor (telegram-order.js bilan bir xil)
 //   OTP_SECRET          — allaqachon bor (send-otp.js bilan bir xil)
+//
+// YANGI: oddiy "/start" (otp_ parametrisiz) yuborilganda — botga birinchi
+// marta kirgan mijozga "xush kelibsiz" xabari yuboriladi. Bu xabar matni
+// Firestore'dagi settings/telegramWelcome hujjatidan o'qiladi — admin panelda
+// "Telegram" sahifasida tahrirlanadi (src/components/TelegramSettings.jsx).
 // ==========================================================
 
 import crypto from "node:crypto";
+import { initializeApp, getApps } from "firebase/app";
+import { getFirestore, doc, getDoc } from "firebase/firestore/lite";
 
 const OTP_WINDOW_MINUTES = 5;
+
+// Do'kon konfiguratsiyasi ochiq (client) qiymat — src/firebase.js dagi bilan
+// bir xil. Bu serverless funksiya src/firebase.js'ni to'g'ridan-to'g'ri import
+// qilmaydi, chunki o'sha fayl getAuth()'ni ham ishga tushiradi — bu yerda
+// Firestore'dan FAQAT bitta hujjatni o'qish kifoya, shuning uchun alohida,
+// eng yengil ("lite") mijoz ishlatiladi.
+const firebaseConfig = {
+  apiKey: "AIzaSyAW8EbpfKrUPc3eI6zjQCWn2N8HU5g9CvM",
+  authDomain: "casme-savdo.firebaseapp.com",
+  projectId: "casme-savdo",
+  storageBucket: "casme-savdo.firebasestorage.app",
+  messagingSenderId: "333618332367",
+  appId: "1:333618332367:web:0469ca47a9fc1d4f91edba",
+};
+
+function getDb() {
+  const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+  return getFirestore(app);
+}
+
+const DEFAULT_WELCOME =
+  "👋 Assalomu alaykum va CASME'ga xush kelibsiz!\n\nBiz orqali original Koreya kosmetikasini qulay narxlarda xarid qilishingiz mumkin.\n\nQuyidagi tugma orqali do'konni oching va xaridni boshlang! 🛍️";
+
+/** settings/telegramWelcome hujjatidan xabar matnini o'qiydi (bo'lmasa — standart matn). */
+async function getWelcomeMessage() {
+  try {
+    const db = getDb();
+    const snap = await getDoc(doc(db, "settings", "telegramWelcome"));
+    if (snap.exists() && snap.data()?.message) return snap.data().message;
+  } catch (e) {
+    console.error("Xush kelibsiz xabarini o'qishda xatolik:", e);
+  }
+  return DEFAULT_WELCOME;
+}
 
 function computeCode(phone, secret, windowOffset = 0) {
   const timeWindow = Math.floor(Date.now() / (OTP_WINDOW_MINUTES * 60 * 1000)) - windowOffset;
@@ -69,6 +110,20 @@ export default async function handler(req, res) {
           chat_id: chatId,
           text: `🔐 Tasdiqlash kodingiz: *${code}*\n\nKodni hech kimga bermang. Kod 5 daqiqa amal qiladi.`,
           parse_mode: "Markdown",
+        }),
+      });
+    } else if (text.trim() === "/start" && chatId) {
+      // Oddiy "/start" (parametrsiz) — botga birinchi (yoki qayta) kirgan
+      // mijozga "xush kelibsiz" xabarini yuboramiz. parse_mode ATAYIN
+      // qo'yilmagan — admin panelda kiritilgan matnda "<", ">", "&" kabi
+      // belgilar bo'lsa ham xabar yuborilishida xatolik bo'lmasligi uchun.
+      const welcomeText = await getWelcomeMessage();
+      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: welcomeText,
         }),
       });
     }

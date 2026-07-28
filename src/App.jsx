@@ -25,6 +25,7 @@ import TestimonialsSettings from "./components/TestimonialsSettings.jsx";
 import FAQSettings from "./components/FAQSettings.jsx";
 import StoreSettings from "./components/StoreSettings.jsx";
 import MarketingPage from "./components/MarketingPage.jsx";
+import TelegramSettings from "./components/TelegramSettings.jsx";
 
 /* ---------------------------------------------------------------
    I18N
@@ -41,6 +42,7 @@ const T = {
       banner: "Banner",
       testimonials: "Sharhlar", faqs: "Savol-javob",
       marketing: "Marketing",
+      telegram: "Telegram",
       settings: "Sozlamalar",
     },
     soon: "Bu bo'lim tez orada qo'shiladi",
@@ -244,6 +246,7 @@ const T = {
       banner: "Баннер",
       testimonials: "Отзывы", faqs: "Вопрос-ответ",
       marketing: "Маркетинг",
+      telegram: "Telegram",
       settings: "Настройки",
     },
     soon: "Этот раздел скоро появится",
@@ -6894,6 +6897,7 @@ export default function App() {
     { key: "testimonials", label: t.menu.testimonials, icon: MessageSquareQuote },
     { key: "faqs", label: t.menu.faqs, icon: HelpCircle },
     { key: "marketing", label: t.menu.marketing, icon: TrendingUp },
+    { key: "telegram", label: t.menu.telegram, icon: Send },
     { key: "settings", label: t.menu.settings, icon: SettingsIcon },
   ];
 
@@ -7047,6 +7051,7 @@ export default function App() {
           {page === "testimonials" && <TestimonialsSettings lang={lang} testimonials={testimonials} products={products} />}
           {page === "faqs" && <FAQSettings lang={lang} faqs={faqs} />}
           {page === "marketing" && <MarketingPage lang={lang} banners={banners} products={products} orders={orders} customers={customers} />}
+          {page === "telegram" && <TelegramSettings lang={lang} />}
           {page === "settings" && <StoreSettings lang={lang} settings={storeSettings} />}
         </main>
       </div>
