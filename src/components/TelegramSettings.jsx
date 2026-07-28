@@ -7,9 +7,11 @@ const T_LOCAL = {
   uz: {
     title: "Telegram bot",
     welcomeTitle: "Xush kelibsiz xabari",
-    welcomeHint: "Mijoz botga birinchi marta kirib \"/start\" bosganda avtomatik yuboriladigan xabar matni.",
-    welcomeLabel: "Xabar matni",
+    welcomeHint: "Mijoz botga birinchi marta kirib \"/start\" bosganda avtomatik yuboriladigan xabar matni. Mijoz botda qaysi tilni tanlagan bo'lsa (pastdagi \"Til\" tugmasi orqali), shu tildagi matn yuboriladi.",
+    welcomeLabel: "Xabar matni (O'zbek tilida)",
+    welcomeLabelRu: "Xabar matni (rus tilida)",
     welcomePh: "Masalan: Assalomu alaykum va CASME'ga xush kelibsiz! ...",
+    welcomePhRu: "Masalan: Здравствуйте, добро пожаловать в CASME! ...",
     save: "Saqlash", saving: "Saqlanmoqda...", saved: "Saqlandi",
 
     startsTitle: "Botni ishga tushirganlar",
@@ -33,9 +35,11 @@ const T_LOCAL = {
   ru: {
     title: "Telegram-бот",
     welcomeTitle: "Приветственное сообщение",
-    welcomeHint: "Текст, который автоматически отправляется, когда клиент впервые открывает бота и нажимает \"/start\".",
-    welcomeLabel: "Текст сообщения",
-    welcomePh: "Например: Здравствуйте, добро пожаловать в CASME! ...",
+    welcomeHint: "Текст, который автоматически отправляется, когда клиент впервые открывает бота и нажимает \"/start\". Отправляется на том языке, который клиент выбрал в боте (кнопка \"Язык\" внизу).",
+    welcomeLabel: "Текст сообщения (на узбекском)",
+    welcomeLabelRu: "Текст сообщения (на русском)",
+    welcomePh: "Например: Assalomu alaykum va CASME'ga xush kelibsiz! ...",
+    welcomePhRu: "Например: Здравствуйте, добро пожаловать в CASME! ...",
     save: "Сохранить", saving: "Сохранение...", saved: "Сохранено",
 
     startsTitle: "Запустившие бота",
@@ -79,9 +83,13 @@ function fmtTime(iso) {
 const DEFAULT_WELCOME =
   "👋 Assalomu alaykum va CASME'ga xush kelibsiz!\n\nBiz orqali original Koreya kosmetikasini qulay narxlarda xarid qilishingiz mumkin.\n\nQuyidagi tugma orqali do'konni oching va xaridni boshlang! 🛍️";
 
+const DEFAULT_WELCOME_RU =
+  "👋 Здравствуйте и добро пожаловать в CASME!\n\nЧерез нас вы можете приобрести оригинальную корейскую косметику по выгодным ценам.\n\nОткройте магазин с помощью кнопки ниже и начните покупки! 🛍️";
+
 export default function TelegramSettings({ lang }) {
   const t = T_LOCAL[lang] || T_LOCAL.uz;
   const [message, setMessage] = useState(DEFAULT_WELCOME);
+  const [messageRu, setMessageRu] = useState(DEFAULT_WELCOME_RU);
   const [loaded, setLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -99,6 +107,7 @@ export default function TelegramSettings({ lang }) {
     const unsub = subscribeCollection("settings", (list) => {
       const doc = list.find((x) => x.id === "telegramWelcome");
       if (doc?.message && !loaded) setMessage(doc.message);
+      if (doc?.messageRu && !loaded) setMessageRu(doc.messageRu);
       setLoaded(true);
     });
     return unsub;
@@ -121,7 +130,10 @@ export default function TelegramSettings({ lang }) {
 
   const save = async () => {
     setSaving(true);
-    await setItem("settings", "telegramWelcome", { message: message.trim() || DEFAULT_WELCOME });
+    await setItem("settings", "telegramWelcome", {
+      message: message.trim() || DEFAULT_WELCOME,
+      messageRu: messageRu.trim() || DEFAULT_WELCOME_RU,
+    });
     setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -220,13 +232,22 @@ export default function TelegramSettings({ lang }) {
           </div>
         </div>
 
-        <div className="mt-3">
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <Field label={t.welcomeLabel}>
             <textarea
               rows={6}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               placeholder={t.welcomePh}
+              className="w-full resize-y rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-emerald-500"
+            />
+          </Field>
+          <Field label={t.welcomeLabelRu}>
+            <textarea
+              rows={6}
+              value={messageRu}
+              onChange={(e) => setMessageRu(e.target.value)}
+              placeholder={t.welcomePhRu}
               className="w-full resize-y rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-emerald-500"
             />
           </Field>

@@ -51,23 +51,32 @@ const FIRESTORE_BASE = `https://firestore.googleapis.com/v1/projects/${FIREBASE_
 const DEFAULT_WELCOME =
   "👋 Assalomu alaykum va CASME'ga xush kelibsiz!\n\nBiz orqali original Koreya kosmetikasini qulay narxlarda xarid qilishingiz mumkin.\n\nQuyidagi tugma orqali do'konni oching va xaridni boshlang! 🛍️";
 
+const DEFAULT_WELCOME_RU =
+  "👋 Здравствуйте и добро пожаловать в CASME!\n\nЧерез нас вы можете приобрести оригинальную корейскую косметику по выгодным ценам.\n\nОткройте магазин с помощью кнопки ниже и начните покупки! 🛍️";
+
+const CHAT_PROMPT_UZ = "✍️ Savolingizni shu yerga yozing — administratorimiz tez orada javob beradi.";
+const CHAT_PROMPT_RU = "✍️ Напишите ваш вопрос здесь — наш администратор ответит в ближайшее время.";
+
 // Mini App (do'kon) manzili — pastdagi doimiy tugmalar shu yerga olib boradi.
 const STORE_URL = "https://www.casme.uz";
 
 /**
- * Botning pastki qismidagi DOIMIY tugmalar (ReplyKeyboard) — "Do'kon" va
- * "Mening buyurtmalarim" to'g'ridan-to'g'ri Mini App'ni ochadi (web_app),
- * "Til" va "Chat" esa oddiy matn tugmalari — bosilganda ularning matni
- * mijozdan kelgan xabar sifatida shu webhook'ga keladi (pastda ushlanadi).
- * Bu klaviatura faqat xush kelibsiz xabariga qo'shiladi — Telegram uni
- * boshqa xabar bilan almashtirilmaguncha ekranda saqlab turadi.
+ * Botning pastki qismidagi DOIMIY tugmalar (ReplyKeyboard) — "Do'kon/Магазин"
+ * va "Mening buyurtmalarim/Мои заказы" to'g'ridan-to'g'ri Mini App'ni ochadi
+ * (web_app), "Til/Язык" va "Chat/Чат" esa oddiy matn tugmalari — bosilganda
+ * ularning matni mijozdan kelgan xabar sifatida shu webhook'ga keladi (pastda
+ * ushlanadi). Tugma matnlari mijoz tanlagan tilga (lang: "uz" | "ru") qarab
+ * o'zgaradi. Bu klaviatura faqat xush kelibsiz va til tanlash xabarlariga
+ * qo'shiladi — Telegram uni boshqa xabar bilan almashtirilmaguncha ekranda
+ * saqlab turadi.
  */
-function mainKeyboardMarkup() {
+function mainKeyboardMarkup(lang) {
+  const isRu = lang === "ru";
   return {
     keyboard: [
-      [{ text: "🛍 Do'kon", web_app: { url: STORE_URL } }],
-      [{ text: "🌐 Til" }, { text: "💬 Chat" }],
-      [{ text: "📦 Mening buyurtmalarim", web_app: { url: `${STORE_URL}/?view=orders` } }],
+      [{ text: isRu ? "🛍 Магазин" : "🛍 Do'kon", web_app: { url: STORE_URL } }],
+      [{ text: isRu ? "🌐 Язык" : "🌐 Til" }, { text: isRu ? "💬 Чат" : "💬 Chat" }],
+      [{ text: isRu ? "📦 Мои заказы" : "📦 Mening buyurtmalarim", web_app: { url: `${STORE_URL}/?view=orders` } }],
     ],
     resize_keyboard: true,
     is_persistent: true,
@@ -139,15 +148,34 @@ async function firestorePatch(path, data) {
   }
 }
 
-/** settings/telegramWelcome hujjatidan xabar matnini o'qiydi (bo'lmasa — standart matn). */
-async function getWelcomeMessage() {
+/** settings/telegramWelcome hujjatidan xabar matnini (tilga mos) o'qiydi (bo'lmasa — standart matn). */
+async function getWelcomeMessage(lang) {
   try {
     const data = await firestoreGet("settings/telegramWelcome");
-    if (data?.message) return data.message;
+    if (lang === "ru") {
+      if (data?.messageRu) return data.messageRu;
+    } else if (data?.message) {
+      return data.message;
+    }
   } catch (e) {
     console.error("Xush kelibsiz xabarini o'qishda xatolik:", e);
   }
-  return DEFAULT_WELCOME;
+  return lang === "ru" ? DEFAULT_WELCOME_RU : DEFAULT_WELCOME;
+}
+
+/**
+ * Mijoz avval "Til" tugmasi orqali tanlagan tilini (telegramStarts/{chatId}
+ * hujjatidagi "lang" maydoni) o'qiydi. Hech narsa tanlanmagan bo'lsa —
+ * standart bo'yicha "uz" qaytaradi.
+ */
+async function getLang(chatId) {
+  try {
+    const data = await firestoreGet(`telegramStarts/${chatId}`);
+    return data?.lang === "ru" ? "ru" : "uz";
+  } catch (e) {
+    console.error("Mijoz tilini aniqlashda xatolik:", e);
+    return "uz";
+  }
 }
 
 /**
@@ -239,11 +267,26 @@ export default async function handler(req, res) {
       }
 
       if (cbChatId && (data === "lang_uz" || data === "lang_ru")) {
-        const reply = data === "lang_uz" ? "✅ Til: O'zbek tili tanlandi." : "✅ Язык: выбран русский.";
+        const chosenLang = data === "lang_ru" ? "ru" : "uz";
+
+        // Tanlovni telegramStarts/{chatId} hujjatiga saqlaymiz — shundan
+        // keyingi BARCHA avtomatik xabarlar (xush kelibsiz, OTP, Chat
+        // taklifi) shu tilda yuboriladi.
+        try {
+          await firestorePatch(`telegramStarts/${cbChatId}`, { lang: chosenLang });
+        } catch (e) {
+          console.error("Til tanlovini saqlashda xatolik:", e);
+        }
+
+        const reply = chosenLang === "uz" ? "✅ Til: O'zbek tili tanlandi." : "✅ Язык: выбран русский.";
         await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ chat_id: cbChatId, text: reply }),
+          body: JSON.stringify({
+            chat_id: cbChatId,
+            text: reply,
+            reply_markup: mainKeyboardMarkup(chosenLang),
+          }),
         });
         await saveChatMessage(cbChatId, "out", reply, null, "bot");
       }
@@ -277,35 +320,41 @@ export default async function handler(req, res) {
     if (match && chatId) {
       const phone = decodeURIComponent(match[1]);
       const code = computeCode(phone, OTP_SECRET);
+      const lang = await getLang(chatId);
+      const otpText = lang === "ru"
+        ? `🔐 Ваш код подтверждения: *${code}*\n\nНикому не сообщайте код. Код действителен 5 минут.`
+        : `🔐 Tasdiqlash kodingiz: *${code}*\n\nKodni hech kimga bermang. Kod 5 daqiqa amal qiladi.`;
 
       await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           chat_id: chatId,
-          text: `🔐 Tasdiqlash kodingiz: *${code}*\n\nKodni hech kimga bermang. Kod 5 daqiqa amal qiladi.`,
+          text: otpText,
           parse_mode: "Markdown",
         }),
       });
-      await saveChatMessage(chatId, "out", `🔐 Tasdiqlash kodingiz: ${code}`, null, "bot");
+      await saveChatMessage(chatId, "out", otpText.replace(/\*/g, ""), null, "bot");
     } else if (text.trim() === "/start" && chatId) {
       // Oddiy "/start" (parametrsiz) — botga birinchi (yoki qayta) kirgan
-      // mijozga "xush kelibsiz" xabarini yuboramiz. parse_mode ATAYIN
+      // mijozga "xush kelibsiz" xabarini, mijoz avval tanlagan tilda
+      // (yoki standart o'zbek tilida) yuboramiz. parse_mode ATAYIN
       // qo'yilmagan — admin panelda kiritilgan matnda "<", ">", "&" kabi
       // belgilar bo'lsa ham xabar yuborilishida xatolik bo'lmasligi uchun.
-      const welcomeText = await getWelcomeMessage();
+      const lang = await getLang(chatId);
+      const welcomeText = await getWelcomeMessage(lang);
       await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           chat_id: chatId,
           text: welcomeText,
-          reply_markup: mainKeyboardMarkup(),
+          reply_markup: mainKeyboardMarkup(lang),
         }),
       });
       await saveChatMessage(chatId, "out", welcomeText, null, "bot");
-    } else if (text.trim() === "🌐 Til" && chatId) {
-      // Pastdagi doimiy "Til" tugmasi bosilganda — til tanlash uchun
+    } else if ((text.trim() === "🌐 Til" || text.trim() === "🌐 Язык") && chatId) {
+      // Pastdagi doimiy "Til/Язык" tugmasi bosilganda — til tanlash uchun
       // inline tugmalar bilan javob beramiz.
       const reply = "Tilni tanlang / Выберите язык:";
       await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
@@ -322,11 +371,13 @@ export default async function handler(req, res) {
         }),
       });
       await saveChatMessage(chatId, "out", reply, null, "bot");
-    } else if (text.trim() === "💬 Chat" && chatId) {
-      // Pastdagi doimiy "Chat" tugmasi bosilganda — mijozni yozishga
-      // undaydigan qisqa xabar. Mijoz shu yerdan keyin yozgan HAR bir
-      // xabari admin panelning "Telegram" → "Chat" bo'limida ko'rinadi.
-      const reply = "✍️ Savolingizni shu yerga yozing — administratorimiz tez orada javob beradi.";
+    } else if ((text.trim() === "💬 Chat" || text.trim() === "💬 Чат") && chatId) {
+      // Pastdagi doimiy "Chat/Чат" tugmasi bosilganda — mijozni tanlagan
+      // tilida yozishga undaydigan qisqa xabar. Mijoz shu yerdan keyin
+      // yozgan HAR bir xabari admin panelning "Telegram" → "Chat"
+      // bo'limida ko'rinadi.
+      const lang = await getLang(chatId);
+      const reply = lang === "ru" ? CHAT_PROMPT_RU : CHAT_PROMPT_UZ;
       await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
