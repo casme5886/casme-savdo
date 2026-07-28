@@ -62,13 +62,13 @@ const STORE_URL = "https://www.casme.uz";
 
 /**
  * Botning pastki qismidagi DOIMIY tugmalar (ReplyKeyboard) — "Do'kon/Магазин"
- * va "Mening buyurtmalarim/Мои заказы" to'g'ridan-to'g'ri Mini App'ni ochadi
- * (web_app), "Til/Язык" va "Chat/Чат" esa oddiy matn tugmalari — bosilganda
+ * to'g'ridan-to'g'ri Mini App'ni ochadi (web_app). "Til/Язык", "Chat/Чат" va
+ * "Mening buyurtmalarim/Мои заказы" esa oddiy matn tugmalari — bosilganda
  * ularning matni mijozdan kelgan xabar sifatida shu webhook'ga keladi (pastda
- * ushlanadi). Tugma matnlari mijoz tanlagan tilga (lang: "uz" | "ru") qarab
- * o'zgaradi. Bu klaviatura faqat xush kelibsiz va til tanlash xabarlariga
- * qo'shiladi — Telegram uni boshqa xabar bilan almashtirilmaguncha ekranda
- * saqlab turadi.
+ * ushlanadi) va bot BOTNING O'ZIDA (saytga o'tmasdan) javob beradi. Tugma
+ * matnlari mijoz tanlagan tilga (lang: "uz" | "ru") qarab o'zgaradi. Bu
+ * klaviatura faqat xush kelibsiz va til tanlash xabarlariga qo'shiladi —
+ * Telegram uni boshqa xabar bilan almashtirilmaguncha ekranda saqlab turadi.
  */
 function mainKeyboardMarkup(lang) {
   const isRu = lang === "ru";
@@ -76,7 +76,7 @@ function mainKeyboardMarkup(lang) {
     keyboard: [
       [{ text: isRu ? "🛍 Магазин" : "🛍 Do'kon", web_app: { url: STORE_URL } }],
       [{ text: isRu ? "🌐 Язык" : "🌐 Til" }, { text: isRu ? "💬 Чат" : "💬 Chat" }],
-      [{ text: isRu ? "📦 Мои заказы" : "📦 Mening buyurtmalarim", web_app: { url: `${STORE_URL}/?view=orders` } }],
+      [{ text: isRu ? "📦 Мои заказы" : "📦 Mening buyurtmalarim" }],
     ],
     resize_keyboard: true,
     is_persistent: true,
@@ -85,15 +85,24 @@ function mainKeyboardMarkup(lang) {
 
 // ---------- Firestore REST yordamchi funksiyalari (firebase paketisiz) ----------
 
-/** Firestore'ning "typed value" formatidagi maydonlarni oddiy JS obyektiga aylantiradi. */
+/** Firestore'ning bitta "typed value" qiymatini oddiy JS qiymatiga aylantiradi (ro'yxat/obyekt ichidagilarni ham). */
+function decodeValue(val) {
+  if (!val) return null;
+  if (val.stringValue !== undefined) return val.stringValue;
+  if (val.integerValue !== undefined) return parseInt(val.integerValue, 10);
+  if (val.doubleValue !== undefined) return val.doubleValue;
+  if (val.booleanValue !== undefined) return val.booleanValue;
+  if (val.timestampValue !== undefined) return val.timestampValue;
+  if (val.arrayValue !== undefined) return (val.arrayValue.values || []).map(decodeValue);
+  if (val.mapValue !== undefined) return decodeFields(val.mapValue.fields || {});
+  return null;
+}
+
+/** Firestore'ning "typed value" formatidagi maydonlarni oddiy JS obyektiga aylantiradi (ro'yxat/mahsulotlar kabi ichma-ich maydonlar bilan birga — masalan buyurtmadagi "items"). */
 function decodeFields(fields) {
   const out = {};
   for (const [key, val] of Object.entries(fields || {})) {
-    if (val.stringValue !== undefined) out[key] = val.stringValue;
-    else if (val.integerValue !== undefined) out[key] = parseInt(val.integerValue, 10);
-    else if (val.doubleValue !== undefined) out[key] = val.doubleValue;
-    else if (val.booleanValue !== undefined) out[key] = val.booleanValue;
-    else out[key] = null;
+    out[key] = decodeValue(val);
   }
   return out;
 }
@@ -131,6 +140,83 @@ async function firestoreGet(path) {
   if (!res.ok) throw new Error(`Firestore GET xatosi (${path}): ${res.status}`);
   const data = await res.json();
   return decodeFields(data.fields || {});
+}
+
+/**
+ * "orders" kolleksiyasidan shu Telegram foydalanuvchisiga (telegramUserId)
+ * tegishli barcha buyurtmalarni qidiradi — "📦 Mening buyurtmalarim" tugmasi
+ * bosilganda ishlatiladi. Firestore'ning ":runQuery" REST manziliga
+ * to'g'ridan-to'g'ri fetch() bilan murojaat qilinadi (bu yerda ham
+ * "firebase" paketi ishlatilmaydi).
+ */
+async function firestoreQueryOrders(chatId) {
+  const body = {
+    structuredQuery: {
+      from: [{ collectionId: "orders" }],
+      where: {
+        fieldFilter: {
+          field: { fieldPath: "telegramUserId" },
+          op: "EQUAL",
+          value: { integerValue: String(chatId) },
+        },
+      },
+      limit: 50,
+    },
+  };
+  const res = await fetch(`${FIRESTORE_BASE}:runQuery`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const errText = await res.text().catch(() => "");
+    throw new Error(`Firestore runQuery xatosi: ${res.status} ${errText}`);
+  }
+  const rows = await res.json();
+  return (Array.isArray(rows) ? rows : [])
+    .filter((r) => r.document)
+    .map((r) => ({ id: r.document.name.split("/").pop(), ...decodeFields(r.document.fields || {}) }));
+}
+
+function money(n) {
+  return (Number(n) || 0).toLocaleString("ru-RU");
+}
+
+function esc(value) {
+  return String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+const ORDER_STATUS_LABELS = {
+  new: { uz: "🆕 Yangi", ru: "🆕 Новый" },
+  ready: { uz: "📦 Tayyor", ru: "📦 Готов" },
+  on_way: { uz: "🚚 Yo'lda", ru: "🚚 В пути" },
+  delivered: { uz: "✅ Yetkazib berildi", ru: "✅ Доставлен" },
+  cancelled: { uz: "❌ Bekor qilindi", ru: "❌ Отменён" },
+};
+
+/** Mijozning buyurtmalar ro'yxatidan chiroyli, tayyor Telegram xabarini (HTML) tuzadi. */
+function buildOrdersMessage(orders, lang) {
+  if (!orders.length) {
+    return lang === "ru" ? "📦 У вас пока нет заказов." : "📦 Sizda hali buyurtma yo'q.";
+  }
+  const sorted = [...orders].sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")));
+  const top = sorted.slice(0, 5);
+  const lines = [
+    lang === "ru" ? `📦 <b>Ваши последние заказы (${top.length}):</b>` : `📦 <b>So'nggi buyurtmalaringiz (${top.length} ta):</b>`,
+    "",
+  ];
+  top.forEach((o, idx) => {
+    const statusLabel = (ORDER_STATUS_LABELS[o.status] || {})[lang] || esc(o.status || "");
+    lines.push(`${idx + 1}. ${esc(o.date || "")} — ${statusLabel}`);
+    if (Array.isArray(o.items)) {
+      o.items.forEach((it) => {
+        lines.push(`   • ${esc(it.productName)} × ${it.qty || 1}`);
+      });
+    }
+    lines.push(`   ${lang === "ru" ? "Итого" : "Jami"}: ${money(o.amount)} ${lang === "ru" ? "сум" : "so'm"}`);
+    lines.push("");
+  });
+  return lines.join("\n").trim();
 }
 
 /** Berilgan maydonlarni hujjatga yozadi/yangilaydi (mavjud bo'lmasa — yaratadi). */
@@ -384,6 +470,27 @@ export default async function handler(req, res) {
         body: JSON.stringify({ chat_id: chatId, text: reply }),
       });
       await saveChatMessage(chatId, "out", reply, null, "bot");
+    } else if ((text.trim() === "📦 Mening buyurtmalarim" || text.trim() === "📦 Мои заказы") && chatId) {
+      // Pastdagi doimiy "Mening buyurtmalarim/Мои заказы" tugmasi
+      // bosilganda — saytga o'tmasdan, BOTNING O'ZIDA so'nggi
+      // buyurtmalar ro'yxatini chiroyli formatda ko'rsatamiz.
+      const lang = await getLang(chatId);
+      let reply;
+      try {
+        const orders = await firestoreQueryOrders(chatId);
+        reply = buildOrdersMessage(orders, lang);
+      } catch (e) {
+        console.error("Buyurtmalarni olishda xatolik:", e);
+        reply = lang === "ru"
+          ? "⚠️ Не удалось загрузить заказы. Попробуйте позже."
+          : "⚠️ Buyurtmalarni yuklab bo'lmadi. Birozdan so'ng qayta urinib ko'ring.";
+      }
+      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chat_id: chatId, text: reply, parse_mode: "HTML" }),
+      });
+      await saveChatMessage(chatId, "out", reply.replace(/<[^>]+>/g, ""), null, "bot");
     }
   } catch (e) {
     console.error("Telegram webhook xatoligi:", e);
