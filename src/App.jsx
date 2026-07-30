@@ -446,7 +446,7 @@ const T = {
    bir xil ma'lumotni ko'radi)
 --------------------------------------------------------------- */
 import {
-  subscribeCollection, addItem, setItem, updateItem, deleteItem,
+  subscribeCollection, subscribeDoc, addItem, setItem, updateItem, deleteItem,
   findCustomerByPhone, findCustomerByTelegramId, isCollectionEmpty, placeOrderBatch, getCustomersCount, getOrdersCount,
   findPromoCode, incrementPromoCodeUsage,
   findOrdersByTelegramId, findOrdersByPhone, uploadImage,
@@ -6891,10 +6891,14 @@ export default function App() {
     return unsub;
   }, []);
 
-  // Do'kon sozlamalari (bitta hujjat — settings/store)
+  // Do'kon sozlamalari (bitta hujjat — settings/store). MUHIM: butun
+  // "settings" kolleksiyasiga emas, FAQAT shu bitta hujjatga obuna
+  // bo'linadi — aks holda boshqa sozlama (masalan Telegram xush kelibsiz
+  // xabari) saqlanganda ham qayta ishga tushib, "Sozlamalar" sahifasida
+  // hali saqlanmagan o'zgarishlarni (masalan endigina yuklangan logotipni)
+  // formadan yo'qotib yuborardi.
   useEffect(() => {
-    const unsub = subscribeCollection("settings", (list) => {
-      const store = list.find((x) => x.id === "store");
+    const unsub = subscribeDoc("settings", "store", (store) => {
       setStoreSettings(store || null);
     });
     return unsub;

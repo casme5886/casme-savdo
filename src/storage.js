@@ -30,6 +30,26 @@ export function subscribeCollection(name, callback) {
   );
 }
 
+/**
+ * BITTA hujjatga real-vaqtli obuna bo'lish (butun kolleksiyaga emas).
+ * Masalan "settings" kolleksiyasida bir nechta hujjat bor (do'kon
+ * sozlamalari, Telegram xush kelibsiz xabari va h.k.) — agar shu
+ * kolleksiyaning HAMMASIGA obuna bo'lsak, ULARDAN BIRI o'zgarganda ham
+ * (masalan admin Telegram xabarini saqlaganda) qayta chaqiriladi va
+ * "Sozlamalar" sahifasidagi hali SAQLANMAGAN (masalan endigina yuklangan
+ * logotip) o'zgarishlar formadan yo'qolib qolishi mumkin edi. Shu
+ * funksiya orqali FAQAT kerakli bitta hujjatga obuna bo'lib, bu muammoni
+ * oldini olamiz.
+ */
+export function subscribeDoc(name, id, callback) {
+  const ref = doc(db, name, id);
+  return onSnapshot(
+    ref,
+    (snap) => callback(snap.exists() ? { id: snap.id, ...snap.data() } : null),
+    (err) => console.error(`Firestore hujjat obuna xatosi (${name}/${id}):`, err)
+  );
+}
+
 export async function addItem(name, data) {
   return addDoc(collection(db, name), data);
 }
