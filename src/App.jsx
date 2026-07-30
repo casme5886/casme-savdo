@@ -32,7 +32,7 @@ import TelegramSettings from "./components/TelegramSettings.jsx";
 --------------------------------------------------------------- */
 const T = {
   uz: {
-    appName: "Savdo Panel",
+    appName: "CASME",
     workspace: "Do'kon",
     menu: {
       dashboard: "Boshqaruv paneli",
@@ -236,7 +236,7 @@ const T = {
     },
   },
   ru: {
-    appName: "Панель продаж",
+    appName: "CASME",
     workspace: "Магазин",
     menu: {
       dashboard: "Панель управления",
@@ -3527,7 +3527,18 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
       }
       meta.setAttribute("content", storeSettings.seoKeywords);
     }
-  }, [storeSettings?.seoTitle, storeSettings?.seoDescription, storeSettings?.seoKeywords, storeSettings?.storeName]);
+    // Brauzer tab'idagi ikonka (favicon) — standart "globus" o'rniga
+    // Sozlamalarda yuklangan do'kon logotipini qo'yamiz.
+    if (storeSettings?.logoUrl) {
+      let link = document.querySelector('link[rel="icon"]');
+      if (!link) {
+        link = document.createElement("link");
+        link.setAttribute("rel", "icon");
+        document.head.appendChild(link);
+      }
+      link.setAttribute("href", storeSettings.logoUrl);
+    }
+  }, [storeSettings?.seoTitle, storeSettings?.seoDescription, storeSettings?.seoKeywords, storeSettings?.storeName, storeSettings?.logoUrl]);
 
   // Profil oynasi ochilganda — "Buyurtmalarim"ni yuklaymiz:
   // avval Telegram ID bo'yicha, u bo'lmasa (Telegram tashqarisida
