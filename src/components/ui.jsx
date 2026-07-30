@@ -134,14 +134,57 @@ export function isValidUzPhone(formatted) {
  * telefon input. `value`/`onChange` — odatiy controlled input kabi
  * ishlaydi, faqat qiymat doim to'liq formatlangan qatorda bo'ladi.
  */
+/**
+ * Formatlangan qatorda ("+998 (XX) XXX XX XX") shu nechinchi MAHALLIY
+ * raqamdan keyin kursor turishi kerakligini pozitsiyaga aylantiradi.
+ * "+998 (" prefiksi doim aniq 6 ta belgi — shuning uchun 0-mahalliy
+ * raqam uchun kursor to'g'ridan-to'g'ri 6-pozitsiyaga (qavsdan keyin) qo'yiladi.
+ */
+function cursorPosForLocalDigitCount(formatted, n) {
+  if (n <= 0) return 6;
+  let seen = 0;
+  for (let i = 6; i < formatted.length; i++) {
+    if (/\d/.test(formatted[i])) {
+      seen++;
+      if (seen === n) return i + 1;
+    }
+  }
+  return formatted.length;
+}
+
 export function PhoneInput({ value, onChange, className, autoFocus }) {
+  const inputRef = useRef(null);
+
+  const handleChange = (e) => {
+    const raw = e.target.value;
+    const cursorPos = e.target.selectionStart ?? raw.length;
+
+    // Kursordan OLDIN nechta MAHALLIY raqam borligini (formatlashdan oldin,
+    // "+998" prefiksini hisobga olmasdan) aniqlaymiz — shu son o'zgarmasin,
+    // aks holda har safar o'chirishda kursor oxiriga sakrab, kod (masalan
+    // operator kodi)ni o'chirish/almashtirish deyarli imkonsiz bo'lib qolar edi.
+    const beforeCursorDigits = raw.slice(0, cursorPos).replace(/\D/g, "");
+    const localDigitsBeforeCursor = Math.max(0, beforeCursorDigits.replace(/^998/, "").length);
+
+    const formatted = formatUzPhone(raw);
+    onChange(formatted);
+
+    requestAnimationFrame(() => {
+      const el = inputRef.current;
+      if (!el) return;
+      const pos = cursorPosForLocalDigitCount(formatted, localDigitsBeforeCursor);
+      el.setSelectionRange(pos, pos);
+    });
+  };
+
   return (
     <input
+      ref={inputRef}
       type="tel"
       inputMode="numeric"
       autoFocus={autoFocus}
       value={value || "+998 ("}
-      onChange={(e) => onChange(formatUzPhone(e.target.value))}
+      onChange={handleChange}
       onFocus={(e) => {
         if (!value) onChange("+998 (");
         // Kursorni oxiriga qo'yamiz — shu joydan yozishni davom ettirish qulay bo'lsin.

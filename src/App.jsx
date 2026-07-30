@@ -13,7 +13,7 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from "recharts";
 import { initTelegram, isInTelegram, getTelegramUser, hapticFeedback, getWebApp } from "./telegram.js";
-import Banner, { MidPromoBanner, isBannerLive } from "./components/Banner.jsx";
+import Banner from "./components/Banner.jsx";
 import BannerSettings from "./components/BannerSettings.jsx";
 import ProductDetail from "./components/ProductDetail.jsx";
 import ProductForm from "./components/ProductForm.jsx";
@@ -4925,13 +4925,6 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
           );
         })}
       </div>
-
-      {/* Sharhlardan oldingi reklama banneri — admin panelda 4-banner qo'shilsa ko'rinadi (aks holda bo'sh joy qoldirmaydi) */}
-      {banners.filter(isBannerLive).length >= 4 && (
-        <div className="px-[5px] pt-16 min-[769px]:px-6">
-          <MidPromoBanner banners={banners} inTelegram={inTelegram} t={t} onViewLinkedProducts={viewLinkedProducts} />
-        </div>
-      )}
 
       <StoreFooter
         lang={lang}
