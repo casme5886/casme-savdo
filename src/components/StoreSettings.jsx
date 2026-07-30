@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Save, Loader2, CheckCircle2, ImageOff, Download, Search as SeoIcon } from "lucide-react";
+import { Save, Loader2, CheckCircle2, ImageOff, Download, Search as SeoIcon, Megaphone } from "lucide-react";
 import { setItem, uploadImage, getAllDocs } from "../storage.js";
 import { Field, inputCls } from "./ui.jsx";
 
@@ -24,6 +24,9 @@ const T_LOCAL = {
     seoTitle: "Sayt sarlavhasi (title)", seoTitleHint: "Brauzer tab'ida va Google natijalarida chiqadi",
     seoDescription: "Qisqa tavsif (description)", seoDescriptionHint: "Google natijalarida sarlavha ostida chiqadigan matn",
     seoKeywords: "Kalit so'zlar (ixtiyoriy)", seoKeywordsHint: "Vergul bilan ajrating",
+
+    marketing: "Marketing", marketingHint: "Facebook/Instagram reklamalaringiz saytdagi xaridlarni to'g'ri hisoblashi va ularga optimallashishi uchun.",
+    fbPixelId: "Facebook Pixel ID", fbPixelIdHint: "Facebook Events Manager'dan olinadi (faqat raqamlar, masalan: 1234567890123456). Bo'sh qoldirsangiz — pixel ishlamaydi.",
 
     backup: "Zaxira nusxa", backupHint: "Barcha ma'lumotlaringizni (mahsulotlar, buyurtmalar, mijozlar va h.k.) bitta faylga yuklab oling.",
     trustTitle: "Ishonch belgilari", trustHint: "Do'kon sahifasining pastida chiqadigan 4 ta qisqa matn. Bo'sh qoldirsangiz — standart matn ko'rinadi.",
@@ -56,6 +59,9 @@ const T_LOCAL = {
     seoTitle: "Заголовок сайта (title)", seoTitleHint: "Отображается во вкладке браузера и в результатах Google",
     seoDescription: "Краткое описание (description)", seoDescriptionHint: "Текст под заголовком в результатах Google",
     seoKeywords: "Ключевые слова (опционально)", seoKeywordsHint: "Разделяйте запятой",
+
+    marketing: "Маркетинг", marketingHint: "Чтобы реклама в Facebook/Instagram правильно считала покупки на сайте и оптимизировалась под них.",
+    fbPixelId: "Facebook Pixel ID", fbPixelIdHint: "Берётся из Facebook Events Manager (только цифры, например: 1234567890123456). Если оставить пустым — pixel не будет работать.",
 
     backup: "Резервная копия", backupHint: "Скачайте все ваши данные (товары, заказы, клиенты и т.д.) в одном файле.",
     trustTitle: "Значки доверия", trustHint: "4 коротких текста внизу страницы магазина. Если оставить пустым — покажется стандартный текст.",
@@ -97,6 +103,7 @@ const emptyForm = (settings) => ({
   seoTitle: settings?.seoTitle || "",
   seoDescription: settings?.seoDescription || "",
   seoKeywords: settings?.seoKeywords || "",
+  fbPixelId: settings?.fbPixelId || "",
   trustFeature1: settings?.trustFeature1 || "",
   trustFeature2: settings?.trustFeature2 || "",
   trustFeature3: settings?.trustFeature3 || "",
@@ -133,6 +140,7 @@ export default function StoreSettings({ lang, settings }) {
       seoTitle: form.seoTitle.trim(),
       seoDescription: form.seoDescription.trim(),
       seoKeywords: form.seoKeywords.trim(),
+      fbPixelId: form.fbPixelId.trim(),
       trustFeature1: form.trustFeature1.trim(),
       trustFeature2: form.trustFeature2.trim(),
       trustFeature3: form.trustFeature3.trim(),
@@ -327,6 +335,22 @@ export default function StoreSettings({ lang, settings }) {
         </Field>
         <Field label={t.seoKeywords}>
           <input className={inputCls} value={form.seoKeywords} onChange={(e) => setForm({ ...form, seoKeywords: e.target.value })} placeholder={t.seoKeywordsHint} />
+        </Field>
+        <button onClick={save} disabled={saving} className="mt-1 flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-60">
+          {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />} {saving ? t.saving : t.save}
+        </button>
+      </div>
+
+      {/* Marketing (Facebook Pixel) */}
+      <div className="rounded-2xl bg-white p-4 shadow-sm">
+        <div className="mb-1 flex items-center gap-2">
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-50 text-blue-600"><Megaphone size={15} /></span>
+          <h3 className="text-sm font-semibold text-slate-800">{t.marketing}</h3>
+        </div>
+        <p className="mb-3 text-xs text-slate-400">{t.marketingHint}</p>
+        <Field label={t.fbPixelId}>
+          <input className={inputCls} value={form.fbPixelId} onChange={(e) => setForm({ ...form, fbPixelId: e.target.value })} placeholder="1234567890123456" />
+          <p className="mt-1 text-[11px] text-slate-400">{t.fbPixelIdHint}</p>
         </Field>
         <button onClick={save} disabled={saving} className="mt-1 flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-60">
           {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />} {saving ? t.saving : t.save}

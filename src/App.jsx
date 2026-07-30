@@ -3540,6 +3540,57 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
     }
   }, [storeSettings?.seoTitle, storeSettings?.seoDescription, storeSettings?.seoKeywords, storeSettings?.storeName, storeSettings?.logoUrl]);
 
+  // Facebook (Meta) Pixel — Sozlamalarda kiritilgan Pixel ID bo'lsa,
+  // rasmiy Facebook skriptini (fbevents.js) bir marta yuklab, initsializatsiya
+  // qilamiz. Shundan keyin pastdagi trackPixel() orqali ViewContent/AddToCart/
+  // InitiateCheckout/Purchase voqealarini yuboramiz — reklamalar shu orqali
+  // haqiqiy xaridlarni ko'radi va ularga optimallashadi.
+  useEffect(() => {
+    const pixelId = storeSettings?.fbPixelId;
+    if (!pixelId) return;
+    if (!window._fbPixelInitedIds) window._fbPixelInitedIds = new Set();
+    if (window._fbPixelInitedIds.has(pixelId)) return;
+
+    if (!window.fbq) {
+      /* eslint-disable */
+      (function (f, b, e, v, n, t, s) {
+        if (f.fbq) return;
+        n = f.fbq = function () {
+          n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments);
+        };
+        if (!f._fbq) f._fbq = n;
+        n.push = n; n.loaded = true; n.version = "2.0"; n.queue = [];
+        t = b.createElement(e); t.async = true; t.src = v;
+        s = b.getElementsByTagName(e)[0]; s.parentNode.insertBefore(t, s);
+      })(window, document, "script", "https://connect.facebook.net/en_US/fbevents.js");
+      /* eslint-enable */
+    }
+    window.fbq("init", pixelId);
+    window.fbq("track", "PageView");
+    window._fbPixelInitedIds.add(pixelId);
+  }, [storeSettings?.fbPixelId]);
+
+  /** Facebook Pixel voqeasini yuboradi (Pixel sozlanmagan bo'lsa — jim o'tib ketadi). */
+  const trackPixel = (eventName, params) => {
+    if (typeof window !== "undefined" && typeof window.fbq === "function") {
+      window.fbq("track", eventName, params);
+    }
+  };
+
+  // Facebook Pixel: mijoz mahsulot sahifasini (kartochkasini) ochganda —
+  // "ViewContent" voqeasini yuboramiz.
+  useEffect(() => {
+    if (!selectedProduct) return;
+    trackPixel("ViewContent", {
+      content_name: pname(selectedProduct, lang),
+      content_ids: [selectedProduct.id],
+      content_type: "product",
+      value: Number(selectedProduct.price) || 0,
+      currency: "UZS",
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedProduct]);
+
   // Profil oynasi ochilganda — "Buyurtmalarim"ni yuklaymiz:
   // avval Telegram ID bo'yicha, u bo'lmasa (Telegram tashqarisida
   // ochilgan bo'lsa) — saqlangan telefon raqami bo'yicha.
@@ -4001,6 +4052,13 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
     if (discountPercent > 0) {
       setCartItemDiscounts(prev => ({ ...prev, [p.id]: discountPercent }));
     }
+    trackPixel("AddToCart", {
+      content_name: pname(p, lang),
+      content_ids: [p.id],
+      content_type: "product",
+      value: Number(p.price) || 0,
+      currency: "UZS",
+    });
   };
 
   /**
@@ -4169,6 +4227,18 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
         customerAddress: form.address.trim(),
         cartTotal: cartTotalAfterBonus,
         orderData,
+      });
+
+      // Facebook Pixel: buyurtma MUVAFFAQIYATLI joylandi — "Purchase"
+      // voqeasi shu yerda, bazaga yozilgandan KEYIN yuboriladi (xato
+      // bo'lsa pastdagi catch blokiga tushadi va bu yerga yetib kelmaydi).
+      trackPixel("Purchase", {
+        content_ids: selectedCartItemsList.map((i) => i.product.id),
+        content_type: "product",
+        num_items: selectedCartItemsList.length,
+        value: cartTotalAfterBonus,
+        currency: "UZS",
+        order_id: orderId,
       });
 
       if (appliedPromo) {
@@ -6472,7 +6542,17 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
             {cartItems.length > 0 && (
               <div className="border-t border-gray-100 px-5 py-3">
                 <button
-                  onClick={() => { setCartOpen(false); setCheckoutOpen(true); }}
+                  onClick={() => {
+                    setCartOpen(false);
+                    setCheckoutOpen(true);
+                    trackPixel("InitiateCheckout", {
+                      content_ids: selectedCartItemsList.map((i) => i.product.id),
+                      content_type: "product",
+                      num_items: selectedCartCount,
+                      value: selectedCartTotal,
+                      currency: "UZS",
+                    });
+                  }}
                   disabled={selectedCartCount === 0}
                   className="w-full rounded-xl bg-rose-600 py-2.5 text-sm font-semibold text-white hover:bg-rose-700 disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-400"
                 >
