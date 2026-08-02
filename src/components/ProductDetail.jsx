@@ -143,7 +143,7 @@ export default function ProductDetail({ product, cartQty, onClose, onAddToCart, 
           <button
             disabled={soldOut}
             onClick={() => onAddToCart(product)}
-            className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-emerald-600 py-3 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-400"
+            className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-[#1F1F1F] py-3 text-sm font-semibold text-white hover:bg-black disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-400"
           >
             <Plus size={16} /> {t.store.addToCart}{cartQty > 0 ? ` (${cartQty})` : ""}
           </button>
