@@ -63,9 +63,16 @@ service cloud.firestore {
     match /products/{productId} {
       allow read: if true;
       allow create, delete: if request.auth != null;
+      // MUHIM: checkout paytida "sold" (nechta sotilgani) maydoni ham
+      // yoziladi, "stock" bilan birga — shu ikkalasi ham ro'yxatga
+      // qo'shilishi kerak, aks holda (faqat 'stock' ruxsat etilgan bo'lsa)
+      // "sold" maydoni yozilganda butun batch yozuvi RAD ETILADI va
+      // NATIJADA MIJOZNING BUYURTMASI UMUMAN SAQLANMAY QOLADI (chunki
+      // buyurtma bitta batch ichida, mahsulot bilan birga yoziladi).
       allow update: if request.auth != null || (
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stock']) &&
-        request.resource.data.stock <= resource.data.stock
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stock', 'sold']) &&
+        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['stock']) || request.resource.data.stock <= resource.data.stock) &&
+        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['sold']) || request.resource.data.sold >= resource.data.sold)
       );
     }
 

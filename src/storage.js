@@ -326,11 +326,20 @@ export async function placeOrderBatch({ cartItems, existingCustomer, customerNam
       ...telegramFields,
     });
   } else {
+    // MUHIM: bu — checkout paytida ILK MARTA uchraydigan (ro'yxatdan
+    // O'TMAGAN, ya'ni Telegram orqali yoki OTP bilan telefon
+    // tasdiqlanmagan) mijoz. "Xush kelibsiz" bonusi (20 000) FAQAT
+    // saytda haqiqatan ro'yxatdan o'tganlarga (App.jsx'dagi Telegram
+    // orqali avtomatik ro'yxatdan o'tish yoki saveMyPhone/OTP orqali)
+    // beriladi — o'sha joylarda mijoz yozuvi ALLAQACHON yaratilgan va
+    // bonus berilgan bo'ladi, shuning uchun bu yerga (mehmon sifatida
+    // buyurtma berish) umuman kelib qolmaydi. Agar shunga qaramay shu
+    // yerga kelib qolsa (haqiqiy mehmon, ro'yxatdan o'tmagan) — bonus 0.
     const newCustomerRef = doc(collection(db, "customers"));
     batch.set(newCustomerRef, {
       name: customerName, phone: customerPhone, address: customerAddress,
       orders: 1, spent: cartTotal, date: orderData.date,
-      bonusPoints: 20000, // Yangi mijozga xush kelibsiz bonusi
+      bonusPoints: 0,
       ...telegramFields,
     });
   }

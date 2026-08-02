@@ -3458,6 +3458,11 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
   const [otpCode, setOtpCode] = useState("");
   const [otpSending, setOtpSending] = useState(false);
   const [otpError, setOtpError] = useState("");
+  // Telefon OTP ekrani QAYERDAN ochilganini eslab qoladi: "profile" (Profil
+  // tugmasi bosilganda) yoki "checkout" (Rasmiylashtirish bosilganda) —
+  // tasdiqlash muvaffaqiyatli o'tgach, mos ekranga (profil yoki to'g'ridan
+  // to'g'ri checkout) o'tkazish uchun kerak.
+  const [loginIntent, setLoginIntent] = useState("profile");
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [form, setForm] = useState({ name: "", phone: "", phone2: "", payment: "cash", address: "" });
   const [showPhone2, setShowPhone2] = useState(false);
@@ -3846,6 +3851,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
    *  ichida bo'lmasa) avval "Kirish/ro'yxatdan o'tish" ekranini ko'rsatamiz. */
   const openProfile = () => {
     if (!inTelegram && !myPhone) {
+      setLoginIntent("profile");
       setOtpStep("phone");
       setOtpCode("");
       setOtpError("");
@@ -3854,6 +3860,32 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
       setProfileView("menu");
       setProfileOpen(true);
     }
+  };
+
+  /** Savatdagi "Rasmiylashtirish" tugmasi bosilganda chaqiriladi. Mijoz
+   *  hali ro'yxatdan o'tmagan bo'lsa (Telegram ichida emas va telefon
+   *  tasdiqlanmagan) — avval telefon OTP ekranini ko'rsatamiz, tasdiqlangach
+   *  o'zi avtomatik checkout'ga o'tadi (pastdagi verifyOtpAndLogin'ga qarang).
+   *  Aks holda checkout to'g'ridan-to'g'ri ochiladi. */
+  const startCheckout = () => {
+    if (!inTelegram && !myPhone) {
+      setLoginIntent("checkout");
+      setOtpStep("phone");
+      setOtpCode("");
+      setOtpError("");
+      setCartOpen(false);
+      setPhoneLoginOpen(true);
+      return;
+    }
+    setCartOpen(false);
+    setCheckoutOpen(true);
+    trackPixel("InitiateCheckout", {
+      content_ids: selectedCartItemsList.map((i) => i.product.id),
+      content_type: "product",
+      num_items: selectedCartCount,
+      value: selectedCartTotal,
+      currency: "UZS",
+    });
   };
 
   const logoutProfile = () => {
@@ -3896,10 +3928,24 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
       }
       await saveMyPhone();
       setPhoneLoginOpen(false);
-      setProfileView("menu");
-      setProfileOpen(true);
       setOtpStep("phone");
       setOtpCode("");
+      // Ro'yxatdan o'tish "Rasmiylashtirish" tugmasidan boshlangan bo'lsa —
+      // profil menyusi o'rniga to'g'ridan-to'g'ri checkout'ni ochamiz,
+      // mijoz qayta "Rasmiylashtirish"ni bosishiga hojat qolmaydi.
+      if (loginIntent === "checkout") {
+        setCheckoutOpen(true);
+        trackPixel("InitiateCheckout", {
+          content_ids: selectedCartItemsList.map((i) => i.product.id),
+          content_type: "product",
+          num_items: selectedCartCount,
+          value: selectedCartTotal,
+          currency: "UZS",
+        });
+      } else {
+        setProfileView("menu");
+        setProfileOpen(true);
+      }
     } catch {
       setOtpError(t.store.profile.otpWrong);
     }
@@ -4304,7 +4350,15 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
     setPlacing(true);
 
     const phone = form.phone.trim();
-    const existing = await findCustomerByPhone(phone);
+    // MUHIM: agar mijoz ALLAQACHON ro'yxatdan o'tgan bo'lsa (Telegram
+    // orqali yoki OTP bilan — myCustomerId shu holatda to'ladi), o'sha
+    // yozuvni ustuvor olamiz. Aks holda checkout formasidagi telefon
+    // raqami bo'yicha qidiramiz. Bu ikkita muammoning oldini oladi:
+    // 1) ro'yxatdan o'tgan mijoz checkout'da boshqa/bo'sh telefon kiritsa
+    //    ham uning UCHUN IKKINCHI (dublikat) mijoz yozuvi yaratilmaydi;
+    // 2) shu sabab unga qayta "xush kelibsiz" bonusi berilib qolmaydi —
+    //    bonus faqat haqiqiy ro'yxatdan o'tishda beriladi.
+    const existing = myCustomerId ? { id: myCustomerId } : await findCustomerByPhone(phone);
 
     const orderData = {
       customer: form.name.trim(),
@@ -6674,17 +6728,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
             {cartItems.length > 0 && (
               <div className="border-t border-gray-100 px-5 py-3">
                 <button
-                  onClick={() => {
-                    setCartOpen(false);
-                    setCheckoutOpen(true);
-                    trackPixel("InitiateCheckout", {
-                      content_ids: selectedCartItemsList.map((i) => i.product.id),
-                      content_type: "product",
-                      num_items: selectedCartCount,
-                      value: selectedCartTotal,
-                      currency: "UZS",
-                    });
-                  }}
+                  onClick={startCheckout}
                   disabled={selectedCartCount === 0}
                   className="w-full rounded-xl bg-rose-600 py-2.5 text-sm font-semibold text-white hover:bg-rose-700 disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-400"
                 >
