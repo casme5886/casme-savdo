@@ -277,7 +277,9 @@ export default function ProductForm({ lang, product, products, categories, brand
               placeholder={t.brandPh}
             />
             <datalist id="product-form-brands">
-              {(brands || []).map((b) => <option key={b.id} value={b.name} />)}
+              {[...(brands || [])]
+                .sort((a, b) => (a.name || "").localeCompare(b.name || "", "uz"))
+                .map((b) => <option key={b.id} value={b.name} />)}
             </datalist>
           </Field>
 
@@ -291,7 +293,9 @@ export default function ProductForm({ lang, product, products, categories, brand
               placeholder={t.categoryPh}
             />
             <datalist id="product-form-categories">
-              {categories.map((c) => <option key={c.id} value={c.name} />)}
+              {[...(categories || [])]
+                .sort((a, b) => (a.name || "").localeCompare(b.name || "", "uz"))
+                .map((c) => <option key={c.id} value={c.name} />)}
             </datalist>
           </Field>
 
