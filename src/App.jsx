@@ -7,7 +7,8 @@ import {
   LogIn, LogOut, Lock, Image as ImageIcon, Eye, Star, RotateCcw, ShieldCheck, Headphones,
   MessageSquareQuote, HelpCircle, Settings as SettingsIcon, Bell, Download, Phone, Send, Copy, Tag,
   ArrowUp, ArrowDown, EyeOff, ChevronLeft, ChevronRight, MessageCircle, Home,
-  SlidersHorizontal, Filter, CheckSquare, Square, MinusSquare, Check, ArrowRight
+  SlidersHorizontal, Filter, CheckSquare, Square, MinusSquare, Check, ArrowRight,
+  AlertTriangle, UserCheck, UserX, UserPlus, PanelLeftClose, PanelLeftOpen,
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
@@ -34,6 +35,7 @@ const T = {
   uz: {
     appName: "CASME",
     workspace: "Do'kon",
+    sidebarCollapse: "Menyuni yig'ish", sidebarExpand: "Menyuni kengaytirish",
     menu: {
       dashboard: "Boshqaruv paneli",
       orders: "Buyurtmalar",
@@ -85,6 +87,9 @@ const T = {
       sortDate: "Yangi qo'shilgan", sortSpent: "Ko'p xarid qilgan", sortOrders: "Ko'p buyurtma bergan", sortName: "Ism (A-Z)",
       bonusPoints: "Bonus ballar", pointsHint: "Masalan: 50", addPoints: "Qo'shish",
       orderHistory: "Buyurtmalar tarixi", addresses: "Manzillar", noAddresses: "Saqlangan manzil yo'q", onMap: "Xaritada",
+      statTotal: "Jami mijozlar", statActive: "Faol mijozlar", statActiveHint: "So'nggi 30 kunda buyurtma bergan",
+      statPassive: "Passiv mijozlar", statPassiveHint: "So'nggi 30 kunda buyurtma bermagan",
+      statNew: "Yangi mijozlar", statNewHint: "So'nggi 7 kunda qo'shilgan",
     },
     products: {
       title: "Mahsulotlar", add: "Mahsulot qo'shish", edit: "Mahsulotni tahrirlash",
@@ -103,8 +108,9 @@ const T = {
       categoriesBtn: "Kategoriyalar", brandsBtn: "Brendlar",
       filterBtn: "Filtr", clearFilters: "Filtrlarni tozalash",
       selectAll: "Barchasini belgilash", deselectAll: "Barchasini olib tashlash",
-      stockStatusAll: "Qoldiq: barchasi", stockStatusIn: "Mavjud", stockStatusOut: "Qolmagan",
+      stockStatusAll: "Qoldiq: barchasi", stockStatusIn: "Mavjud", stockStatusOut: "Qolmagan", stockStatusLow: "Kam qolgan",
       activeCol: "Faol", activeOn: "Faol", activeOff: "Nofaol",
+      sold: "Sotildi", lowStockBanner: "ta mahsulot kam qolmoqda (5 tadan kam)",
       newItemPh: "Yangisini kiriting...", noItems: "Hozircha yo'q",
       collectionsBtn: "Kolleksiyalar", collectionAdd: "To'plam qo'shish", collectionEdit: "To'plamni tahrirlash",
       collectionEmpty: "Hozircha to'plam yo'q — \"O'zingizga mos uslubni toping\" bo'limida bularni ko'rsatasiz",
@@ -238,6 +244,7 @@ const T = {
   ru: {
     appName: "CASME",
     workspace: "Магазин",
+    sidebarCollapse: "Свернуть меню", sidebarExpand: "Развернуть меню",
     menu: {
       dashboard: "Панель управления",
       orders: "Заказы",
@@ -289,6 +296,9 @@ const T = {
       sortDate: "Недавно добавленные", sortSpent: "Больше покупок", sortOrders: "Больше заказов", sortName: "Имя (А-Я)",
       bonusPoints: "Бонусные баллы", pointsHint: "Например: 50", addPoints: "Добавить",
       orderHistory: "История заказов", addresses: "Адреса", noAddresses: "Нет сохранённых адресов", onMap: "На карте",
+      statTotal: "Всего клиентов", statActive: "Активные клиенты", statActiveHint: "Заказывали за последние 30 дней",
+      statPassive: "Пассивные клиенты", statPassiveHint: "Не заказывали 30 дней",
+      statNew: "Новые клиенты", statNewHint: "Присоединились за последние 7 дней",
     },
     products: {
       title: "Товары", add: "Добавить товар", edit: "Редактировать товар",
@@ -307,8 +317,9 @@ const T = {
       categoriesBtn: "Категории", brandsBtn: "Бренды",
       filterBtn: "Фильтр", clearFilters: "Очистить фильтры",
       selectAll: "Выбрать всё", deselectAll: "Снять всё",
-      stockStatusAll: "Остаток: все", stockStatusIn: "В наличии", stockStatusOut: "Нет в наличии",
+      stockStatusAll: "Остаток: все", stockStatusIn: "В наличии", stockStatusOut: "Нет в наличии", stockStatusLow: "Заканчивается",
       activeCol: "Активен", activeOn: "Активен", activeOff: "Неактивен",
+      sold: "Продано", lowStockBanner: "товар(ов) заканчивается (меньше 5 шт.)",
       newItemPh: "Введите новое...", noItems: "Пока пусто",
       collectionsBtn: "Коллекции", collectionAdd: "Добавить коллекцию", collectionEdit: "Редактировать коллекцию",
       collectionEmpty: "Пока нет коллекций — они будут показаны в разделе \"Найдите свой стиль\"",
@@ -449,7 +460,7 @@ import {
   subscribeCollection, subscribeDoc, addItem, setItem, updateItem, deleteItem,
   findCustomerByPhone, findCustomerByTelegramId, isCollectionEmpty, placeOrderBatch, getCustomersCount, getOrdersCount,
   findPromoCode, incrementPromoCodeUsage,
-  findOrdersByTelegramId, findOrdersByPhone, uploadImage,
+  findOrdersByTelegramId, findOrdersByPhone, uploadImage, adjustCustomerBonus,
 } from "./storage.js";
 import { auth } from "./firebase.js";
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
@@ -1139,7 +1150,7 @@ function OrdersPage({ lang, orders, setOrders, customers }) {
         );
         if (customer) {
           const bonusEarned = Math.round((Number(order.amount) || 0) * 0.01);
-          await updateItem(COL.customers, customer.id, { bonusPoints: (Number(customer.bonusPoints) || 0) + bonusEarned });
+          await adjustCustomerBonus(customer.id, bonusEarned);
         }
         await updateItem(COL.orders, id, { bonusCredited: true });
       }
@@ -1607,6 +1618,34 @@ function CustomersPage({ lang, customers, setCustomers, orders }) {
     return list;
   }, [customers, search, sortBy]);
 
+  // Umumiy statistika: jami/faol/passiv/yangi mijozlar soni.
+  // "Faol" — so'nggi 30 kun ichida (bekor qilinmagan) buyurtma bergan mijoz;
+  // "Passiv" — qolgan hammasi (hech qachon buyurtma bermagan yoki uzoq vaqtdan
+  // beri bermagan); "Yangi" — so'nggi 7 kun ichida ro'yxatdan o'tgan mijoz.
+  const ACTIVE_WINDOW_DAYS = 30;
+  const NEW_WINDOW_DAYS = 7;
+  const customerStats = useMemo(() => {
+    const activeCutoff = new Date();
+    activeCutoff.setDate(activeCutoff.getDate() - ACTIVE_WINDOW_DAYS);
+    const activeCutoffISO = activeCutoff.toISOString().slice(0, 10);
+    const newCutoff = new Date();
+    newCutoff.setDate(newCutoff.getDate() - NEW_WINDOW_DAYS);
+    const newCutoffISO = newCutoff.toISOString().slice(0, 10);
+
+    let active = 0;
+    let fresh = 0;
+    customers.forEach((c) => {
+      const hasRecentOrder = orders.some((o) =>
+        o.status !== "cancelled" &&
+        (o.date || "") >= activeCutoffISO &&
+        ((c.phone && o.phone === c.phone) || (c.telegramUserId && o.telegramUserId === c.telegramUserId))
+      );
+      if (hasRecentOrder) active++;
+      if ((c.date || "") >= newCutoffISO) fresh++;
+    });
+    return { total: customers.length, active, passive: customers.length - active, fresh };
+  }, [customers, orders]);
+
   const openAdd = () => { setEditingId(null); setForm({ name: "", phone: "", bonusPoints: "" }); setError(""); setOpen(true); };
   const openEdit = (c) => {
     setEditingId(c.id);
@@ -1651,7 +1690,7 @@ function CustomersPage({ lang, customers, setCustomers, orders }) {
         );
         if (customer) {
           const bonusEarned = Math.round((Number(order.amount) || 0) * 0.01);
-          await updateItem(COL.customers, customer.id, { bonusPoints: (Number(customer.bonusPoints) || 0) + bonusEarned });
+          await adjustCustomerBonus(customer.id, bonusEarned);
         }
         await updateItem(COL.orders, id, { bonusCredited: true });
       }
@@ -1660,7 +1699,28 @@ function CustomersPage({ lang, customers, setCustomers, orders }) {
   };
 
   return (
-    <div className="rounded-2xl bg-white p-4 shadow-sm">
+    <div className="flex flex-col gap-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {[
+          { label: t.customers.statTotal, value: customerStats.total, icon: Users, color: "text-slate-700 bg-slate-50" },
+          { label: t.customers.statActive, hint: t.customers.statActiveHint, value: customerStats.active, icon: UserCheck, color: "text-emerald-700 bg-emerald-50" },
+          { label: t.customers.statPassive, hint: t.customers.statPassiveHint, value: customerStats.passive, icon: UserX, color: "text-slate-500 bg-slate-50" },
+          { label: t.customers.statNew, hint: t.customers.statNewHint, value: customerStats.fresh, icon: UserPlus, color: "text-blue-700 bg-blue-50" },
+        ].map(({ label, hint, value, icon: Icon, color }) => (
+          <div key={label} className="rounded-2xl bg-white p-3.5 shadow-sm">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-xs font-medium uppercase tracking-wide text-slate-400">{label}</span>
+              <span className={`flex h-8 w-8 items-center justify-center rounded-full ${color}`}>
+                <Icon size={15} />
+              </span>
+            </div>
+            <p className="text-2xl font-bold text-slate-800">{value}</p>
+            {hint && <p className="mt-0.5 text-[11px] text-slate-400">{hint}</p>}
+          </div>
+        ))}
+      </div>
+
+      <div className="rounded-2xl bg-white p-4 shadow-sm">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-lg font-semibold text-slate-800">{t.customers.title}</h2>
         <div className="flex flex-wrap items-center gap-2">
@@ -1767,6 +1827,7 @@ function CustomersPage({ lang, customers, setCustomers, orders }) {
           onChangeStatus={changeOrderStatus}
         />
       )}
+      </div>
     </div>
   );
 }
@@ -1789,7 +1850,11 @@ function CustomerDetailModal({ customer, orders, t, onClose, onEdit, onSelectOrd
     const amount = delta === 0 ? Number(pointsInput) || 0 : delta;
     if (amount === 0) return;
     setSavingPoints(true);
-    await updateItem(COL.customers, customer.id, { bonusPoints: Math.max(0, (Number(customer.bonusPoints) || 0) + amount) });
+    // Manfiy tomonga (ayirishda) balansdan ko'proq ayirib, minusga tushib
+    // ketmasligi uchun cheklaymiz; increment() ATOMIK bo'lgani uchun
+    // boshqa joyda bir vaqtda bo'layotgan o'zgarish bilan to'qnashmaydi.
+    const safeAmount = amount < 0 ? -Math.min(-amount, Number(customer.bonusPoints) || 0) : amount;
+    await adjustCustomerBonus(customer.id, safeAmount);
     setSavingPoints(false);
     setPointsInput("");
   };
@@ -2431,12 +2496,22 @@ function ProductsPage({ lang, products, categories, brands, collections }) {
   /** Mahsulot "mavjud"mi — cheksiz yoki sonli-va-qoldiq bor bo'lsa mavjud, aks holda tugagan. */
   const isInStock = (p) => p.stockType === "unlimited" || (p.stockType !== "out" && (p.stock || 0) > 0);
 
+  /** Qoldiq "kam" hisoblanadimi — faqat sonli (limited) turdagi, mavjud, lekin 5 tadan kam qolgan mahsulotlar. */
+  const LOW_STOCK_THRESHOLD = 5;
+  const isLowStock = (p) => (p.stockType || "limited") === "limited" && (p.stock || 0) > 0 && (p.stock || 0) <= LOW_STOCK_THRESHOLD;
+  const lowStockCount = useMemo(() => products.filter(isLowStock).length, [products]);
+
   const filtered = useMemo(() => {
     let list = products
       .filter(p => pname(p, lang).toLowerCase().includes(search.toLowerCase()))
       .filter(p => activeCategory === "all" || p.category === activeCategory)
       .filter(p => activeBrand === "all" || p.brand === activeBrand)
-      .filter(p => stockFilter === "all" || (stockFilter === "in" ? isInStock(p) : !isInStock(p)));
+      .filter(p => {
+        if (stockFilter === "all") return true;
+        if (stockFilter === "in") return isInStock(p);
+        if (stockFilter === "low") return isLowStock(p);
+        return !isInStock(p);
+      });
     if (sortBy === "priceAsc") list = [...list].sort((a, b) => (a.price || 0) - (b.price || 0));
     else if (sortBy === "priceDesc") list = [...list].sort((a, b) => (b.price || 0) - (a.price || 0));
     else if (sortBy === "stock") list = [...list].sort((a, b) => (a.stock ?? 99999) - (b.stock ?? 99999));
@@ -2527,7 +2602,18 @@ function ProductsPage({ lang, products, categories, brands, collections }) {
   return (
     <div className="rounded-2xl bg-white p-4 shadow-sm">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold text-slate-800">{t.products.title}</h2>
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="text-lg font-semibold text-slate-800">{t.products.title}</h2>
+          {lowStockCount > 0 && (
+            <button
+              onClick={() => { setFilterPanelOpen(true); setStockFilter("low"); }}
+              className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold transition ${stockFilter === "low" ? "bg-amber-500 text-white" : "bg-amber-50 text-amber-700 hover:bg-amber-100"}`}
+              title={t.products.stockStatusLow}
+            >
+              <AlertTriangle size={12} /> {lowStockCount} {t.products.lowStockBanner}
+            </button>
+          )}
+        </div>
         <div className="flex flex-wrap items-center gap-2">
           <div className="relative">
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -2627,6 +2713,7 @@ function ProductsPage({ lang, products, categories, brands, collections }) {
             {[
               { key: "all", label: t.products.stockStatusAll },
               { key: "in", label: t.products.stockStatusIn },
+              { key: "low", label: `${t.products.stockStatusLow} (${lowStockCount})` },
               { key: "out", label: t.products.stockStatusOut },
             ].map(opt => (
               <button
@@ -2672,6 +2759,7 @@ function ProductsPage({ lang, products, categories, brands, collections }) {
                 <th className="pb-2 font-medium">{t.products.category}</th>
                 <th className="pb-2 font-medium">{t.products.price}</th>
                 <th className="pb-2 font-medium">{t.products.stock}</th>
+                <th className="pb-2 font-medium">{t.products.sold}</th>
                 <th className="pb-2 font-medium">{t.products.activeCol}</th>
                 <th className="pb-2 font-medium text-right">{t.products.actions}</th>
               </tr>
@@ -2739,11 +2827,19 @@ function ProductsPage({ lang, products, categories, brands, collections }) {
                         className="w-20 rounded-lg border border-emerald-400 px-2 py-1 text-xs outline-none"
                       />
                     ) : (
-                      <button onClick={() => startQuickEdit(p, "stock")} className="rounded px-1 hover:bg-gray-100" title={t.products.quickEditHint}>
+                      <button
+                        onClick={() => startQuickEdit(p, "stock")}
+                        className={`rounded px-1 hover:bg-gray-100 ${isLowStock(p) ? "font-semibold text-amber-600" : ""}`}
+                        title={t.products.quickEditHint}
+                      >
+                        {isLowStock(p) && <AlertTriangle size={12} className="mr-1 inline" />}
                         {p.stock ?? 0} {t.common.ta}
                       </button>
                     )}
                   </td>
+
+                  {/* Necha marta sotilgani — har bir buyurtmada avtomatik +qty qo'shiladi */}
+                  <td className="py-2.5 text-slate-500">{p.sold || 0}</td>
 
                   {/* Faol/nofaol — o'chirmasdan do'kondan yashirish */}
                   <td className="py-2.5">
@@ -4246,11 +4342,25 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
       }
 
       // Ishlatilgan bonusni mijoz balansidan ayiramiz.
-      if (bonusApplied > 0 && existing) {
-        await updateItem(COL.customers, existing.id, {
-          bonusPoints: Math.max(0, (Number(existing.bonusPoints) || 0) - bonusApplied),
-        });
-        setMyBonus(b => Math.max(0, b - bonusApplied));
+      // MUHIM: "existing" (telefon raqami bo'yicha topilgan mijoz) va
+      // "myBonus" (ekranda ko'rsatilgan, myCustomerId'ga tegishli bonus)
+      // har doim BIR XIL mijoz yozuvi bo'lavermaydi — masalan Telegram
+      // orqali kirgan mijoz checkout'da boshqa/yangi telefon kiritsa,
+      // "existing" boshqa (yoki umuman topilmagan) yozuvga ishora qiladi.
+      // Shu sabab avvalgi kodda ayirish ko'pincha umuman ishlamas edi.
+      // Endi ENG ISHONCHLI manba — myCustomerId (bonus aynan shu yozuvdan
+      // ko'rsatilgan) — ustuvor olinadi, va Firestore'ning ATOMIK
+      // increment()'idan foydalaniladi (adjustCustomerBonus), shunda bir
+      // necha buyurtma ketma-ket berilsa ham bonus noto'g'ri (masalan
+      // qayta-qayta) ayirilib qolmaydi.
+      const bonusTargetId = myCustomerId || existing?.id || null;
+      if (bonusApplied > 0 && bonusTargetId) {
+        try {
+          await adjustCustomerBonus(bonusTargetId, -bonusApplied);
+          setMyBonus(b => Math.max(0, b - bonusApplied));
+        } catch (e) {
+          console.error("Bonusni ayirishda xatolik:", e);
+        }
       }
       setBonusToUse("");
 
@@ -6910,6 +7020,28 @@ export default function App() {
   // (chunki kolleksiyalar asosan banner turidagi bo'limlar uchun ishlatiladi).
   const [collectionsModalOpen, setCollectionsModalOpen] = useState(false);
 
+  // Chap menyuni yig'ish/kengaytirish — ekranda ko'proq joy qolishi uchun.
+  // Tanlov brauzerda saqlanadi, shuning uchun sahifa qayta ochilganda ham
+  // avvalgi holat (yig'ilgan/kengaytirilgan) saqlanib qoladi.
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem("adminSidebarCollapsed") === "1";
+    } catch {
+      return false;
+    }
+  });
+  const toggleSidebar = () => {
+    setSidebarCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem("adminSidebarCollapsed", next ? "1" : "0");
+      } catch {
+        // localStorage yo'q bo'lsa ham (masalan xavfsiz rejim) — jim o'tib ketamiz
+      }
+      return next;
+    });
+  };
+
   // Telegram Mini App — faqat bir marta, komponent yuklanganda ishga tushadi.
   const [tgUser, setTgUser] = useState(null);
   const [inTelegram, setInTelegram] = useState(false);
@@ -7067,21 +7199,34 @@ export default function App() {
   return (
     <div className="flex h-full min-h-[600px] w-full bg-gray-50 text-slate-800" style={{ fontFamily: "Inter, system-ui, sans-serif" }}>
       {/* SIDEBAR */}
-      <aside className="hidden w-60 flex-col border-r border-gray-100 bg-white sm:flex">
-        <div className="flex items-center gap-2 px-5 py-5">
+      <aside className={`relative hidden flex-col border-r border-gray-100 bg-white transition-all duration-200 sm:flex ${sidebarCollapsed ? "w-[68px]" : "w-60"}`}>
+        {/* Yig'ish/kengaytirish tugmasi — chetga chiqib turadi, doim ko'rinadi */}
+        <button
+          onClick={toggleSidebar}
+          title={sidebarCollapsed ? t.sidebarExpand : t.sidebarCollapse}
+          className="absolute -right-3 top-6 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-gray-200 bg-white text-slate-400 shadow-sm hover:text-emerald-600"
+        >
+          {sidebarCollapsed ? <PanelLeftOpen size={13} /> : <PanelLeftClose size={13} />}
+        </button>
+
+        <div className={`flex items-center gap-2 py-5 ${sidebarCollapsed ? "justify-center px-2" : "px-5"}`}>
           {storeSettings?.logoUrl ? (
             <img loading="lazy" src={storeSettings.logoUrl} alt="" className="h-8 w-8 shrink-0 rounded-xl object-cover" />
           ) : (
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-600 text-white">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white">
               <ShoppingCart size={17} />
             </div>
           )}
-          <span className="text-base font-bold text-slate-800">{storeSettings?.storeName || t.appName}</span>
+          {!sidebarCollapsed && <span className="truncate text-base font-bold text-slate-800">{storeSettings?.storeName || t.appName}</span>}
         </div>
-        <div className="px-4 pb-3">
-          <div className="rounded-lg bg-gray-50 px-3 py-2 text-xs font-medium text-slate-500">{t.workspace}: CASME</div>
-        </div>
-        <nav className="flex-1 space-y-1 px-3">
+
+        {!sidebarCollapsed && (
+          <div className="px-4 pb-3">
+            <div className="rounded-lg bg-gray-50 px-3 py-2 text-xs font-medium text-slate-500">{t.workspace}: CASME</div>
+          </div>
+        )}
+
+        <nav className={`flex-1 space-y-1 ${sidebarCollapsed ? "px-2" : "px-3"}`}>
           {nav.map(item => {
             const Icon = item.icon;
             const active = page === item.key;
@@ -7089,21 +7234,42 @@ export default function App() {
               <button
                 key={item.key}
                 onClick={() => setPage(item.key)}
-                className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-sm font-medium transition ${
-                  active ? "bg-emerald-50 text-emerald-700" : "text-slate-500 hover:bg-gray-50"
-                }`}
+                title={sidebarCollapsed ? item.label : undefined}
+                className={`relative flex w-full items-center rounded-xl py-2.5 text-sm font-medium transition ${
+                  sidebarCollapsed ? "justify-center px-2" : "justify-between px-3"
+                } ${active ? "bg-emerald-50 text-emerald-700" : "text-slate-500 hover:bg-gray-50"}`}
               >
-                <span className="flex items-center gap-2.5"><Icon size={17} /> {item.label}</span>
-                {!!item.badge && <span className="rounded-full bg-emerald-600 px-1.5 py-0.5 text-[10px] text-white">{item.badge}</span>}
+                <span className={`flex items-center ${sidebarCollapsed ? "" : "gap-2.5"}`}>
+                  <Icon size={17} />
+                  {!sidebarCollapsed && item.label}
+                </span>
+                {!!item.badge && (
+                  <span
+                    className={`rounded-full bg-emerald-600 text-[10px] text-white ${
+                      sidebarCollapsed ? "absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center" : "px-1.5 py-0.5"
+                    }`}
+                  >
+                    {item.badge}
+                  </span>
+                )}
               </button>
             );
           })}
         </nav>
-        <div className="space-y-2 p-4">
-          <a href="/" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 py-2 text-xs font-medium text-slate-500 hover:bg-gray-50">
-            <ShoppingBag size={13} /> {t.login.viewStore}
+
+        <div className={`space-y-2 p-4 ${sidebarCollapsed ? "px-2" : ""}`}>
+          <a
+            href="/"
+            target="_blank"
+            rel="noopener noreferrer"
+            title={sidebarCollapsed ? t.login.viewStore : undefined}
+            className="flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 py-2 text-xs font-medium text-slate-500 hover:bg-gray-50"
+          >
+            <ShoppingBag size={13} /> {!sidebarCollapsed && t.login.viewStore}
           </a>
-          <div className="rounded-xl bg-slate-800 px-3 py-2.5 text-center text-xs font-semibold text-white">BASIC</div>
+          {!sidebarCollapsed && (
+            <div className="rounded-xl bg-slate-800 px-3 py-2.5 text-center text-xs font-semibold text-white">BASIC</div>
+          )}
         </div>
       </aside>
 

@@ -103,6 +103,9 @@ function buildMessage(order) {
   if (order.promoCode) {
     lines.push(`🏷️ <b>Promo kod:</b> ${esc(order.promoCode)} (-${Number(order.promoDiscount || 0).toLocaleString("ru-RU")} UZS)`);
   }
+  if (Number(order.bonusUsed) > 0) {
+    lines.push(`🎁 <b>Bonus ishlatildi:</b> -${Number(order.bonusUsed).toLocaleString("ru-RU")} UZS`);
+  }
   lines.push(`💳 <b>To'lov:</b> ${paymentLabel(order.payment)}`);
   lines.push(`📌 <b>Holat:</b> ${statusLabel(order.status)}`);
   if (order.address) lines.push(`📍 <b>Manzil:</b> ${esc(order.address)}`);

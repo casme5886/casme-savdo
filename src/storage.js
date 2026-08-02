@@ -195,6 +195,19 @@ export async function incrementBannerClicks(id) {
   }
 }
 
+/**
+ * Mijozning bonus balansini ATOMIK ravishda o'zgartiradi (masalan checkout'da
+ * bonus ishlatilganda -miqdor). Oddiy "o'qi-hisobla-yoz" (`bonusPoints = eski - X`)
+ * usuli o'rniga Firestore'ning increment()'idan foydalanadi — shu tufayli mijoz
+ * bir vaqtning o'zida (masalan ikkita tab'da) ketma-ket bir nechta buyurtma
+ * bersa ham, har bir buyurtmaning bonusi ALOHIDA-ALOHIDA to'g'ri ayiriladi
+ * (bittasi ikkinchisining "eski" qiymatini qayta yozib, bonusni tiklab
+ * qo'yishi mumkin bo'lgan holatning oldini oladi).
+ */
+export async function adjustCustomerBonus(customerId, delta) {
+  await updateDoc(doc(db, "customers", customerId), { bonusPoints: increment(delta) });
+}
+
 /** Promo kod muvaffaqiyatli ishlatilganda chaqiriladi — usedCount'ni +1 qiladi. */
 export async function incrementPromoCodeUsage(id) {
   try {
@@ -286,9 +299,13 @@ export async function placeOrderBatch({ cartItems, existingCustomer, customerNam
   const batch = writeBatch(db);
 
   cartItems.forEach(({ product, qty }) => {
+    // "sold" — mahsulotlar sahifasida "Nechta sotilgan" ko'rsatish uchun,
+    // qoldiq turidan qat'iy nazar (cheksiz bo'lsa ham) har doim +qty qilinadi.
+    const productUpdates = { sold: increment(qty) };
     if ((product.stockType || "limited") === "limited") {
-      batch.update(doc(db, "products", product.id), { stock: increment(-qty) });
+      productUpdates.stock = increment(-qty);
     }
+    batch.update(doc(db, "products", product.id), productUpdates);
   });
 
   // Telegram orqali kelgan bo'lsa, mijoz yozuviga ham shu ma'lumotlarni
