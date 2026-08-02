@@ -4253,6 +4253,22 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
 
   // Telegram ichida bo'lsak, checkout oynasi ochilganda Telegramning
   // o'z (pastki, katta) tugmasini "Buyurtmani tasdiqlash" uchun ishlatamiz.
+  //
+  // MUHIM (xato tuzatildi): bu effekt avval [checkoutOpen, done, form,
+  // location, cartTotalAfterBonus]'ga bog'liq edi — "form" esa mijoz
+  // ismi/telefon/manzil kiritayotganda HAR BIR HARFDA o'zgaradi. Shu sabab
+  // effekt forma to'ldirilayotganda o'nlab marta qayta ishga tushib,
+  // Telegramning tugmasini har safar uzib-ulab turardi (offClick + qayta
+  // onClick). Telegram WebApp SDK'sida bu tez-tez uzib-ulash ba'zan eski
+  // handler'ni to'liq o'chira olmay, YANGI submitOrder() chaqiruvi eskisi
+  // USTIGA qo'shilib qolishiga olib kelgan — natijada bitta bosishda
+  // buyurtma IKKI MARTA yuborilgan.
+  //
+  // Yechim: effekt endi FAQAT checkoutOpen/done o'zgarganda qayta ulanadi
+  // (forma to'ldirilayotganda tegilmaydi). Tugma bosilganda esa doim ENG
+  // OXIRGI submitOrder'ni chaqiradigan ref orqali ishlaydi — shu sabab
+  // eski (stale) forma qiymatlari bilan yuborilib qolish xavfi ham yo'q.
+  const submitOrderRef = useRef(() => {});
   useEffect(() => {
     const tg = getWebApp();
     if (!tg || !tg.MainButton) return;
@@ -4260,7 +4276,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
     if (checkoutOpen && !done) {
       tg.MainButton.setText(t.store.placeOrder);
       tg.MainButton.show();
-      const handler = () => submitOrder();
+      const handler = () => submitOrderRef.current();
       tg.MainButton.onClick(handler);
       return () => {
         tg.MainButton.offClick(handler);
@@ -4269,9 +4285,14 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
     } else {
       tg.MainButton.hide();
     }
-  }, [checkoutOpen, done, form, location, cartTotalAfterBonus]);
+  }, [checkoutOpen, done]);
 
   const submitOrder = async () => {
+    // Himoya qatlami: Telegramning o'z tugmasi React'ning "disabled" holatiga
+    // bog'liq emas, shuning uchun bu yerda ham qayta-qayta yuborilishning
+    // oldini olamiz (masalan tez-tez bosilsa yoki ikkita tugma bir vaqtda
+    // ishga tushsa ham).
+    if (placing) return;
     if (!form.name.trim() || !form.address.trim() || selectedCartItemsList.length === 0) {
       setError(t.common.required);
       return;
@@ -4403,6 +4424,14 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
       setPlacing(false);
     }
   };
+
+  // submitOrderRef'ni har renderda ENG OXIRGI submitOrder bilan yangilab
+  // turamiz — shunda yuqoridagi Telegram MainButton effekti kamroq
+  // qayta ulanadi (faqat checkoutOpen/done o'zgarganda), lekin tugma
+  // bosilganda baribir har doim eng so'nggi forma qiymatlari bilan ishlaydi.
+  useEffect(() => {
+    submitOrderRef.current = submitOrder;
+  });
 
   const resetAll = () => {
     setDone(false);
