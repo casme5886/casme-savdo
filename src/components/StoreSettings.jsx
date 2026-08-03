@@ -371,7 +371,22 @@ export default function StoreSettings({ lang, settings }) {
     const logLine = (msg) => setCleanupLog((prev) => [...prev.slice(-59), msg]);
     try {
       logLine("Fayllar ro'yxati olinmoqda...");
-      const paths = await listAllFirebaseFiles("");
+      // MUHIM: bucket ILDIZINI ("") ro'yxatlashning o'zi (listAll) uchun
+      // storage.rules'da alohida ruxsat yo'q (faqat /banners/**, /products/**
+      // kabi ICHKI papkalar uchun bor) — shu sabab ildizdan boshlab
+      // ro'yxatlash bo'sh natija qaytarishi mumkin. O'rniga xuddi
+      // storage.rules'dagi har bir papkani ALOHIDA-ALOHIDA ro'yxatlaymiz.
+      const KNOWN_FOLDERS = ["banners", "products", "settings", "categories", "brands", "collections", "testimonials"];
+      let paths = [];
+      for (const folder of KNOWN_FOLDERS) {
+        try {
+          const folderPaths = await listAllFirebaseFiles(folder);
+          logLine(`"${folder}/" papkasida ${folderPaths.length} ta fayl topildi.`);
+          paths = paths.concat(folderPaths);
+        } catch (e) {
+          logLine(`"${folder}/" papkasini o'qishda xato: ${e?.message || e}`);
+        }
+      }
       setCleanupProgress({ done: 0, total: paths.length });
       if (!paths.length) {
         logLine("Firebase Storage'da hech qanday fayl topilmadi — tozalash shart emas.");
