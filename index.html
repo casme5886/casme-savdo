@@ -15,12 +15,23 @@
     <meta property="og:description" content="Original Koreya kosmetikasi qulay narxlarda." />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://casme.uz" />
-    <!-- Telegram Mini App SDK — Telegram ichida ochilganda window.Telegram.WebApp shu orqali keladi -->
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- Telegram Mini App SDK — Telegram ichida ochilganda window.Telegram.WebApp shu orqali keladi.
+         "defer" qo'shildi: bu skript oddiy (async/defer'siz) holatda HTML
+         o'qilishini to'xtatib turardi (barcha mijozlar uchun, Telegram
+         ichida bo'lmasa ham) — endi sahifa parallel yuklanadi, tezroq
+         ko'rinadi, ijro tartibi esa saqlanadi (chunki type="module"
+         skriptlar ham avtomatik kechiktiriladi va hujjatdagi tartibda
+         ishga tushadi). -->
+    <script defer src="https://telegram.org/js/telegram-web-app.js"></script>
     <!-- Do'kon sahifasidagi sarlavhalar uchun serif shrift -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
+    <!-- Ma'lumotlar (Firestore) va rasmlar (Cloudflare R2) domenlariga
+         oldindan ulanish — birinchi so'rov yuborilganda DNS/TLS
+         qidiruviga sarflanadigan vaqtni tejaydi. -->
+    <link rel="preconnect" href="https://firestore.googleapis.com">
+    <link rel="preconnect" href="https://pub-6a37909dbe8741249b8e364db72918b6.r2.dev" crossorigin>
   </head>
   <body>
     <div id="root"></div>
