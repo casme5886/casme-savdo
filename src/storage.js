@@ -7,18 +7,11 @@
 //  - Bir vaqtda bo'lgan buyurtmalar bir-birini o'chirmaydi
 // ==========================================================
 
-import { app, db } from "./firebase.js";
+import { db } from "./firebase.js";
 import {
   collection, doc, onSnapshot, addDoc, setDoc, updateDoc, deleteDoc,
   query, where, getDocs, increment, writeBatch, serverTimestamp, getCountFromServer,
 } from "firebase/firestore";
-import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
-
-// Firebase Storage — banner va mahsulot rasmlarini saqlash uchun.
-// `app` allaqachon src/firebase.js ichida sozlangan, biz uni faqat
-// qayta ishlatamiz — firebase.js faylining o'ziga hech narsa
-// qo'shilmagan/o'zgartirilmagan.
-const storage = getStorage(app);
 
 /** Kolleksiyaga real-vaqtli obuna bo'lish. callback har o'zgarishda ishga tushadi. */
 export function subscribeCollection(name, callback) {
@@ -128,30 +121,50 @@ function compressImageFile(file, { maxDimension = 1600, quality = 0.85 } = {}) {
 }
 
 /**
- * Rasmni Firebase Storage'ga yuklaydi va ochiq (public) havolasini
- * qaytaradi. `path` bir xil bo'lsa — eski rasm AVTOMATIK almashadi
- * (Storage shu manzildagi faylni ustidan yozadi). Yuklashdan oldin rasm
- * avtomatik siqiladi/kichraytiriladi (yuqoridagi compressImageFile'ga qarang).
+ * Rasmni Cloudflare R2'ga yuklaydi (backend — api/upload-image.js orqali,
+ * chunki R2'ning maxfiy kalitlarini brauzerga hech qachon yubormaslik
+ * kerak) va ochiq (public) havolasini qaytaradi. `path` bir xil bo'lsa —
+ * eski rasm AVTOMATIK almashadi (R2 shu manzildagi faylni ustidan yozadi).
+ * Yuklashdan oldin rasm avtomatik siqiladi/kichraytiriladi (yuqoridagi
+ * compressImageFile'ga qarang).
+ *
+ * MUHIM (Firebase Storage'dan R2'ga o'tish): oldin bu funksiya to'g'ridan
+ * to'g'ri Firebase Storage SDK orqali ishlar edi. R2'da esa yuklash uchun
+ * maxfiy API kalitlari kerak — ular FAQAT serverda (Vercel Environment
+ * Variables) saqlanadi, shuning uchun frontend endi faylni to'g'ridan
+ * to'g'ri emas, /api/upload-image serverless funksiyasi orqali yuklaydi.
  * Masalan: uploadImage(`banners/abc123/banner-desktop`, file)
  *          uploadImage(`products/abc123/image-0`, file)
  */
 export async function uploadImage(path, file) {
   const optimized = await compressImageFile(file);
-  const storageRef = ref(storage, path);
-  await uploadBytes(storageRef, optimized);
-  return getDownloadURL(storageRef);
+  const res = await fetch(`/api/upload-image?path=${encodeURIComponent(path)}`, {
+    method: "POST",
+    headers: { "Content-Type": optimized.type || "application/octet-stream" },
+    body: optimized,
+  });
+  const data = await res.json().catch(() => null);
+  if (!res.ok || !data?.ok) {
+    throw new Error(data?.error || "Rasmni yuklashda xatolik");
+  }
+  return data.url;
 }
 
 /**
- * Storage'dagi bitta faylni o'chiradi (masalan, admin mahsulotdan
- * bitta rasmni olib tashlaganda). Fayl allaqachon yo'q bo'lsa ham
- * xato tashlamaydi (jim o'tib ketadi) — bu holat muhim emas.
+ * R2'dagi bitta faylni o'chiradi (masalan, admin mahsulotdan bitta
+ * rasmni olib tashlaganda). /api/delete-image serverless funksiyasi
+ * orqali ishlaydi (maxfiy R2 kalitlari faqat serverda). Fayl allaqachon
+ * yo'q bo'lsa ham xato tashlamaydi (jim o'tib ketadi) — bu holat muhim emas.
  */
 export async function deleteStorageFile(path) {
   try {
-    await deleteObject(ref(storage, path));
+    await fetch("/api/delete-image", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path }),
+    });
   } catch (e) {
-    console.warn(`Storage faylini o'chirishda ogohlantirish (${path}):`, e?.code || e);
+    console.warn(`R2 faylini o'chirishda ogohlantirish (${path}):`, e);
   }
 }
 
