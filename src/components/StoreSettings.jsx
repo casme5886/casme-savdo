@@ -283,13 +283,20 @@ export default function StoreSettings({ lang, settings }) {
         while (cursor < tasks.length) {
           const task = tasks[cursor++];
           try {
-            const fileRes = await fetch(task.url);
-            if (!fileRes.ok) throw new Error(`Yuklab olinmadi (HTTP ${fileRes.status})`);
-            const blob = await fileRes.blob();
-            const file = new File([blob], "image", { type: blob.type || "image/jpeg" });
-            const newUrl = await uploadImage(task.path, file);
+            // MUHIM: rasmni brauzerda emas, SERVERDA (api/migrate-image)
+            // yuklab olamiz — chunki Firebase Storage'dan brauzer orqali
+            // to'g'ridan-to'g'ri fetch() qilish CORS xatosiga ("Failed to
+            // fetch") uchraydi (Firebase bucket'ida boshqa domenlar uchun
+            // CORS sozlanmagan). Serverdan-serverga so'rovda bu cheklov yo'q.
+            const res = await fetch("/api/migrate-image", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ sourceUrl: task.url, path: task.path }),
+            });
+            const data = await res.json().catch(() => null);
+            if (!res.ok || !data?.ok) throw new Error(data?.error || `HTTP ${res.status}`);
             const key = task.isArray ? `${task.collection}/${task.docId}/${task.field}/${task.index}` : `${task.collection}/${task.docId}/${task.field}`;
-            newValues[key] = newUrl;
+            newValues[key] = data.url;
           } catch (e) {
             logLine(`Xato (${task.collection}/${task.docId}, ${task.field}): ${e?.message || e}`);
           }
