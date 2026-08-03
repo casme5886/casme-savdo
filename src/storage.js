@@ -7,11 +7,18 @@
 //  - Bir vaqtda bo'lgan buyurtmalar bir-birini o'chirmaydi
 // ==========================================================
 
-import { db } from "./firebase.js";
+import { app, db } from "./firebase.js";
 import {
   collection, doc, onSnapshot, addDoc, setDoc, updateDoc, deleteDoc,
   query, where, getDocs, increment, writeBatch, serverTimestamp, getCountFromServer,
 } from "firebase/firestore";
+// MUHIM: rasm yuklash/o'chirish endi Cloudflare R2 orqali ishlaydi (yuqoridagi
+// uploadImage/deleteStorageFile'ga qarang) — Firebase Storage SDK'si bu
+// yerda FAQAT bitta martalik tozalash vositasi (eski, R2'ga ko'chirilgan
+// rasmlarni Firebase'dan o'chirish) uchun qayta import qilingan.
+import { getStorage, ref, listAll, deleteObject } from "firebase/storage";
+
+const legacyFirebaseStorage = getStorage(app);
 
 /** Kolleksiyaga real-vaqtli obuna bo'lish. callback har o'zgarishda ishga tushadi. */
 export function subscribeCollection(name, callback) {
@@ -166,6 +173,34 @@ export async function deleteStorageFile(path) {
   } catch (e) {
     console.warn(`R2 faylini o'chirishda ogohlantirish (${path}):`, e);
   }
+}
+
+/**
+ * BITTA MARTALIK TOZALASH uchun: Firebase Storage'dagi berilgan papka
+ * ichidagi (ichki papkalar bilan birga, rekursiv) BARCHA fayllarning
+ * to'liq yo'lini (fullPath) ro'yxat qilib qaytaradi. R2'ga migratsiya
+ * qilingandan KEYIN, eski Firebase nusxalarini topib o'chirish uchun
+ * ishlatiladi (StoreSettings.jsx'dagi "Firebase'dagi eski rasmlarni
+ * o'chirish" tugmasiga qarang).
+ */
+export async function listAllFirebaseFiles(folder = "") {
+  const results = [];
+  async function walk(path) {
+    const res = await listAll(ref(legacyFirebaseStorage, path));
+    res.items.forEach((item) => results.push(item.fullPath));
+    for (const prefix of res.prefixes) {
+      await walk(prefix.fullPath);
+    }
+  }
+  await walk(folder);
+  return results;
+}
+
+/** BITTA MARTALIK TOZALASH uchun: Firebase Storage'dan bitta faylni
+ *  o'chiradi (fullPath bo'yicha). Fayl allaqachon yo'q bo'lsa xato
+ *  tashlaydi — chaqiruvchi kod buni ushlab, jim o'tkazib yuborishi kerak. */
+export async function deleteFirebaseFile(fullPath) {
+  await deleteObject(ref(legacyFirebaseStorage, fullPath));
 }
 
 export async function findCustomerByPhone(phone) {

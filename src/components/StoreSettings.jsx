@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Save, Loader2, CheckCircle2, ImageOff, Download, Search as SeoIcon, Megaphone } from "lucide-react";
-import { setItem, updateItem, uploadImage, getAllDocs } from "../storage.js";
+import { Save, Loader2, CheckCircle2, ImageOff, Download, Search as SeoIcon, Megaphone, Trash2 } from "lucide-react";
+import { setItem, updateItem, uploadImage, getAllDocs, listAllFirebaseFiles, deleteFirebaseFile } from "../storage.js";
 import { Field, inputCls } from "./ui.jsx";
 
 const T_LOCAL = {
@@ -42,6 +42,11 @@ const T_LOCAL = {
     imageMigrationBtn: "Ko'chirishni boshlash", imageMigrationRunning: "Ko'chirilmoqda...",
     imageMigrationWarn: "Jarayon davomida shu sahifani yopmang yoki qayta yuklamang.",
 
+    cleanupTitle: "Firebase Storage'dagi eski rasmlarni o'chirish",
+    cleanupHint: "R2'ga ko'chirilgan rasmlarning Firebase'dagi eski nusxalarini butunlay o'chirib tashlaydi (joy bo'shatish uchun). FAQAT R2'ga muvaffaqiyatli ko'chirilgandan KEYIN bosing — bu amalni ORQAGA QAYTARIB BO'LMAYDI.",
+    cleanupBtn: "Eski rasmlarni o'chirish", cleanupRunning: "O'chirilmoqda...",
+    cleanupConfirm: "DIQQAT: Firebase Storage'dagi BARCHA eski rasm fayllari butunlay o'chiriladi va bu amalni orqaga qaytarib bo'lmaydi. Rasmlar R2'ga muvaffaqiyatli ko'chirilganiga va sayt to'g'ri ishlayotganiga ishonchingiz komilmi?",
+
     save: "Saqlash", saving: "Saqlanmoqda...", saved: "Saqlandi",
   },
   ru: {
@@ -81,6 +86,11 @@ const T_LOCAL = {
     imageMigrationHint: "Переносит все ранее загруженные в Firebase Storage изображения (товары, баннеры, логотип и т.д.) в Cloudflare R2 — одноразовый процесс. Новые загрузки уже автоматически идут в R2.",
     imageMigrationBtn: "Начать перенос", imageMigrationRunning: "Перенос идёт...",
     imageMigrationWarn: "Не закрывайте и не перезагружайте эту страницу во время процесса.",
+
+    cleanupTitle: "Удалить старые изображения из Firebase Storage",
+    cleanupHint: "Полностью удаляет старые копии изображений в Firebase (те, что уже перенесены в R2) — для освобождения места. Нажимайте ТОЛЬКО ПОСЛЕ успешного переноса в R2 — это действие НЕЛЬЗЯ ОТМЕНИТЬ.",
+    cleanupBtn: "Удалить старые изображения", cleanupRunning: "Удаление...",
+    cleanupConfirm: "ВНИМАНИЕ: ВСЕ старые файлы изображений в Firebase Storage будут удалены безвозвратно. Вы уверены, что изображения успешно перенесены в R2 и сайт работает корректно?",
 
     save: "Сохранить", saving: "Сохранение...", saved: "Сохранено",
   },
@@ -153,6 +163,9 @@ export default function StoreSettings({ lang, settings }) {
   const [migrating, setMigrating] = useState(false);
   const [migrationLog, setMigrationLog] = useState([]);
   const [migrationProgress, setMigrationProgress] = useState({ done: 0, total: 0 });
+  const [cleaning, setCleaning] = useState(false);
+  const [cleanupLog, setCleanupLog] = useState([]);
+  const [cleanupProgress, setCleanupProgress] = useState({ done: 0, total: 0 });
 
   // Firestore'dan kelgan qiymatlar yuklangach formani yangilaymiz.
   useEffect(() => {
@@ -342,6 +355,54 @@ export default function StoreSettings({ lang, settings }) {
       logLine(`Umumiy xato: ${e?.message || e}`);
     }
     setMigrating(false);
+  };
+
+  /**
+   * BITTA MARTALIK TOZALASH: R2'ga muvaffaqiyatli ko'chirilgandan keyin,
+   * Firebase Storage'dagi eski (endi ishlatilmayotgan) rasm fayllarini
+   * butunlay o'chiradi — joy bo'shatish uchun. QAYTARIB BO'LMAYDIGAN amal,
+   * shuning uchun oldin window.confirm() bilan tasdiqlanadi.
+   */
+  const cleanupFirebaseImages = async () => {
+    if (!window.confirm(t.cleanupConfirm)) return;
+    setCleaning(true);
+    setCleanupLog([]);
+    setCleanupProgress({ done: 0, total: 0 });
+    const logLine = (msg) => setCleanupLog((prev) => [...prev.slice(-59), msg]);
+    try {
+      logLine("Fayllar ro'yxati olinmoqda...");
+      const paths = await listAllFirebaseFiles("");
+      setCleanupProgress({ done: 0, total: paths.length });
+      if (!paths.length) {
+        logLine("Firebase Storage'da hech qanday fayl topilmadi — tozalash shart emas.");
+        setCleaning(false);
+        return;
+      }
+      logLine(`${paths.length} ta fayl topildi, o'chirish boshlandi...`);
+
+      let doneCount = 0;
+      let deletedCount = 0;
+      const CONCURRENCY = 6;
+      let cursor = 0;
+      const worker = async () => {
+        while (cursor < paths.length) {
+          const path = paths[cursor++];
+          try {
+            await deleteFirebaseFile(path);
+            deletedCount++;
+          } catch (e) {
+            logLine(`Xato (${path}): ${e?.message || e}`);
+          }
+          doneCount++;
+          setCleanupProgress({ done: doneCount, total: paths.length });
+        }
+      };
+      await Promise.all(Array.from({ length: CONCURRENCY }, worker));
+      logLine(`Tugadi. ${deletedCount} / ${paths.length} ta fayl o'chirildi.`);
+    } catch (e) {
+      logLine(`Umumiy xato: ${e?.message || e}`);
+    }
+    setCleaning(false);
   };
 
   return (
@@ -579,6 +640,36 @@ export default function StoreSettings({ lang, settings }) {
         {migrationLog.length > 0 && (
           <div className="mt-3 max-h-40 overflow-y-auto rounded-lg bg-gray-50 p-2 text-[11px] font-mono text-slate-500">
             {migrationLog.map((line, i) => <div key={i}>{line}</div>)}
+          </div>
+        )}
+      </div>
+
+      {/* Firebase Storage'dagi eski rasmlarni o'chirish — qaytarib bo'lmaydigan tozalash */}
+      <div className="rounded-2xl bg-white p-4 shadow-sm">
+        <h3 className="mb-1 text-sm font-semibold text-rose-600">{t.cleanupTitle}</h3>
+        <p className="mb-3 text-xs text-slate-400">{t.cleanupHint}</p>
+        <button
+          onClick={cleanupFirebaseImages}
+          disabled={cleaning}
+          className="flex items-center gap-1.5 rounded-lg border border-rose-200 px-3.5 py-2 text-sm font-medium text-rose-600 hover:bg-rose-50 disabled:opacity-60"
+        >
+          {cleaning ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
+          {cleaning ? t.cleanupRunning : t.cleanupBtn}
+        </button>
+        {cleanupProgress.total > 0 && (
+          <div className="mt-3">
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
+              <div
+                className="h-full rounded-full bg-rose-500 transition-all"
+                style={{ width: `${Math.round((cleanupProgress.done / cleanupProgress.total) * 100)}%` }}
+              />
+            </div>
+            <p className="mt-1 text-[11px] text-slate-400">{cleanupProgress.done} / {cleanupProgress.total}</p>
+          </div>
+        )}
+        {cleanupLog.length > 0 && (
+          <div className="mt-3 max-h-40 overflow-y-auto rounded-lg bg-gray-50 p-2 text-[11px] font-mono text-slate-500">
+            {cleanupLog.map((line, i) => <div key={i}>{line}</div>)}
           </div>
         )}
       </div>
