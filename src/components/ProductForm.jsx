@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { X, Plus, Loader2, Save, Package, Lock, ArrowLeft, UploadCloud, ChevronDown } from "lucide-react";
 import { setItem, deleteItem, uploadImage, deleteStorageFile, addItem } from "../storage.js";
 import { Field, inputCls, uid, fmtMoney, discountPct } from "./ui.jsx";
@@ -42,9 +42,10 @@ const T_LOCAL = {
     reviewCount: "Sharhlar soni (ixtiyoriy)", reviewCountHint: "Masalan: 124",
     tag: "Nishon (ixtiyoriy)", tagNone: "Yo'q", tagNew: "Yangi", tagBestseller: "Top / Ko'p sotilgan",
     discount: "chegirma", discountBadge: "Chegirma", autoHint: "avtomatik",
-    stockType: "Qoldiq turi", limited: "Soni bilan", unlimited: "Cheksiz", outOfStock: "Qolmagan",
+    stockType: "Qoldiq turi", limited: "Soni bilan (qo'lda)", unlimited: "Cheksiz", outOfStock: "Qolmagan",
+    billzManaged: "Billz orqali", billzManagedHint: "Qoldiq soni Billz SRM'dan avtomatik keladi — pastda shtrix-kodni kiriting",
     stock: "Qoldiq soni (dona)",
-    barcode: "Shtrix-kod / SKU (ixtiyoriy)", barcodePh: "Masalan: 4780123456789",
+    barcode: "Shtrix-kod / SKU", barcodePh: "Masalan: 4780123456789",
     barcodeHint: "Billz SRM bilan qoldiqni avtomatik sinxronlash uchun — Billz'dagi shu mahsulotning shtrix-kodi yoki SKU'sini kiriting",
     statusTitle: "Holat va ko'rinish", statusLabel: "Holat", badgeLabel: "Nishon",
     active: "Faol", inactive: "Nofaol",
@@ -78,9 +79,10 @@ const T_LOCAL = {
     reviewCount: "Количество отзывов (опционально)", reviewCountHint: "Например: 124",
     tag: "Значок (опционально)", tagNone: "Нет", tagNew: "Новинка", tagBestseller: "Топ / Хит продаж",
     discount: "скидка", discountBadge: "Скидка", autoHint: "автоматически",
-    stockType: "Тип остатка", limited: "С количеством", unlimited: "Неограничено", outOfStock: "Нет в наличии",
+    stockType: "Тип остатка", limited: "С количеством (вручную)", unlimited: "Неограничено", outOfStock: "Нет в наличии",
+    billzManaged: "Через Billz", billzManagedHint: "Количество будет приходить автоматически из Billz SRM — укажите штрих-код ниже",
     stock: "Количество (шт.)",
-    barcode: "Штрих-код / SKU (опционально)", barcodePh: "Например: 4780123456789",
+    barcode: "Штрих-код / SKU", barcodePh: "Например: 4780123456789",
     barcodeHint: "Для автоматической синхронизации остатков с Billz SRM — укажите штрих-код или SKU этого товара в Billz",
     statusTitle: "Статус и видимость", statusLabel: "Статус", badgeLabel: "Значок",
     active: "Активен", inactive: "Неактивен",
@@ -149,6 +151,15 @@ export default function ProductForm({ lang, product, products, categories, brand
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const barcodeRef = useRef(null);
+
+  /** "Qoldiq turi"da "Billz orqali" tanlanganda shtrix-kod maydoniga o'tib, fokus qiladi. */
+  const focusBarcodeField = () => {
+    setTimeout(() => {
+      barcodeRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      barcodeRef.current?.focus();
+    }, 50);
+  };
 
   // Har bir qo'shimcha maydon uchun boshqa mahsulotlarda oldin kiritilgan
   // qiymatlar — datalist orqali tez tanlash va bir xil yozilishini ta'minlash uchun.
@@ -390,6 +401,9 @@ export default function ProductForm({ lang, product, products, categories, brand
                 {form.stockType === "limited" ? (
                   <Field label={t.stock} error={error && form.stock === "" ? error : ""}>
                     <input type="number" className={inputCls} value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} />
+                    {form.barcode.trim() && (
+                      <p className="mt-1 text-[11px] text-emerald-600">{t.billzManagedHint}</p>
+                    )}
                   </Field>
                 ) : <div />}
               </div>
@@ -410,6 +424,7 @@ export default function ProductForm({ lang, product, products, categories, brand
 
               <Field label={t.barcode}>
                 <input
+                  ref={barcodeRef}
                   className={inputCls}
                   value={form.barcode}
                   onChange={(e) => setForm({ ...form, barcode: e.target.value })}
@@ -483,20 +498,24 @@ export default function ProductForm({ lang, product, products, categories, brand
                 </label>
               </div>
 
-              {/* Qoldiq turi */}
+              {/* Qoldiq turi — "Billz orqali" alohida qiymat emas, u ham "Soni bilan"
+                  (stockType: "limited") — farqi shtrix-kod to'ldirilgan-to'ldirilmaganida.
+                  Shu tufayli boshqa hech qanday joyda (do'kon, jadval, filtr) o'zgartirish
+                  kerak bo'lmaydi — ular allaqachon "limited"ni to'g'ri tushunadi. */}
               <p className="mb-1.5 text-xs font-medium text-slate-500">{t.stockType}</p>
               <div className="grid grid-cols-1 gap-2">
                 {[
-                  { key: "limited", label: t.limited },
-                  { key: "unlimited", label: t.unlimited },
-                  { key: "out", label: t.outOfStock },
+                  { key: "limited", label: t.limited, active: form.stockType === "limited" && !form.barcode.trim(), onClick: () => setForm({ ...form, stockType: "limited" }) },
+                  { key: "billz", label: t.billzManaged, active: form.stockType === "limited" && !!form.barcode.trim(), onClick: () => { setForm({ ...form, stockType: "limited" }); focusBarcodeField(); } },
+                  { key: "unlimited", label: t.unlimited, active: form.stockType === "unlimited", onClick: () => setForm({ ...form, stockType: "unlimited" }) },
+                  { key: "out", label: t.outOfStock, active: form.stockType === "out", onClick: () => setForm({ ...form, stockType: "out" }) },
                 ].map((opt) => (
                   <button
                     key={opt.key}
                     type="button"
-                    onClick={() => setForm({ ...form, stockType: opt.key })}
+                    onClick={opt.onClick}
                     className={`rounded-xl border px-3 py-2 text-left text-xs font-medium transition ${
-                      form.stockType === opt.key ? "border-emerald-600 bg-emerald-50 text-emerald-700" : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
+                      opt.active ? "border-emerald-600 bg-emerald-50 text-emerald-700" : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
                     }`}
                   >
                     {opt.label}
