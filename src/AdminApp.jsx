@@ -2038,7 +2038,7 @@ function ProductsPage({ lang, products, categories, brands, collections }) {
           </div>
         </div>
         <button
-          onClick={() => setStockFilter("low")}
+          onClick={() => setStockFilter(v => v === "low" ? "all" : "low")}
           className={`flex items-center gap-3 rounded-2xl border p-4 text-left shadow-sm transition ${stockFilter === "low" ? "border-amber-300 bg-amber-50" : "border-slate-100 bg-white hover:border-amber-200"}`}
         >
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600"><AlertTriangle size={19} /></div>
