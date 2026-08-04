@@ -1813,8 +1813,8 @@ function ProductsPage({ lang, products, categories, brands, collections }) {
   const [formOpen, setFormOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null); // null = qo'shish
   const [search, setSearch] = useState("");
-  const [activeCategory, setActiveCategory] = useState("all");
-  const [activeBrand, setActiveBrand] = useState("all");
+  const [activeCategories, setActiveCategories] = useState(() => new Set());
+  const [activeBrands, setActiveBrands] = useState(() => new Set());
   const [stockFilter, setStockFilter] = useState("all");
   const [filterPanelOpen, setFilterPanelOpen] = useState(false);
   const [sortBy, setSortBy] = useState("name");
@@ -1833,11 +1833,15 @@ function ProductsPage({ lang, products, categories, brands, collections }) {
   const isLowStock = (p) => (p.stockType || "limited") === "limited" && (p.stock || 0) > 0 && (p.stock || 0) <= LOW_STOCK_THRESHOLD;
   const lowStockCount = useMemo(() => products.filter(isLowStock).length, [products]);
 
+  /** Kategoriya/brend ro'yxatlari alifbo bo'yicha tartiblangan (chiplar ketma-ketligi barqaror bo'lishi uchun). */
+  const sortedCategories = useMemo(() => [...categories].sort((a, b) => (a.name || "").localeCompare(b.name || "", "uz")), [categories]);
+  const sortedBrands = useMemo(() => [...brands].sort((a, b) => (a.name || "").localeCompare(b.name || "", "uz")), [brands]);
+
   const filtered = useMemo(() => {
     let list = products
       .filter(p => pname(p, lang).toLowerCase().includes(search.toLowerCase()))
-      .filter(p => activeCategory === "all" || p.category === activeCategory)
-      .filter(p => activeBrand === "all" || p.brand === activeBrand)
+      .filter(p => activeCategories.size === 0 || activeCategories.has(p.category))
+      .filter(p => activeBrands.size === 0 || activeBrands.has(p.brand))
       .filter(p => {
         if (stockFilter === "all") return true;
         if (stockFilter === "in") return isInStock(p);
@@ -1850,7 +1854,7 @@ function ProductsPage({ lang, products, categories, brands, collections }) {
     else if (sortBy === "rating") list = [...list].sort((a, b) => (b.rating || 0) - (a.rating || 0));
     else list = [...list].sort((a, b) => pname(a, lang).localeCompare(pname(b, lang)));
     return list;
-  }, [products, search, activeCategory, activeBrand, stockFilter, sortBy, lang]);
+  }, [products, search, activeCategories, activeBrands, stockFilter, sortBy, lang]);
 
   /** Eski (singular) imageUrl bilan yaratilgan mahsulotlar bilan orqaga moslik. */
   const productThumb = (p) => (p.imageUrls && p.imageUrls[0]) || p.imageUrl || "";
@@ -1928,14 +1932,36 @@ function ProductsPage({ lang, products, categories, brands, collections }) {
     setQuickEdit(null);
   };
 
-  const activeFilterCount = (activeCategory !== "all" ? 1 : 0) + (activeBrand !== "all" ? 1 : 0) + (stockFilter !== "all" ? 1 : 0);
-  const clearAllFilters = () => { setActiveCategory("all"); setActiveBrand("all"); setStockFilter("all"); };
+  const activeFilterCount = activeCategories.size + activeBrands.size + (stockFilter !== "all" ? 1 : 0);
+  const clearAllFilters = () => { setActiveCategories(new Set()); setActiveBrands(new Set()); setStockFilter("all"); };
+
+  /** Kategoriya chipini bosish — Ctrl/Cmd yoki oddiy bosish farqi yo'q, har doim ko'p tanlashga qo'shadi/olib tashlaydi. */
+  const toggleCategoryFilter = (name) => {
+    setActiveCategories(prev => {
+      const next = new Set(prev);
+      next.has(name) ? next.delete(name) : next.add(name);
+      return next;
+    });
+  };
+  const toggleBrandFilter = (name) => {
+    setActiveBrands(prev => {
+      const next = new Set(prev);
+      next.has(name) ? next.delete(name) : next.add(name);
+      return next;
+    });
+  };
 
   return (
-    <div className="rounded-2xl bg-white p-4 shadow-sm">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <h2 className="text-lg font-semibold text-slate-800">{t.products.title}</h2>
+    <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+            <Package size={17} />
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold leading-tight text-slate-800">{t.products.title}</h2>
+            <p className="text-xs text-slate-400">{filtered.length} / {products.length}</p>
+          </div>
           {lowStockCount > 0 && (
             <button
               onClick={() => { setFilterPanelOpen(true); setStockFilter("low"); }}
@@ -1950,123 +1976,124 @@ function ProductsPage({ lang, products, categories, brands, collections }) {
           <div className="relative">
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t.products.searchPh}
-              className="w-56 rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm outline-none focus:border-emerald-500" />
+              className="w-56 rounded-xl border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-sm outline-none transition focus:border-emerald-400 focus:bg-white" />
           </div>
           <button
             onClick={() => setFilterPanelOpen(v => !v)}
-            className={`relative flex items-center gap-1.5 rounded-lg border px-3.5 py-2 text-sm font-medium transition ${filterPanelOpen || activeFilterCount > 0 ? "border-emerald-500 bg-emerald-50 text-emerald-700" : "border-gray-200 text-slate-600 hover:bg-gray-50"}`}
+            className={`relative flex items-center gap-1.5 rounded-xl border px-3.5 py-2 text-sm font-medium transition ${filterPanelOpen || activeFilterCount > 0 ? "border-emerald-400 bg-emerald-50 text-emerald-700" : "border-slate-200 text-slate-600 hover:bg-slate-50"}`}
           >
             <Filter size={16} /> {t.products.filterBtn}
             {activeFilterCount > 0 && (
               <span className="flex h-4 w-4 items-center justify-center rounded-full bg-emerald-600 text-[10px] font-semibold text-white">{activeFilterCount}</span>
             )}
           </button>
-          <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="rounded-lg border border-gray-200 px-2.5 py-2 text-sm text-slate-600 outline-none focus:border-emerald-500">
+          <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="rounded-xl border border-slate-200 px-2.5 py-2 text-sm text-slate-600 outline-none transition focus:border-emerald-400">
             <option value="name">{t.products.sortName}</option>
             <option value="priceAsc">{t.products.sortPriceAsc}</option>
             <option value="priceDesc">{t.products.sortPriceDesc}</option>
             <option value="stock">{t.products.sortStock}</option>
             <option value="rating">{t.products.sortRating}</option>
           </select>
-          <button onClick={() => setCategoryModalOpen(true)} className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3.5 py-2 text-sm font-medium text-slate-600 hover:bg-gray-50">
+          <button onClick={() => setCategoryModalOpen(true)} className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-3.5 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50">
             <Tag size={16} /> {t.products.categoriesBtn}
           </button>
-          <button onClick={() => setBrandModalOpen(true)} className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3.5 py-2 text-sm font-medium text-slate-600 hover:bg-gray-50">
+          <button onClick={() => setBrandModalOpen(true)} className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-3.5 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50">
             <Tag size={16} /> {t.products.brandsBtn}
           </button>
-          <button onClick={() => exportProductsToCSV(filtered, t, lang)} className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3.5 py-2 text-sm font-medium text-slate-600 hover:bg-gray-50">
+          <button onClick={() => exportProductsToCSV(filtered, t, lang)} className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-3.5 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50">
             <Download size={16} /> {t.orders.export}
           </button>
-          <button onClick={openAdd} className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-2 text-sm font-medium text-white hover:bg-emerald-700">
+          <button onClick={openAdd} className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-emerald-700">
             <Plus size={16} /> {t.products.add}
           </button>
         </div>
       </div>
 
-      {/* Filtr paneli — Filtr tugmasi bosilgandagina ochiladi */}
+      {/* Filtr paneli — Filtr tugmasi bosilgandagina ochiladi; kategoriya/brend endi ko'p tanlashni qo'llab-quvvatlaydi */}
       {filterPanelOpen && (
-        <div className="mb-4 space-y-3 rounded-xl border border-gray-100 bg-gray-50/60 p-3">
+        <div className="mb-5 space-y-3.5 rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
           {activeFilterCount > 0 && (
             <button onClick={clearAllFilters} className="flex items-center gap-1 text-xs font-medium text-rose-600 hover:underline">
               <X size={13} /> {t.products.clearFilters}
             </button>
           )}
 
-          {/* Kategoriya tablari */}
-          {categories.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              <button
-                onClick={() => setActiveCategory("all")}
-                className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${activeCategory === "all" ? "bg-emerald-600 text-white" : "bg-white text-slate-500 hover:bg-gray-100"}`}
-              >
-                {t.orders.tabAll} <span className={`ml-1 rounded-full px-1.5 text-[10px] ${activeCategory === "all" ? "bg-white/20" : "bg-gray-100 text-slate-400"}`}>{products.length}</span>
-              </button>
-              {categories.map(c => {
-                const count = products.filter(p => p.category === c.name).length;
-                return (
-                  <button
-                    key={c.id}
-                    onClick={() => setActiveCategory(c.name)}
-                    className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${activeCategory === c.name ? "bg-emerald-600 text-white" : "bg-white text-slate-500 hover:bg-gray-100"}`}
-                  >
-                    {c.name} <span className={`ml-1 rounded-full px-1.5 text-[10px] ${activeCategory === c.name ? "bg-white/20" : "bg-gray-100 text-slate-400"}`}>{count}</span>
-                  </button>
-                );
-              })}
+          {/* Kategoriya chiplari — ko'p tanlash */}
+          {sortedCategories.length > 0 && (
+            <div>
+              <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400">{t.products.category}</p>
+              <div className="flex flex-wrap gap-1.5">
+                {sortedCategories.map(c => {
+                  const count = products.filter(p => p.category === c.name).length;
+                  const active = activeCategories.has(c.name);
+                  return (
+                    <button
+                      key={c.id}
+                      onClick={() => toggleCategoryFilter(c.name)}
+                      className={`flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium transition ${active ? "bg-emerald-600 text-white shadow-sm" : "border border-slate-200 bg-white text-slate-500 hover:border-emerald-300 hover:text-emerald-700"}`}
+                    >
+                      {active && <CheckCircle2 size={12} />}
+                      {c.name} <span className={`rounded-full px-1.5 text-[10px] ${active ? "bg-white/20" : "bg-slate-100 text-slate-400"}`}>{count}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
 
-          {/* Brend tablari */}
-          {brands.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 border-t border-gray-200 pt-3">
-              <button
-                onClick={() => setActiveBrand("all")}
-                className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${activeBrand === "all" ? "bg-emerald-600 text-white" : "bg-white text-slate-500 hover:bg-gray-100"}`}
-              >
-                {t.orders.tabAll} <span className={`ml-1 rounded-full px-1.5 text-[10px] ${activeBrand === "all" ? "bg-white/20" : "bg-gray-100 text-slate-400"}`}>{products.length}</span>
-              </button>
-              {brands.map(b => {
-                const count = products.filter(p => p.brand === b.name).length;
-                return (
-                  <button
-                    key={b.id}
-                    onClick={() => setActiveBrand(b.name)}
-                    className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${activeBrand === b.name ? "bg-emerald-600 text-white" : "bg-white text-slate-500 hover:bg-gray-100"}`}
-                  >
-                    {b.name} <span className={`ml-1 rounded-full px-1.5 text-[10px] ${activeBrand === b.name ? "bg-white/20" : "bg-gray-100 text-slate-400"}`}>{count}</span>
-                  </button>
-                );
-              })}
+          {/* Brend chiplari — ko'p tanlash */}
+          {sortedBrands.length > 0 && (
+            <div className="border-t border-slate-200 pt-3.5">
+              <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400">{t.products.brand}</p>
+              <div className="flex flex-wrap gap-1.5">
+                {sortedBrands.map(b => {
+                  const count = products.filter(p => p.brand === b.name).length;
+                  const active = activeBrands.has(b.name);
+                  return (
+                    <button
+                      key={b.id}
+                      onClick={() => toggleBrandFilter(b.name)}
+                      className={`flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium transition ${active ? "bg-emerald-600 text-white shadow-sm" : "border border-slate-200 bg-white text-slate-500 hover:border-emerald-300 hover:text-emerald-700"}`}
+                    >
+                      {active && <CheckCircle2 size={12} />}
+                      {b.name} <span className={`rounded-full px-1.5 text-[10px] ${active ? "bg-white/20" : "bg-slate-100 text-slate-400"}`}>{count}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
 
           {/* Qoldiq holati filtri */}
-          <div className="flex flex-wrap gap-1.5 border-t border-gray-200 pt-3">
-            {[
-              { key: "all", label: t.products.stockStatusAll },
-              { key: "in", label: t.products.stockStatusIn },
-              { key: "low", label: `${t.products.stockStatusLow} (${lowStockCount})` },
-              { key: "out", label: t.products.stockStatusOut },
-            ].map(opt => (
-              <button
-                key={opt.key}
-                onClick={() => setStockFilter(opt.key)}
-                className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${stockFilter === opt.key ? "bg-slate-800 text-white" : "bg-white text-slate-500 hover:bg-gray-100"}`}
-              >
-                {opt.label}
-              </button>
-            ))}
+          <div className="border-t border-slate-200 pt-3.5">
+            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400">{t.products.stockStatusAll}</p>
+            <div className="flex flex-wrap gap-1.5">
+              {[
+                { key: "all", label: t.products.stockStatusAll },
+                { key: "in", label: t.products.stockStatusIn },
+                { key: "low", label: `${t.products.stockStatusLow} (${lowStockCount})` },
+                { key: "out", label: t.products.stockStatusOut },
+              ].map(opt => (
+                <button
+                  key={opt.key}
+                  onClick={() => setStockFilter(opt.key)}
+                  className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${stockFilter === opt.key ? "bg-slate-800 text-white shadow-sm" : "border border-slate-200 bg-white text-slate-500 hover:bg-slate-100"}`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       )}
 
       {/* Ommaviy amal paneli */}
       {selectedIds.size > 0 && (
-        <div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl bg-slate-800 px-4 py-2.5 text-sm text-white">
+        <div className="mb-5 flex flex-wrap items-center gap-2 rounded-2xl bg-slate-800 px-4 py-2.5 text-sm text-white shadow-sm">
           <span className="font-medium">{selectedIds.size} {t.orders.selected}</span>
           <select value={bulkCategory} onChange={e => setBulkCategory(e.target.value)} className="rounded-lg border border-white/20 bg-slate-700 px-2 py-1.5 text-xs text-white outline-none">
             <option value="">{t.products.category}...</option>
-            {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+            {sortedCategories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
           </select>
           <button onClick={applyBulkCategory} disabled={!bulkCategory} className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium hover:bg-emerald-500 disabled:opacity-50">{t.orders.applyBulk}</button>
           <button onClick={bulkDelete} className="flex items-center gap-1 rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-medium hover:bg-rose-500">
@@ -2079,32 +2106,32 @@ function ProductsPage({ lang, products, categories, brands, collections }) {
       {filtered.length === 0 ? (
         <EmptyState icon={Package} text={t.products.empty} />
       ) : (
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto rounded-2xl border border-slate-100">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-100 text-left text-xs text-slate-400">
-                <th className="w-8 pb-2">
+              <tr className="bg-slate-50/80 text-left text-xs text-slate-400">
+                <th className="w-8 py-2.5 pl-3">
                   <input type="checkbox" checked={selectedIds.size === filtered.length && filtered.length > 0} onChange={toggleSelectAll} className="rounded" />
                 </th>
-                <th className="pb-2 font-medium">{t.products.name}</th>
-                <th className="pb-2 font-medium">{t.products.brand}</th>
-                <th className="pb-2 font-medium">{t.products.category}</th>
-                <th className="pb-2 font-medium">{t.products.price}</th>
-                <th className="pb-2 font-medium">{t.products.stock}</th>
-                <th className="pb-2 font-medium">{t.products.sold}</th>
-                <th className="pb-2 font-medium">{t.products.activeCol}</th>
-                <th className="pb-2 font-medium text-right">{t.products.actions}</th>
+                <th className="py-2.5 font-medium">{t.products.name}</th>
+                <th className="py-2.5 font-medium">{t.products.brand}</th>
+                <th className="py-2.5 font-medium">{t.products.category}</th>
+                <th className="py-2.5 font-medium">{t.products.price}</th>
+                <th className="py-2.5 font-medium">{t.products.stock}</th>
+                <th className="py-2.5 font-medium">{t.products.sold}</th>
+                <th className="py-2.5 font-medium">{t.products.activeCol}</th>
+                <th className="py-2.5 pr-3 text-right font-medium">{t.products.actions}</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-slate-50">
               {filtered.map(p => (
-                <tr key={p.id} className={`border-b border-gray-50 ${p.active === false ? "opacity-50" : ""}`}>
-                  <td className="py-2.5">
+                <tr key={p.id} className={`transition hover:bg-slate-50/70 ${p.active === false ? "opacity-50" : ""}`}>
+                  <td className="py-2.5 pl-3">
                     <input type="checkbox" checked={selectedIds.has(p.id)} onChange={() => toggleSelect(p.id)} className="rounded" />
                   </td>
                   <td className="py-2.5 font-medium text-slate-700">
-                    <div className="flex items-center gap-2">
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gray-50 text-slate-300">
+                    <div className="flex items-center gap-2.5">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-50 text-slate-300 ring-1 ring-slate-100">
                         {productThumb(p) ? (
                           <img loading="lazy" src={productThumb(p)} alt={pname(p, lang)} className="h-full w-full object-cover" onError={(e) => { e.target.style.display = "none"; }} />
                         ) : (
@@ -2130,7 +2157,7 @@ function ProductsPage({ lang, products, categories, brands, collections }) {
                         className="w-24 rounded-lg border border-emerald-400 px-2 py-1 text-xs outline-none"
                       />
                     ) : (
-                      <button onClick={() => startQuickEdit(p, "price")} className="rounded px-1 hover:bg-gray-100" title={t.products.quickEditHint}>
+                      <button onClick={() => startQuickEdit(p, "price")} className="rounded-lg px-1.5 py-1 transition hover:bg-slate-100" title={t.products.quickEditHint}>
                         {p.oldPrice > p.price && <span className="mr-1.5 text-xs text-slate-400 line-through">{fmtMoney(p.oldPrice)}</span>}
                         {fmtMoney(p.price)} {t.common.uzs}
                         {p.oldPrice > p.price && (
@@ -2161,7 +2188,7 @@ function ProductsPage({ lang, products, categories, brands, collections }) {
                     ) : (
                       <button
                         onClick={() => startQuickEdit(p, "stock")}
-                        className={`rounded px-1 hover:bg-gray-100 ${isLowStock(p) ? "font-semibold text-amber-600" : ""}`}
+                        className={`rounded-lg px-1.5 py-1 transition hover:bg-slate-100 ${isLowStock(p) ? "font-semibold text-amber-600" : ""}`}
                         title={t.products.quickEditHint}
                       >
                         {isLowStock(p) && <AlertTriangle size={12} className="mr-1 inline" />}
@@ -2178,15 +2205,15 @@ function ProductsPage({ lang, products, categories, brands, collections }) {
                     <Toggle checked={p.active !== false} onChange={() => toggleActive(p)} />
                   </td>
 
-                  <td className="py-2.5 text-right">
+                  <td className="py-2.5 pr-3 text-right">
                     <div className="flex items-center justify-end gap-1">
-                      <button onClick={() => duplicate(p)} className="rounded-lg p-1.5 text-slate-400 hover:bg-blue-50 hover:text-blue-600" title={t.products.duplicate}>
+                      <button onClick={() => duplicate(p)} className="rounded-xl p-1.5 text-slate-400 transition hover:bg-blue-50 hover:text-blue-600" title={t.products.duplicate}>
                         <Copy size={15} />
                       </button>
-                      <button onClick={() => openEdit(p)} className="rounded-lg p-1.5 text-slate-400 hover:bg-emerald-50 hover:text-emerald-600">
+                      <button onClick={() => openEdit(p)} className="rounded-xl p-1.5 text-slate-400 transition hover:bg-emerald-50 hover:text-emerald-600">
                         <Pencil size={15} />
                       </button>
-                      <button onClick={() => remove(p.id)} className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600">
+                      <button onClick={() => remove(p.id)} className="rounded-xl p-1.5 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600">
                         <Trash2 size={15} />
                       </button>
                     </div>
