@@ -79,6 +79,7 @@ async function notifyCustomerOrderStatus(order, status) {
 function DashboardPage({ lang, orders, customers, products, setPage }) {
   const t = T[lang];
   const [period, setPeriod] = useState("week"); // "today" | "week" | "month"
+  const [lowStockOpen, setLowStockOpen] = useState(false);
 
   const periodDays = period === "today" ? 1 : period === "week" ? 7 : 30;
 
@@ -183,21 +184,30 @@ function DashboardPage({ lang, orders, customers, products, setPage }) {
         </div>
       </div>
 
-      {/* Kam qolgan mahsulotlar ogohlantirishi */}
+      {/* Kam qolgan mahsulotlar ogohlantirishi — standart holatda yopiq, faqat sarlavha ko'rinadi */}
       {lowStock.length > 0 && (
-        <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4">
-          <AlertCircle className="mt-0.5 shrink-0 text-amber-500" size={18} />
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-amber-800">{t.dashboard.lowStock}</p>
-            <p className="mb-2 text-xs text-amber-700">{t.dashboard.lowStockNote}</p>
-            <div className="flex flex-wrap gap-2">
+        <div className="rounded-2xl border border-amber-200 bg-amber-50">
+          <button
+            type="button"
+            onClick={() => setLowStockOpen(v => !v)}
+            className="flex w-full items-center gap-3 p-4 text-left"
+          >
+            <AlertCircle className="shrink-0 text-amber-500" size={18} />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-amber-800">{t.dashboard.lowStock} ({lowStock.length})</p>
+              {!lowStockOpen && <p className="text-xs text-amber-700">{t.dashboard.lowStockNote}</p>}
+            </div>
+            <ChevronDown size={16} className={`shrink-0 text-amber-500 transition-transform ${lowStockOpen ? "rotate-180" : ""}`} />
+          </button>
+          {lowStockOpen && (
+            <div className="flex flex-wrap gap-2 px-4 pb-4">
               {lowStock.map(p => (
                 <span key={p.id} className="rounded-full bg-white px-2.5 py-1 text-xs font-medium text-amber-700">
                   {pname(p, lang)} — {p.stock} {t.common.ta}
                 </span>
               ))}
             </div>
-          </div>
+          )}
         </div>
       )}
 
