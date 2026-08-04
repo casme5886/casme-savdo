@@ -461,7 +461,7 @@ import {
 // MUHIM: T (tarjimalar) va COL (Firestore kolleksiya nomlari) — do'kon
 // (StorefrontPage) VA admin panel (AdminApp.jsx, alohida faylda, lazy
 // yuklanadi) ikkalasiga ham kerak, shuning uchun shu yerda EXPORT qilinadi.
-export const COL = { orders: "orders", customers: "customers", products: "products", categories: "categories", brands: "brands", banners: "banners", testimonials: "testimonials", faqs: "faqs", collections: "collections" };
+export const COL = { orders: "orders", customers: "customers", products: "products", categories: "categories", brands: "brands", banners: "banners", testimonials: "testimonials", faqs: "faqs", collections: "collections", billzSync: "billzSync" };
 
 /**
  * Kategoriya sahifasidagi "Filtrlar" oynasi bo'limlari. Faqat `functional: true`

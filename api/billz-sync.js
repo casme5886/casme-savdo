@@ -60,15 +60,36 @@ function decodeFields(fields) {
   return out;
 }
 
+/** Bitta JS qiymatini Firestore'ning "typed value" formatiga aylantiradi — massiv/obyektlarni ham (ichma-ich) qo'llab-quvvatlaydi. */
+function encodeValue(val) {
+  if (val === null || val === undefined) return { nullValue: null };
+  if (typeof val === "string") return { stringValue: val };
+  if (typeof val === "number") return Number.isInteger(val) ? { integerValue: String(val) } : { doubleValue: val };
+  if (typeof val === "boolean") return { booleanValue: val };
+  if (Array.isArray(val)) return { arrayValue: { values: val.map(encodeValue) } };
+  if (typeof val === "object") return { mapValue: { fields: encodeFields(val) } };
+  return { nullValue: null };
+}
+
 function encodeFields(obj) {
   const fields = {};
-  for (const [key, val] of Object.entries(obj)) {
-    if (typeof val === "string") fields[key] = { stringValue: val };
-    else if (typeof val === "number") fields[key] = Number.isInteger(val) ? { integerValue: String(val) } : { doubleValue: val };
-    else if (typeof val === "boolean") fields[key] = { booleanValue: val };
-    else fields[key] = { nullValue: null };
-  }
+  for (const [key, val] of Object.entries(obj)) fields[key] = encodeValue(val);
   return fields;
+}
+
+/** Berilgan hujjatga (mavjud bo'lmasa — yaratib) maydonlarni yozadi. */
+async function firestorePatch(path, data) {
+  const fields = encodeFields(data);
+  const mask = Object.keys(data).map((k) => `updateMask.fieldPaths=${encodeURIComponent(k)}`).join("&");
+  const res = await fetch(`${FIRESTORE_BASE}/${path}?${mask}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ fields }),
+  });
+  if (!res.ok) {
+    const errText = await res.text().catch(() => "");
+    throw new Error(`Firestore PATCH xatosi (${path}): ${res.status} ${errText}`);
+  }
 }
 
 /** Saytdagi "products" kolleksiyasidan BARCHA hujjatlarni o'qiydi (id, barcode, stock, stockType bilan). */
@@ -96,16 +117,7 @@ async function fetchAllSiteProducts() {
 
 /** Faqat "stock" maydonini yangilaydi — boshqa hech narsaga tegmaydi. */
 async function patchStock(productId, newStock) {
-  const fields = encodeFields({ stock: newStock });
-  const res = await fetch(`${FIRESTORE_BASE}/products/${productId}?updateMask.fieldPaths=stock`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ fields }),
-  });
-  if (!res.ok) {
-    const errText = await res.text().catch(() => "");
-    throw new Error(`Firestore PATCH xatosi (${productId}): ${res.status} ${errText}`);
-  }
+  await firestorePatch(`products/${productId}`, { stock: newStock });
 }
 
 // ---------- Billz API yordamchi funksiyalari ----------
@@ -193,12 +205,21 @@ export default async function handler(req, res) {
     let skippedUnlimited = 0;
     let skippedNoChange = 0;
     const errors = [];
+    const unmatched = [];
 
     for (const bp of billzProducts) {
       const code = (bp.barcode || "").trim() || (bp.sku || "").trim();
       if (!code) continue;
       const sp = siteByCode.get(code) || (bp.sku ? siteByCode.get((bp.sku || "").trim()) : null);
-      if (!sp) continue;
+      if (!sp) {
+        // Billz'da shtrix-kodi bor, lekin saytda shu kod bilan mahsulot topilmadi —
+        // buni admin panelda "Billz'da yangi mahsulot topildi" bildirishnomasi
+        // sifatida ko'rsatish uchun ro'yxatga qo'shamiz (o'zi avtomatik yaratilmaydi).
+        if (unmatched.length < 50) {
+          unmatched.push({ barcode: (bp.barcode || "").trim(), sku: (bp.sku || "").trim(), name: bp.name || "" });
+        }
+        continue;
+      }
       matched += 1;
 
       const stockType = sp.stockType || "limited";
@@ -218,6 +239,21 @@ export default async function handler(req, res) {
       }
     }
 
+    // Admin panelda ko'rsatish uchun natijani bitta hujjatga yozib qo'yamiz
+    // (har safar ustidan yoziladi — doim ENG SO'NGGI holatni aks ettiradi).
+    try {
+      await firestorePatch("billzSync/status", {
+        lastRunAt: new Date().toISOString(),
+        billzProductsFetched: billzProducts.length,
+        matched,
+        updated,
+        unmatchedCount: unmatched.length,
+        unmatched,
+      });
+    } catch (e) {
+      console.error("billzSync/status yozishda xatolik:", e);
+    }
+
     return res.status(200).json({
       ok: true,
       billzProductsFetched: billzProducts.length,
@@ -226,6 +262,7 @@ export default async function handler(req, res) {
       updated,
       skippedUnlimited,
       skippedNoChange,
+      unmatchedCount: unmatched.length,
       errors: errors.slice(0, 20),
       tookMs: Date.now() - startedAt,
     });

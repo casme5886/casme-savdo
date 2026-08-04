@@ -184,5 +184,17 @@ service cloud.firestore {
       allow get, create: if true;
       allow list, update, delete: if request.auth != null;
     }
+
+    // ---------------- BILLZ SINXRONLASH HOLATI ----------------
+    // /api/billz-sync (Vercel serverless funksiya, Firebase Authentication'siz
+    // ishlaydi) har sinxronlashdan keyin shu yerga (bitta hujjat: billzSync/status)
+    // natijani yozadi — nechta mahsulot yangilandi, va Billz'da bor-u saytda
+    // topilmagan (shtrix-kod bo'yicha moslashmagan) mahsulotlar ro'yxati, admin
+    // panelda ko'rsatish uchun. "get" ochiq — admin paneli shu bitta hujjatga
+    // real-vaqtli obuna bo'ladi; "list" esa kerak emas (faqat bitta hujjat bor).
+    match /billzSync/{id} {
+      allow get, create, update: if true;
+      allow list, delete: if request.auth != null;
+    }
   }
 }

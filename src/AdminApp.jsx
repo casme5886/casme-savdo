@@ -27,7 +27,7 @@ import {
 import { auth } from "./firebase.js";
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
 import {
-  subscribeCollection, addItem, setItem, updateItem, deleteItem, uploadImage, adjustCustomerBonus,
+  subscribeCollection, subscribeDoc, addItem, setItem, updateItem, deleteItem, uploadImage, adjustCustomerBonus,
 } from "./storage.js";
 import { T, COL } from "./App.jsx";
 import {
@@ -76,10 +76,11 @@ async function notifyCustomerOrderStatus(order, status) {
 /* ---------------------------------------------------------------
    DASHBOARD PAGE
 --------------------------------------------------------------- */
-function DashboardPage({ lang, orders, customers, products, setPage }) {
+function DashboardPage({ lang, orders, customers, products, billzSync, setPage }) {
   const t = T[lang];
   const [period, setPeriod] = useState("week"); // "today" | "week" | "month"
   const [lowStockOpen, setLowStockOpen] = useState(false);
+  const [billzUnmatchedOpen, setBillzUnmatchedOpen] = useState(false);
 
   const periodDays = period === "today" ? 1 : period === "week" ? 7 : 30;
 
@@ -214,6 +215,39 @@ function DashboardPage({ lang, orders, customers, products, setPage }) {
               {lowStock.map(p => (
                 <span key={p.id} className="rounded-full bg-white px-2.5 py-1 text-xs font-medium text-amber-700">
                   {pname(p, lang)} — {p.stock} {t.common.ta}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Billz'da bor, lekin saytda shtrix-kodi bo'yicha topilmagan mahsulotlar — bildirishnoma sifatida, standart holatda yopiq */}
+      {billzSync && billzSync.unmatchedCount > 0 && (
+        <div className="rounded-2xl border border-blue-200 bg-blue-50">
+          <button
+            type="button"
+            onClick={() => setBillzUnmatchedOpen(v => !v)}
+            className="flex w-full items-center gap-3 p-4 text-left"
+          >
+            <AlertCircle className="shrink-0 text-blue-500" size={18} />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-blue-800">
+                {lang === "uz" ? `Billz'da saytda yo'q ${billzSync.unmatchedCount} ta mahsulot topildi` : `В Billz найдено ${billzSync.unmatchedCount} товаров, которых нет на сайте`}
+              </p>
+              {!billzUnmatchedOpen && (
+                <p className="text-xs text-blue-700">
+                  {lang === "uz" ? "Shtrix-kodi bo'yicha saytdagi hech qaysi mahsulotga mos kelmadi" : "Не совпало ни с одним товаром на сайте по штрих-коду"}
+                </p>
+              )}
+            </div>
+            <ChevronDown size={16} className={`shrink-0 text-blue-500 transition-transform ${billzUnmatchedOpen ? "rotate-180" : ""}`} />
+          </button>
+          {billzUnmatchedOpen && (
+            <div className="flex flex-wrap gap-2 px-4 pb-4">
+              {(billzSync.unmatched || []).map((p, i) => (
+                <span key={i} className="rounded-full bg-white px-2.5 py-1 text-xs font-medium text-blue-700">
+                  {p.name || "—"} {p.barcode ? `· ${p.barcode}` : ""}
                 </span>
               ))}
             </div>
@@ -2425,6 +2459,7 @@ export default function AdminApp({ lang, setLang, products, categories, brands, 
   const [page, setPage] = useState("dashboard");
   const [orders, setOrders] = useState([]);
   const [customers, setCustomers] = useState([]);
+  const [billzSync, setBillzSync] = useState(null);
   const [user, setUser] = useState(undefined); // undefined = checking, null = logged out
   // "Kolleksiyalar" — mahsulotlar sahifasidan Banner sahifasiga ko'chirilgan.
   const [collectionsModalOpen, setCollectionsModalOpen] = useState(false);
@@ -2461,7 +2496,8 @@ export default function AdminApp({ lang, setLang, products, categories, brands, 
     if (!user) return;
     const unsubOrders = subscribeCollection(COL.orders, (list) => setOrders(list));
     const unsubCustomers = subscribeCollection(COL.customers, (list) => setCustomers(list));
-    return () => { unsubOrders(); unsubCustomers(); };
+    const unsubBillzSync = subscribeDoc(COL.billzSync, "status", (data) => setBillzSync(data));
+    return () => { unsubOrders(); unsubCustomers(); unsubBillzSync(); };
   }, [user]);
 
   const t = T[lang];
@@ -2585,7 +2621,7 @@ export default function AdminApp({ lang, setLang, products, categories, brands, 
         </header>
 
         <main className="flex-1 p-6">
-          {page === "dashboard" && <DashboardPage lang={lang} orders={orders} customers={customers} products={products} setPage={setPage} />}
+          {page === "dashboard" && <DashboardPage lang={lang} orders={orders} customers={customers} products={products} billzSync={billzSync} setPage={setPage} />}
           {page === "orders" && <OrdersPage lang={lang} orders={orders} setOrders={setOrders} customers={customers} products={products} />}
           {page === "customers" && <CustomersPage lang={lang} customers={customers} setCustomers={setCustomers} orders={orders} products={products} />}
           {page === "products" && <ProductsPage lang={lang} products={products} categories={categories} brands={brands} collections={collections} />}
