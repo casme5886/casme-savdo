@@ -1,0 +1,25 @@
+name: Billz stock sync
+
+# Har 15 daqiqada bir /api/billz-sync manzilini chaqiradi — Billz SRM'dagi
+# ombor qoldiqlarini saytdagi mahsulotlarga (faqat kamayish tomon) sinxronlaydi.
+# Vercel'ning bepul (Hobby) tarifidagi Cron Job kuniga faqat 1 marta ishlay
+# oladi, shuning uchun buning o'rniga GitHub Actions ishlatilmoqda (bepul).
+#
+# KERAKLI SOZLASH (bir marta): GitHub repo → Settings → Secrets and variables
+# → Actions → "New repository secret" orqali SYNC_SECRET qo'shing — bu
+# Vercel'dagi SYNC_SECRET bilan AYNAN BIR XIL qiymat bo'lishi kerak.
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch: {} # qo'lda ham ishga tushirish imkoni (Actions sahifasidan)
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call billz-sync endpoint
+        run: |
+          curl -sS -X POST "https://www.casme.uz/api/billz-sync" \
+            -H "x-sync-secret: ${{ secrets.SYNC_SECRET }}" \
+            -w "\nHTTP status: %{http_code}\n"

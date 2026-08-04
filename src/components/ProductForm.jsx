@@ -8,7 +8,7 @@ const MAX_IMAGES = 10;
 const EMPTY_FORM = {
   nameUz: "", nameRu: "", descriptionUz: "", descriptionRu: "",
   brand: "", category: "", price: "", oldPrice: "", costPrice: "", rating: "", reviewCount: "", tag: "none", stockType: "limited", stock: "",
-  imageUrls: [], active: true,
+  imageUrls: [], active: true, barcode: "",
   country: "", skinType: "", useArea: "", compositionFeature: "", hypoallergenic: "", forWhom: "", dailyUse: "",
 };
 
@@ -44,6 +44,8 @@ const T_LOCAL = {
     discount: "chegirma", discountBadge: "Chegirma", autoHint: "avtomatik",
     stockType: "Qoldiq turi", limited: "Soni bilan", unlimited: "Cheksiz", outOfStock: "Qolmagan",
     stock: "Qoldiq soni (dona)",
+    barcode: "Shtrix-kod / SKU (ixtiyoriy)", barcodePh: "Masalan: 4780123456789",
+    barcodeHint: "Billz SRM bilan qoldiqni avtomatik sinxronlash uchun — Billz'dagi shu mahsulotning shtrix-kodi yoki SKU'sini kiriting",
     statusTitle: "Holat va ko'rinish", statusLabel: "Holat", badgeLabel: "Nishon",
     active: "Faol", inactive: "Nofaol",
     cancel: "Bekor qilish", save: "Saqlash", saving: "Saqlanmoqda...",
@@ -78,6 +80,8 @@ const T_LOCAL = {
     discount: "скидка", discountBadge: "Скидка", autoHint: "автоматически",
     stockType: "Тип остатка", limited: "С количеством", unlimited: "Неограничено", outOfStock: "Нет в наличии",
     stock: "Количество (шт.)",
+    barcode: "Штрих-код / SKU (опционально)", barcodePh: "Например: 4780123456789",
+    barcodeHint: "Для автоматической синхронизации остатков с Billz SRM — укажите штрих-код или SKU этого товара в Billz",
     statusTitle: "Статус и видимость", statusLabel: "Статус", badgeLabel: "Значок",
     active: "Активен", inactive: "Неактивен",
     cancel: "Отмена", save: "Сохранить", saving: "Сохранение...",
@@ -135,6 +139,7 @@ export default function ProductForm({ lang, product, products, categories, brand
       stock: String(product.stock ?? ""),
       imageUrls: product.imageUrls && product.imageUrls.length ? product.imageUrls : (product.imageUrl ? [product.imageUrl] : []),
       active: product.active !== false,
+      barcode: product.barcode || "",
       country: product.country || "", skinType: product.skinType || "", useArea: product.useArea || "",
       compositionFeature: product.compositionFeature || "", hypoallergenic: product.hypoallergenic || "",
       forWhom: product.forWhom || "", dailyUse: product.dailyUse || "",
@@ -199,6 +204,7 @@ export default function ProductForm({ lang, product, products, categories, brand
       stock: form.stockType === "limited" ? Number(form.stock) || 0 : 0,
       imageUrls: form.imageUrls,
       active: form.active,
+      barcode: form.barcode.trim(),
       country: form.country.trim(), skinType: form.skinType.trim(), useArea: form.useArea.trim(),
       compositionFeature: form.compositionFeature.trim(), hypoallergenic: form.hypoallergenic.trim(),
       forWhom: form.forWhom.trim(), dailyUse: form.dailyUse.trim(),
@@ -401,6 +407,17 @@ export default function ProductForm({ lang, product, products, categories, brand
             {/* ---------- 3. Qo'shimcha ma'lumotlar (filtrlash uchun) ---------- */}
             <div className="rounded-2xl border border-slate-100 p-4">
               <SectionHeader n={3} title={t.section3} />
+
+              <Field label={t.barcode}>
+                <input
+                  className={inputCls}
+                  value={form.barcode}
+                  onChange={(e) => setForm({ ...form, barcode: e.target.value })}
+                  placeholder={t.barcodePh}
+                />
+                <p className="mt-1 text-[11px] text-slate-400">{t.barcodeHint}</p>
+              </Field>
+
               <p className="mb-3 -mt-2 text-xs text-slate-400">{t.filterFieldsHint}</p>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {EXTRA_FIELDS.map(({ key }) => (
