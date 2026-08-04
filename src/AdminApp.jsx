@@ -141,6 +141,10 @@ function DashboardPage({ lang, orders, customers, products, setPage }) {
   const topCustomers = [...customers].sort((a, b) => (b.spent || 0) - (a.spent || 0)).slice(0, 5);
 
   // Eng ko'p sotilgan mahsulotlar — joriy davrdagi buyurtmalar items snapshotidan hisoblanadi.
+  // Rasm uchun avval JORIY mahsulot ma'lumotidan olamiz (products), chunki buyurtma
+  // ichidagi eski "imageUrl" — R2'ga o'tishdan oldingi Firebase Storage havolasi bo'lishi
+  // mumkin va endi ishlamaydi (fayllar o'chirilgan); faqat mahsulot butunlay o'chirilgan
+  // bo'lsa, eski buyurtma snapshotidagi havolaga qaytamiz.
   const topProducts = useMemo(() => {
     const map = new Map();
     currentOrders.forEach(o => {
@@ -152,8 +156,14 @@ function DashboardPage({ lang, orders, customers, products, setPage }) {
         map.set(key, prev);
       });
     });
-    return Array.from(map.values()).sort((a, b) => b.qty - a.qty).slice(0, 5);
-  }, [currentOrders]);
+    return Array.from(map.values())
+      .map(p => {
+        const live = products.find(pr => pr.id === p.productId);
+        const liveThumb = live ? ((live.imageUrls && live.imageUrls[0]) || live.imageUrl || "") : "";
+        return { ...p, imageUrl: liveThumb || p.imageUrl };
+      })
+      .sort((a, b) => b.qty - a.qty).slice(0, 5);
+  }, [currentOrders, products]);
 
   // Kam qolgan mahsulotlar — faqat "soni bilan" turidagi, 5 tadan kam (lekin 0 emas) qoldiq.
   const lowStock = useMemo(
@@ -338,7 +348,7 @@ function DashboardPage({ lang, orders, customers, products, setPage }) {
                 <div key={p.productId || i} className="flex items-center gap-3 rounded-xl border border-gray-100 p-2.5">
                   <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-xs font-semibold text-emerald-600">{i + 1}</span>
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gray-50 text-slate-300">
-                    {p.imageUrl ? <img loading="lazy" src={p.imageUrl} alt="" className="h-full w-full object-cover" /> : <Package size={14} />}
+                    {p.imageUrl ? <img loading="lazy" src={p.imageUrl} alt="" className="h-full w-full object-cover" onError={(e) => { e.target.style.display = "none"; }} /> : <Package size={14} />}
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium text-slate-700">{p.productName}</p>
