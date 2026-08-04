@@ -2457,15 +2457,6 @@ export default function AdminApp({ lang, setLang, products, categories, brands, 
     <div className="flex h-full min-h-[600px] w-full bg-gray-50 text-slate-800" style={{ fontFamily: "Inter, system-ui, sans-serif" }}>
       {/* SIDEBAR */}
       <aside className={`relative hidden flex-col border-r border-gray-100 bg-white transition-all duration-200 sm:flex ${sidebarCollapsed ? "w-[68px]" : "w-60"}`}>
-        {/* Yig'ish/kengaytirish tugmasi — chetga chiqib turadi, doim ko'rinadi */}
-        <button
-          onClick={toggleSidebar}
-          title={sidebarCollapsed ? t.sidebarExpand : t.sidebarCollapse}
-          className="absolute -right-3 top-6 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-gray-200 bg-white text-slate-400 shadow-sm hover:text-emerald-600"
-        >
-          {sidebarCollapsed ? <PanelLeftOpen size={13} /> : <PanelLeftClose size={13} />}
-        </button>
-
         <div className={`flex items-center gap-2 py-5 ${sidebarCollapsed ? "justify-center px-2" : "px-5"}`}>
           {storeSettings?.logoUrl ? (
             <img loading="lazy" src={storeSettings.logoUrl} alt="" className="h-8 w-8 shrink-0 rounded-xl object-cover" />
@@ -2524,9 +2515,15 @@ export default function AdminApp({ lang, setLang, products, categories, brands, 
           >
             <ShoppingBag size={13} /> {!sidebarCollapsed && t.login.viewStore}
           </a>
-          {!sidebarCollapsed && (
-            <div className="rounded-xl bg-slate-800 px-3 py-2.5 text-center text-xs font-semibold text-white">BASIC</div>
-          )}
+          {/* Yig'ish/kengaytirish tugmasi — ikkala holatda ham ko'rinadi, chunki yig'ilgandan keyin qayta ochish shu tugma orqali bo'ladi */}
+          <button
+            onClick={toggleSidebar}
+            title={sidebarCollapsed ? t.sidebarExpand : t.sidebarCollapse}
+            className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-gray-200 py-2 text-xs font-medium text-slate-500 hover:bg-gray-50"
+          >
+            {sidebarCollapsed ? <PanelLeftOpen size={14} /> : <PanelLeftClose size={14} />}
+            {!sidebarCollapsed && t.sidebarCollapse}
+          </button>
         </div>
       </aside>
 
