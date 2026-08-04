@@ -427,7 +427,21 @@ function exportOrdersToCSV(list, t) {
   URL.revokeObjectURL(url);
 }
 
-function OrdersPage({ lang, orders, setOrders, customers }) {
+/**
+ * Buyurtma ichidagi mahsulot uchun rasm manzilini aniqlaydi. Avval JORIY
+ * mahsulot ma'lumotidan (products) olishga harakat qiladi — chunki
+ * buyurtma yozilgan paytdagi "imageUrl" R2'ga o'tishdan oldingi Firebase
+ * Storage havolasi bo'lishi mumkin va endi ishlamaydi (fayllar o'chirilgan).
+ * Mahsulot topilmasa (masalan o'chirilgan bo'lsa), eski buyurtma
+ * snapshotidagi havolaga qaytadi.
+ */
+function resolveOrderItemThumb(it, products) {
+  const live = (products || []).find(p => p.id === it.productId);
+  const liveThumb = live ? ((live.imageUrls && live.imageUrls[0]) || live.imageUrl || "") : "";
+  return liveThumb || it.imageUrl || "";
+}
+
+function OrdersPage({ lang, orders, setOrders, customers, products }) {
   const t = T[lang];
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -639,8 +653,8 @@ function OrdersPage({ lang, orders, setOrders, customers }) {
                     {Array.isArray(o.items) && o.items.length > 0 ? (
                       <div className="flex items-center gap-1.5">
                         <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gray-50 text-slate-300">
-                          {o.items[0].imageUrl ? (
-                            <img loading="lazy" src={o.items[0].imageUrl} alt="" className="h-full w-full object-cover" />
+                          {resolveOrderItemThumb(o.items[0], products) ? (
+                            <img loading="lazy" src={resolveOrderItemThumb(o.items[0], products)} alt="" className="h-full w-full object-cover" onError={(e) => { e.target.style.display = "none"; }} />
                           ) : (
                             <Package size={14} />
                           )}
@@ -729,6 +743,7 @@ function OrdersPage({ lang, orders, setOrders, customers }) {
         <OrderDetailModal
           order={orders.find(o => o.id === selectedOrder.id) || selectedOrder}
           t={t}
+          products={products}
           onClose={() => setSelectedOrder(null)}
           onChangeStatus={changeStatus}
         />
@@ -738,7 +753,7 @@ function OrdersPage({ lang, orders, setOrders, customers }) {
 }
 
 /** Admin panelda buyurtma bosilganda ochiladigan to'liq detail oynasi. */
-function OrderDetailModal({ order, t, onClose, onChangeStatus }) {
+function OrderDetailModal({ order, t, products, onClose, onChangeStatus }) {
   const items = Array.isArray(order.items) ? order.items : [];
   const [deliveryPrice, setDeliveryPrice] = useState(String(order.deliveryPrice ?? ""));
   const [savingDelivery, setSavingDelivery] = useState(false);
@@ -877,8 +892,8 @@ function OrderDetailModal({ order, t, onClose, onChangeStatus }) {
               {items.map((it, i) => (
                 <div key={i} className="flex items-center gap-3 rounded-xl border border-gray-100 p-2.5">
                   <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gray-50 text-slate-300">
-                    {it.imageUrl ? (
-                      <img loading="lazy" src={it.imageUrl} alt={it.productName} className="h-full w-full object-cover" />
+                    {resolveOrderItemThumb(it, products) ? (
+                      <img loading="lazy" src={resolveOrderItemThumb(it, products)} alt={it.productName} className="h-full w-full object-cover" onError={(e) => { e.target.style.display = "none"; }} />
                     ) : (
                       <Package size={18} />
                     )}
@@ -950,7 +965,7 @@ function exportCustomersToCSV(list, t) {
   URL.revokeObjectURL(url);
 }
 
-function CustomersPage({ lang, customers, setCustomers, orders }) {
+function CustomersPage({ lang, customers, setCustomers, orders, products }) {
   const t = T[lang];
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState(null); // null = qo'shish
@@ -1164,6 +1179,7 @@ function CustomersPage({ lang, customers, setCustomers, orders }) {
         <CustomerDetailModal
           customer={customers.find(c => c.id === selectedCustomer.id) || selectedCustomer}
           orders={orders}
+          products={products}
           t={t}
           onClose={() => setSelectedCustomer(null)}
           onEdit={() => { setSelectedCustomer(null); openEdit(selectedCustomer); }}
@@ -1175,6 +1191,7 @@ function CustomersPage({ lang, customers, setCustomers, orders }) {
         <OrderDetailModal
           order={orders.find(o => o.id === selectedOrder.id) || selectedOrder}
           t={t}
+          products={products}
           onClose={() => setSelectedOrder(null)}
           onChangeStatus={changeOrderStatus}
         />
@@ -1185,7 +1202,7 @@ function CustomersPage({ lang, customers, setCustomers, orders }) {
 }
 
 /** Mijoz bosilganda ochiladigan detail oyna — buyurtmalar tarixi va bonus ballar bilan. */
-function CustomerDetailModal({ customer, orders, t, onClose, onEdit, onSelectOrder }) {
+function CustomerDetailModal({ customer, orders, products, t, onClose, onEdit, onSelectOrder }) {
   const [pointsInput, setPointsInput] = useState("");
   const [savingPoints, setSavingPoints] = useState(false);
 
@@ -1335,8 +1352,8 @@ function CustomerDetailModal({ customer, orders, t, onClose, onEdit, onSelectOrd
                       <div className="mb-2 flex -space-x-2">
                         {items.slice(0, 5).map((it, i) => (
                           <div key={i} className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-white bg-gray-50 text-slate-300 shadow-sm">
-                            {it.imageUrl ? (
-                              <img loading="lazy" src={it.imageUrl} alt={it.productName} className="h-full w-full object-cover" />
+                            {resolveOrderItemThumb(it, products) ? (
+                              <img loading="lazy" src={resolveOrderItemThumb(it, products)} alt={it.productName} className="h-full w-full object-cover" onError={(e) => { e.target.style.display = "none"; }} />
                             ) : (
                               <Package size={14} />
                             )}
@@ -2569,8 +2586,8 @@ export default function AdminApp({ lang, setLang, products, categories, brands, 
 
         <main className="flex-1 p-6">
           {page === "dashboard" && <DashboardPage lang={lang} orders={orders} customers={customers} products={products} setPage={setPage} />}
-          {page === "orders" && <OrdersPage lang={lang} orders={orders} setOrders={setOrders} customers={customers} />}
-          {page === "customers" && <CustomersPage lang={lang} customers={customers} setCustomers={setCustomers} orders={orders} />}
+          {page === "orders" && <OrdersPage lang={lang} orders={orders} setOrders={setOrders} customers={customers} products={products} />}
+          {page === "customers" && <CustomersPage lang={lang} customers={customers} setCustomers={setCustomers} orders={orders} products={products} />}
           {page === "products" && <ProductsPage lang={lang} products={products} categories={categories} brands={brands} collections={collections} />}
           {page === "banner" && (
             <div className="space-y-4">
