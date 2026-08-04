@@ -1808,6 +1808,48 @@ function CollectionFormModal({ lang, item, collections, products, categories, br
   );
 }
 
+/** Ko'p tanlashli filtr dropdown (kategoriya/brend uchun) — tashqariga bosilganda o'zi yopiladi. */
+function FilterDropdown({ label, items, selected, onToggle, onClear, clearLabel }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    const onDocClick = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, []);
+  const count = selected.size;
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen(v => !v)}
+        className={`flex items-center gap-1.5 rounded-xl border px-3.5 py-2 text-sm font-medium transition ${count > 0 ? "border-emerald-400 bg-emerald-50 text-emerald-700" : "border-slate-200 text-slate-600 hover:bg-slate-50"}`}
+      >
+        {count > 0 ? `${label} (${count})` : label}
+        <ChevronDown size={14} className={`transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && (
+        <div className="absolute left-0 z-20 mt-1.5 max-h-72 w-64 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg">
+          {count > 0 && (
+            <button type="button" onClick={onClear} className="mb-1 flex w-full items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-rose-600 hover:bg-rose-50">
+              <X size={12} /> {clearLabel}
+            </button>
+          )}
+          {items.length === 0 ? (
+            <p className="px-2.5 py-2 text-xs text-slate-400">—</p>
+          ) : items.map(it => (
+            <label key={it.name} className="flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm hover:bg-slate-50">
+              <input type="checkbox" checked={selected.has(it.name)} onChange={() => onToggle(it.name)} className="rounded" />
+              <span className="flex-1 truncate text-slate-700">{it.name}</span>
+              <span className="text-xs text-slate-400">{it.count}</span>
+            </label>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ProductsPage({ lang, products, categories, brands, collections }) {
   const t = T[lang];
   const [formOpen, setFormOpen] = useState(false);
@@ -1816,8 +1858,9 @@ function ProductsPage({ lang, products, categories, brands, collections }) {
   const [activeCategories, setActiveCategories] = useState(() => new Set());
   const [activeBrands, setActiveBrands] = useState(() => new Set());
   const [stockFilter, setStockFilter] = useState("all");
-  const [filterPanelOpen, setFilterPanelOpen] = useState(false);
   const [sortBy, setSortBy] = useState("name");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [bulkCategory, setBulkCategory] = useState("");
   const [quickEdit, setQuickEdit] = useState(null); // { id, field }
@@ -1855,6 +1898,28 @@ function ProductsPage({ lang, products, categories, brands, collections }) {
     else list = [...list].sort((a, b) => pname(a, lang).localeCompare(pname(b, lang)));
     return list;
   }, [products, search, activeCategories, activeBrands, stockFilter, sortBy, lang]);
+
+  /** Filtr/qidiruv o'zgarganda birinchi sahifaga qaytamiz. */
+  useEffect(() => { setPage(1); }, [search, activeCategories, activeBrands, stockFilter, sortBy, pageSize]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const pageSafe = Math.min(page, totalPages);
+  const paginated = useMemo(() => filtered.slice((pageSafe - 1) * pageSize, pageSafe * pageSize), [filtered, pageSafe, pageSize]);
+  /** Sahifalash tugmalari uchun raqamlar ro'yxati — ko'p bo'lsa "…" bilan qisqartiriladi. */
+  const pageNumbers = useMemo(() => {
+    const nums = [];
+    if (totalPages <= 7) { for (let i = 1; i <= totalPages; i++) nums.push(i); return nums; }
+    nums.push(1);
+    if (pageSafe > 3) nums.push("…");
+    for (let i = Math.max(2, pageSafe - 1); i <= Math.min(totalPages - 1, pageSafe + 1); i++) nums.push(i);
+    if (pageSafe < totalPages - 2) nums.push("…");
+    nums.push(totalPages);
+    return nums;
+  }, [pageSafe, totalPages]);
+
+  /** Statistika kartochkalari uchun — haqiqiy hisoblangan sonlar (soxta % o'zgarish ko'rsatilmaydi). */
+  const activeProductsCount = useMemo(() => products.filter(p => p.active !== false).length, [products]);
+  const totalSoldCount = useMemo(() => products.reduce((sum, p) => sum + (p.sold || 0), 0), [products]);
 
   /** Eski (singular) imageUrl bilan yaratilgan mahsulotlar bilan orqaga moslik. */
   const productThumb = (p) => (p.imageUrls && p.imageUrls[0]) || p.imageUrl || "";
@@ -1932,10 +1997,10 @@ function ProductsPage({ lang, products, categories, brands, collections }) {
     setQuickEdit(null);
   };
 
-  const activeFilterCount = activeCategories.size + activeBrands.size + (stockFilter !== "all" ? 1 : 0);
-  const clearAllFilters = () => { setActiveCategories(new Set()); setActiveBrands(new Set()); setStockFilter("all"); };
+  const activeFilterCount = activeCategories.size + activeBrands.size + (stockFilter !== "all" ? 1 : 0) + (search.trim() ? 1 : 0);
+  const clearAllFilters = () => { setActiveCategories(new Set()); setActiveBrands(new Set()); setStockFilter("all"); setSearch(""); };
 
-  /** Kategoriya chipini bosish — Ctrl/Cmd yoki oddiy bosish farqi yo'q, har doim ko'p tanlashga qo'shadi/olib tashlaydi. */
+  /** Kategoriya chipini bosish — har doim ko'p tanlashga qo'shadi/olib tashlaydi. */
   const toggleCategoryFilter = (name) => {
     setActiveCategories(prev => {
       const next = new Set(prev);
@@ -1951,42 +2016,77 @@ function ProductsPage({ lang, products, categories, brands, collections }) {
     });
   };
 
+  const categoryItems = sortedCategories.map(c => ({ name: c.name, count: products.filter(p => p.category === c.name).length }));
+  const brandItems = sortedBrands.map(b => ({ name: b.name, count: products.filter(p => p.brand === b.name).length }));
+
   return (
-    <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
-            <Package size={17} />
+    <div className="flex flex-col gap-5">
+      {/* Statistika kartochkalari — haqiqiy sonlar, taxminiy foiz o'zgarish ko'rsatilmaydi */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600"><Package size={19} /></div>
+          <div className="min-w-0">
+            <p className="text-xl font-bold leading-tight text-slate-800">{products.length}</p>
+            <p className="truncate text-xs text-slate-400">{lang === "uz" ? "Jami mahsulotlar" : "Всего товаров"}</p>
           </div>
-          <div>
-            <h2 className="text-lg font-semibold leading-tight text-slate-800">{t.products.title}</h2>
-            <p className="text-xs text-slate-400">{filtered.length} / {products.length}</p>
-          </div>
-          {lowStockCount > 0 && (
-            <button
-              onClick={() => { setFilterPanelOpen(true); setStockFilter("low"); }}
-              className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold transition ${stockFilter === "low" ? "bg-amber-500 text-white" : "bg-amber-50 text-amber-700 hover:bg-amber-100"}`}
-              title={t.products.stockStatusLow}
-            >
-              <AlertTriangle size={12} /> {lowStockCount} {t.products.lowStockBanner}
-            </button>
-          )}
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600"><CheckCircle2 size={19} /></div>
+          <div className="min-w-0">
+            <p className="text-xl font-bold leading-tight text-slate-800">{activeProductsCount}</p>
+            <p className="truncate text-xs text-slate-400">{t.products.activeCol}</p>
+          </div>
+        </div>
+        <button
+          onClick={() => setStockFilter("low")}
+          className={`flex items-center gap-3 rounded-2xl border p-4 text-left shadow-sm transition ${stockFilter === "low" ? "border-amber-300 bg-amber-50" : "border-slate-100 bg-white hover:border-amber-200"}`}
+        >
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600"><AlertTriangle size={19} /></div>
+          <div className="min-w-0">
+            <p className="text-xl font-bold leading-tight text-slate-800">{lowStockCount}</p>
+            <p className="truncate text-xs text-slate-400">{t.products.stockStatusLow}</p>
+          </div>
+        </button>
+        <div className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-violet-50 text-violet-600"><ShoppingBag size={19} /></div>
+          <div className="min-w-0">
+            <p className="text-xl font-bold leading-tight text-slate-800">{totalSoldCount}</p>
+            <p className="truncate text-xs text-slate-400">{t.products.sold}</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <h2 className="text-lg font-semibold leading-tight text-slate-800">{t.products.title}</h2>
+            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-500">{filtered.length}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button onClick={() => exportProductsToCSV(filtered, t, lang)} className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-3.5 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50">
+              <Download size={16} /> {t.orders.export}
+            </button>
+            <button onClick={openAdd} className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-emerald-700">
+              <Plus size={16} /> {t.products.add}
+            </button>
+          </div>
+        </div>
+
+        {/* Qidiruv + filtr dropdownlari — kategoriya/brend ko'p tanlashni qo'llab-quvvatlaydi */}
+        <div className="mb-4 flex flex-wrap items-center gap-2">
           <div className="relative">
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t.products.searchPh}
               className="w-56 rounded-xl border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-sm outline-none transition focus:border-emerald-400 focus:bg-white" />
           </div>
-          <button
-            onClick={() => setFilterPanelOpen(v => !v)}
-            className={`relative flex items-center gap-1.5 rounded-xl border px-3.5 py-2 text-sm font-medium transition ${filterPanelOpen || activeFilterCount > 0 ? "border-emerald-400 bg-emerald-50 text-emerald-700" : "border-slate-200 text-slate-600 hover:bg-slate-50"}`}
-          >
-            <Filter size={16} /> {t.products.filterBtn}
-            {activeFilterCount > 0 && (
-              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-emerald-600 text-[10px] font-semibold text-white">{activeFilterCount}</span>
-            )}
-          </button>
+          <FilterDropdown label={t.products.category} items={categoryItems} selected={activeCategories} onToggle={toggleCategoryFilter} onClear={() => setActiveCategories(new Set())} clearLabel={t.products.clearFilters} />
+          <FilterDropdown label={t.products.brand} items={brandItems} selected={activeBrands} onToggle={toggleBrandFilter} onClear={() => setActiveBrands(new Set())} clearLabel={t.products.clearFilters} />
+          <select value={stockFilter} onChange={e => setStockFilter(e.target.value)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-600 outline-none transition focus:border-emerald-400">
+            <option value="all">{t.products.stockStatusAll}</option>
+            <option value="in">{t.products.stockStatusIn}</option>
+            <option value="low">{t.products.stockStatusLow} ({lowStockCount})</option>
+            <option value="out">{t.products.stockStatusOut}</option>
+          </select>
           <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="rounded-xl border border-slate-200 px-2.5 py-2 text-sm text-slate-600 outline-none transition focus:border-emerald-400">
             <option value="name">{t.products.sortName}</option>
             <option value="priceAsc">{t.products.sortPriceAsc}</option>
@@ -2000,92 +2100,12 @@ function ProductsPage({ lang, products, categories, brands, collections }) {
           <button onClick={() => setBrandModalOpen(true)} className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-3.5 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50">
             <Tag size={16} /> {t.products.brandsBtn}
           </button>
-          <button onClick={() => exportProductsToCSV(filtered, t, lang)} className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-3.5 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50">
-            <Download size={16} /> {t.orders.export}
-          </button>
-          <button onClick={openAdd} className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-emerald-700">
-            <Plus size={16} /> {t.products.add}
-          </button>
-        </div>
-      </div>
-
-      {/* Filtr paneli — Filtr tugmasi bosilgandagina ochiladi; kategoriya/brend endi ko'p tanlashni qo'llab-quvvatlaydi */}
-      {filterPanelOpen && (
-        <div className="mb-5 space-y-3.5 rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
           {activeFilterCount > 0 && (
-            <button onClick={clearAllFilters} className="flex items-center gap-1 text-xs font-medium text-rose-600 hover:underline">
+            <button onClick={clearAllFilters} className="flex items-center gap-1 rounded-xl px-2 py-2 text-xs font-medium text-rose-600 hover:underline">
               <X size={13} /> {t.products.clearFilters}
             </button>
           )}
-
-          {/* Kategoriya chiplari — ko'p tanlash */}
-          {sortedCategories.length > 0 && (
-            <div>
-              <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400">{t.products.category}</p>
-              <div className="flex flex-wrap gap-1.5">
-                {sortedCategories.map(c => {
-                  const count = products.filter(p => p.category === c.name).length;
-                  const active = activeCategories.has(c.name);
-                  return (
-                    <button
-                      key={c.id}
-                      onClick={() => toggleCategoryFilter(c.name)}
-                      className={`flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium transition ${active ? "bg-emerald-600 text-white shadow-sm" : "border border-slate-200 bg-white text-slate-500 hover:border-emerald-300 hover:text-emerald-700"}`}
-                    >
-                      {active && <CheckCircle2 size={12} />}
-                      {c.name} <span className={`rounded-full px-1.5 text-[10px] ${active ? "bg-white/20" : "bg-slate-100 text-slate-400"}`}>{count}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Brend chiplari — ko'p tanlash */}
-          {sortedBrands.length > 0 && (
-            <div className="border-t border-slate-200 pt-3.5">
-              <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400">{t.products.brand}</p>
-              <div className="flex flex-wrap gap-1.5">
-                {sortedBrands.map(b => {
-                  const count = products.filter(p => p.brand === b.name).length;
-                  const active = activeBrands.has(b.name);
-                  return (
-                    <button
-                      key={b.id}
-                      onClick={() => toggleBrandFilter(b.name)}
-                      className={`flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium transition ${active ? "bg-emerald-600 text-white shadow-sm" : "border border-slate-200 bg-white text-slate-500 hover:border-emerald-300 hover:text-emerald-700"}`}
-                    >
-                      {active && <CheckCircle2 size={12} />}
-                      {b.name} <span className={`rounded-full px-1.5 text-[10px] ${active ? "bg-white/20" : "bg-slate-100 text-slate-400"}`}>{count}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Qoldiq holati filtri */}
-          <div className="border-t border-slate-200 pt-3.5">
-            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400">{t.products.stockStatusAll}</p>
-            <div className="flex flex-wrap gap-1.5">
-              {[
-                { key: "all", label: t.products.stockStatusAll },
-                { key: "in", label: t.products.stockStatusIn },
-                { key: "low", label: `${t.products.stockStatusLow} (${lowStockCount})` },
-                { key: "out", label: t.products.stockStatusOut },
-              ].map(opt => (
-                <button
-                  key={opt.key}
-                  onClick={() => setStockFilter(opt.key)}
-                  className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${stockFilter === opt.key ? "bg-slate-800 text-white shadow-sm" : "border border-slate-200 bg-white text-slate-500 hover:bg-slate-100"}`}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </div>
         </div>
-      )}
 
       {/* Ommaviy amal paneli */}
       {selectedIds.size > 0 && (
@@ -2124,7 +2144,7 @@ function ProductsPage({ lang, products, categories, brands, collections }) {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {filtered.map(p => (
+              {paginated.map(p => (
                 <tr key={p.id} className={`transition hover:bg-slate-50/70 ${p.active === false ? "opacity-50" : ""}`}>
                   <td className="py-2.5 pl-3">
                     <input type="checkbox" checked={selectedIds.has(p.id)} onChange={() => toggleSelect(p.id)} className="rounded" />
@@ -2224,6 +2244,38 @@ function ProductsPage({ lang, products, categories, brands, collections }) {
           </table>
         </div>
       )}
+
+      {/* Sahifalash */}
+      {filtered.length > 0 && (
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-xs text-slate-500">
+            <span>{lang === "uz" ? `Jami ${filtered.length} ta mahsulot` : `Всего ${filtered.length} товаров`}</span>
+            <select value={pageSize} onChange={e => setPageSize(Number(e.target.value))} className="rounded-lg border border-slate-200 px-2 py-1 text-xs text-slate-600 outline-none">
+              <option value={25}>25 / {lang === "uz" ? "sahifada" : "стр."}</option>
+              <option value={50}>50 / {lang === "uz" ? "sahifada" : "стр."}</option>
+              <option value={100}>100 / {lang === "uz" ? "sahifada" : "стр."}</option>
+            </select>
+          </div>
+          {totalPages > 1 && (
+            <div className="flex items-center gap-1">
+              <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={pageSafe === 1} className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:bg-slate-50 disabled:opacity-40">‹</button>
+              {pageNumbers.map((n, i) => n === "…" ? (
+                <span key={`dots-${i}`} className="px-1.5 text-xs text-slate-400">…</span>
+              ) : (
+                <button
+                  key={n}
+                  onClick={() => setPage(n)}
+                  className={`flex h-8 w-8 items-center justify-center rounded-lg text-xs font-medium transition ${n === pageSafe ? "bg-emerald-600 text-white" : "text-slate-500 hover:bg-slate-100"}`}
+                >
+                  {n}
+                </button>
+              ))}
+              <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={pageSafe === totalPages} className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:bg-slate-50 disabled:opacity-40">›</button>
+            </div>
+          )}
+        </div>
+      )}
+      </div>
 
       {formOpen && (
         <ProductForm
