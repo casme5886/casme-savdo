@@ -69,9 +69,14 @@ service cloud.firestore {
       // "sold" maydoni yozilganda butun batch yozuvi RAD ETILADI va
       // NATIJADA MIJOZNING BUYURTMASI UMUMAN SAQLANMAY QOLADI (chunki
       // buyurtma bitta batch ichida, mahsulot bilan birga yoziladi).
+      //
+      // "stock" endi ikkala yo'nalishda ham (login qilmasdan) o'zgartirish
+      // mumkin — bu /api/billz-sync funksiyasiga Billz SRM'dagi qoldiqni
+      // saytga TO'LIQ TENGLASHTIRISH imkonini beradi (oshsa ham, kamaysa
+      // ham). "sold" hali ham faqat OSHISHI mumkin (haqiqiy sotuvlar sonini
+      // kimdir orqaga qaytarib qo'ymasligi uchun).
       allow update: if request.auth != null || (
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stock', 'sold']) &&
-        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['stock']) || request.resource.data.stock <= resource.data.stock) &&
         (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['sold']) || request.resource.data.sold >= resource.data.sold)
       );
     }

@@ -2,16 +2,12 @@
 // /api/billz-sync
 //
 // Billz SRM tizimidagi ombor qoldiqlarini saytdagi mahsulotlar bilan
-// SINXRONLAYDI — FAQAT bir yo'nalishda: Billz → sayt, va FAQAT
-// qoldiqni KAMAYTIRISH tomonga (bu cheklov Firestore xavfsizlik
-// qoidasida — firestore.rules — allaqachon bor: anonim (login qilmagan)
-// yozuv "stock" maydonini faqat kamaytirishi mumkin, oshira olmaydi).
-//
-// Nima uchun shunday: mijoz saytda buyurtma bersa, bu SRM'dagi
-// qoldiqqa ta'sir qilmasligi kerak (faqat SRM'ning o'zi — ombordan
-// haqiqiy chiqarilganda — qoldiqni kamaytirishi kerak). Shu bilan
-// birga, agar SRM'da ombor to'ldirilsa (qoldiq oshsa), bu hozircha
-// saytga ko'rinmaydi — buni xohlasangiz keyin alohida ochib beriladi.
+// SINXRONLAYDI — FAQAT bir yo'nalishda YOZISH: Billz → sayt (saytdan
+// Billz'ga hech qachon yozilmaydi, sotuv Billz'ni kamaytirmaydi).
+// Saytdagi son endi Billz'dagi son bilan TO'LIQ TENGLASHTIRILADI —
+// ya'ni Billz'da necha bo'lsa, saytda ham xuddi shuncha bo'ladi
+// (oshsa ham, kamaysa ham) — admin saytda qo'lda son kiritib
+// o'tirishi shart emas.
 //
 // QANDAY ISHLAYDI:
 // 1. Billz'ga "secret_token" bilan kirib, vaqtinchalik "access_token" olamiz.
@@ -20,7 +16,7 @@
 // 4. Har bir Billz mahsulotini "barcode" (yoki "sku") orqali saytdagi
 //    mahsulotga bog'laymiz — mahsulotning O'ZI (nomi, narxi, rasmi)
 //    HECH QACHON o'zgartirilmaydi, FAQAT "stock" (qoldiq) maydoni.
-// 5. Faqat kamaygan hollarda saytdagi qoldiqni yangilaymiz.
+// 5. Saytdagi qoldiqni Billz'dagi son bilan aynan bir xil qilib qo'yamiz.
 //
 // Bu manzil ochiq internetga chiqadi, shuning uchun "x-sync-secret"
 // sarlavhasi (header) orqali himoyalangan — faqat shu maxfiy kalitni
@@ -227,9 +223,9 @@ export default async function handler(req, res) {
 
       const currentStock = Number(sp.stock) || 0;
       const billzStock = totalStock(bp);
-      const newStock = Math.min(currentStock, billzStock);
+      const newStock = billzStock;
 
-      if (newStock >= currentStock) { skippedNoChange += 1; continue; }
+      if (newStock === currentStock) { skippedNoChange += 1; continue; }
 
       try {
         await patchStock(sp.id, newStock);
