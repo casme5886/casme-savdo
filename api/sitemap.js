@@ -1,6 +1,12 @@
 // ==========================================================
-// /api/sitemap  (vercel.json orqali ochiq internetga /sitemap.xml
-// manzilida chiqadi — pastdagi vercel.json rewrite qoidasiga qarang)
+// /api/sitemap  — vercel.json orqali IKKALA manzilga ham xizmat qiladi:
+//   /sitemap.xml           → shu funksiya, XML sitemap qaytaradi
+//   /robots.txt?kind=robots → shu funksiya, robots.txt matnini qaytaradi
+//
+// MUHIM: ikkalasi ATAYLAB bitta faylga birlashtirilgan — Vercel Hobby
+// tarifida bitta loyihada ko'pi bilan 12 ta serverless funksiya bo'lishi
+// mumkin, sizda allaqachon shu chegaraga yaqin fayllar bor edi, shuning
+// uchun alohida "robots.js" fayli qo'shish deploy'ni bloklab qo'ygan edi.
 //
 // Google/Yandex va boshqa qidiruv tizimlari uchun saytning barcha
 // INDEKSLANISHI kerak bo'lgan (public) sahifalari ro'yxatini XML
@@ -70,7 +76,7 @@ function escapeXml(s) {
   return String(s).replace(/[<>&'"]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", "'": "&apos;", '"': "&quot;" }[c]));
 }
 
-export default async function handler(req, res) {
+async function sendSitemap(res) {
   let productIds = [];
   try {
     productIds = await fetchActiveProductIds();
@@ -109,4 +115,25 @@ export default async function handler(req, res) {
   // murojaat qilmaslik uchun (kesh muddati tugagach fon rejimida yangilanadi).
   res.setHeader("Cache-Control", "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400");
   return res.status(200).send(xml);
+}
+
+function sendRobots(res) {
+  const body = [
+    "User-agent: *",
+    "Allow: /",
+    "Disallow: /admin",
+    "",
+    `Sitemap: ${SITE_URL}/sitemap.xml`,
+    "",
+  ].join("\n");
+
+  res.setHeader("Content-Type", "text/plain; charset=utf-8");
+  res.setHeader("Cache-Control", "public, max-age=0, s-maxage=86400, stale-while-revalidate=86400");
+  return res.status(200).send(body);
+}
+
+export default async function handler(req, res) {
+  const kind = (req.query && req.query.kind) || "";
+  if (kind === "robots") return sendRobots(res);
+  return sendSitemap(res);
 }
