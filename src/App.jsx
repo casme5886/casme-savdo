@@ -985,6 +985,56 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  // SEO: to'g'ridan-to'g'ri /product/<id> manziliga o'tilganda (masalan
+  // Google qidiruvidan yoki ulashilgan havoladan) — o'sha mahsulotni
+  // avtomatik ochib beradi. Faqat BIR MARTA ishlaydi (openedFromUrlRef);
+  // "products" ro'yxati Firestore'dan asinxron kelgani uchun bir nechta
+  // marta qayta tekshiradi, mahsulot topilgach to'xtaydi.
+  const openedFromUrlRef = useRef(false);
+  useEffect(() => {
+    if (openedFromUrlRef.current) return;
+    const m = window.location.pathname.match(/^\/product\/([^/]+)\/?$/);
+    if (!m) { openedFromUrlRef.current = true; return; }
+    const found = products.find((p) => p.id === m[1]);
+    if (found) {
+      openedFromUrlRef.current = true;
+      setSelectedProduct(found);
+    }
+  }, [products]);
+  // SEO: mahsulot ochilganda/yopilganda sahifa sarlavhasi (<title>),
+  // qidiruv tavsifi (<meta name="description">) va canonical havolasini
+  // shu mahsulotga moslab yangilaydi — yopilganda esa asl (bosh sahifa)
+  // qiymatlariga qaytaradi. Bu Google'ga har bir mahsulot sahifasi uchun
+  // to'g'ri sarlavha/tavsif ko'rsatish imkonini beradi.
+  useEffect(() => {
+    const canonicalHref = selectedProduct
+      ? `https://casme.uz/product/${selectedProduct.id}`
+      : "https://casme.uz/";
+    let canonicalTag = document.querySelector('link[rel="canonical"]');
+    if (!canonicalTag) {
+      canonicalTag = document.createElement("link");
+      canonicalTag.setAttribute("rel", "canonical");
+      document.head.appendChild(canonicalTag);
+    }
+    canonicalTag.setAttribute("href", canonicalHref);
+
+    let descTag = document.querySelector('meta[name="description"]');
+    if (!descTag) {
+      descTag = document.createElement("meta");
+      descTag.setAttribute("name", "description");
+      document.head.appendChild(descTag);
+    }
+
+    if (selectedProduct) {
+      const name = pname(selectedProduct, lang);
+      document.title = `${name} — CASME`;
+      const desc = (pdesc(selectedProduct, lang) || "").slice(0, 160) || `${name} — CASME'da original mahsulotlar.`;
+      descTag.setAttribute("content", desc);
+    } else {
+      document.title = "CASME";
+      descTag.setAttribute("content", "Original Koreya kosmetikasi qulay narxlarda.");
+    }
+  }, [selectedProduct, lang]);
   // Xarid qilingan mahsulotga sharh qoldirish oynasi — { order, item } yoki null.
   const [reviewModal, setReviewModal] = useState(null);
   // Har bir (buyurtma + mahsulot) juftligi uchun mijoz allaqachon sharh qoldirganmi va u qanday holatda ekanini bilish uchun.
@@ -1249,7 +1299,15 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
       const wasOpen = !!navPrevRef.current[key];
       if (isOpen && !wasOpen) {
         navStackRef.current.push(key);
-        window.history.pushState({ navLayer: key }, "");
+        // "selectedProduct" qatlami uchun — brauzer manzilini haqiqiy,
+        // to'g'ridan-to'g'ri ochiladigan mahsulot URL'iga o'zgartiramiz
+        // (SEO va ulashish uchun). Boshqa qatlamlar (savat, checkout va h.k.)
+        // manzilni o'zgartirmaydi — ular alohida indekslanadigan sahifa emas.
+        if (key === "selectedProduct" && selectedProduct) {
+          window.history.pushState({ navLayer: key }, "", `/product/${selectedProduct.id}`);
+        } else {
+          window.history.pushState({ navLayer: key }, "");
+        }
       } else if (!isOpen && wasOpen) {
         const idx = navStackRef.current.lastIndexOf(key);
         if (idx !== -1) {
