@@ -5,6 +5,10 @@
     { "source": "/favicon.ico", "destination": "/api/sitemap?kind=favicon" },
     { "source": "/merchant-feed.xml", "destination": "/api/sitemap?kind=merchant" },
     { "source": "/product-image", "destination": "/api/sitemap?kind=product-image" },
+    { "source": "/icon-192.png", "destination": "/api/sitemap?kind=icon&size=192" },
+    { "source": "/icon-512.png", "destination": "/api/sitemap?kind=icon&size=512" },
+    { "source": "/icon-maskable-512.png", "destination": "/api/sitemap?kind=icon&size=512&maskable=1" },
+    { "source": "/apple-touch-icon-180.png", "destination": "/api/sitemap?kind=icon&size=180" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }

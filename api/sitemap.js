@@ -190,6 +190,46 @@ async function sendFavicon(res) {
 }
 
 // ==========================================================
+// PWA (mobil ilova) ikonkalari — "/icon-192.png", "/icon-512.png",
+// "/icon-maskable-512.png", "/apple-touch-icon-180.png"
+//
+// manifest.webmanifest va index.html shu manzillarga ishora qiladi.
+// Do'kon logotipi (R2'da) odatda kvadrat bo'lmasligi mumkin — shu
+// funksiya uni SO'RALGAN o'lchamdagi, to'liq kvadrat, oq fonli PNG'ga
+// aylantirib qaytaradi (telefon ekranida to'g'ri ko'rinishi uchun).
+// "maskable" so'ralsa — logotipni kichikroq (xavfsiz zonada) joylaydi,
+// chunki Android ba'zan ikonkani doira/boshqa shaklga "kesib" ko'rsatadi.
+// ==========================================================
+async function sendAppIcon(req, res) {
+  const LOGO_URL = "https://pub-6a37909dbe8741249b8e364db72918b6.r2.dev/settings/logo";
+  const size = Math.max(32, Math.min(1024, parseInt((req.query && req.query.size) || "512", 10) || 512));
+  const maskable = (req.query && req.query.maskable) === "1";
+  try {
+    const upstream = await fetch(LOGO_URL);
+    if (!upstream.ok) throw new Error(`Logotip yuklanmadi: ${upstream.status}`);
+    const inputBuffer = Buffer.from(await upstream.arrayBuffer());
+    // Maskable ikonkalarda logotip kanvasning ~70%ini egallaydi (xavfsiz
+    // zona) — oddiy ikonkalarda esa deyarli to'liq kanvasni egallaydi.
+    const logoSize = Math.round(size * (maskable ? 0.7 : 0.92));
+    const resizedLogo = await sharp(inputBuffer)
+      .resize({ width: logoSize, height: logoSize, fit: "contain", background: "#ffffff" })
+      .toBuffer();
+    const outBuffer = await sharp({
+      create: { width: size, height: size, channels: 4, background: "#ffffff" },
+    })
+      .composite([{ input: resizedLogo, gravity: "center" }])
+      .png()
+      .toBuffer();
+    res.setHeader("Content-Type", "image/png");
+    res.setHeader("Cache-Control", "public, max-age=86400, s-maxage=2592000, stale-while-revalidate=86400");
+    return res.status(200).send(outBuffer);
+  } catch (e) {
+    console.error("PWA ikonka yaratishda xatolik:", e);
+    return res.status(404).end();
+  }
+}
+
+// ==========================================================
 // Google Merchant Center MAHSULOT FEED'I ("/merchant-feed.xml")
 //
 // Google'ning rasmiy "Google Shopping" XML feed formatida (RSS 2.0 +
@@ -357,6 +397,7 @@ export default async function handler(req, res) {
   if (kind === "favicon") return sendFavicon(res);
   if (kind === "merchant") return sendMerchantFeed(res);
   if (kind === "product-image") return sendProductImage(req, res);
+  if (kind === "icon") return sendAppIcon(req, res);
   return sendSitemap(res);
 }
 

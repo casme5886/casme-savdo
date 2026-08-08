@@ -35,7 +35,18 @@
          yangilanadi (src/App.jsx) — u yerda to'g'ridan-to'g'ri R2 manzili
          ishlatilaveradi, chunki bu cheklov faqat Google favicon'iga tegishli. -->
     <link rel="icon" href="/favicon.ico" />
-    <link rel="apple-touch-icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon-180.png" />
+
+    <!-- PWA (mobil ilova) — "Bosh ekranga qo'shish" orqali o'rnatilganda
+         to'liq ekranli ilova ko'rinishida ochilishi uchun. manifest.webmanifest
+         va servis worker ro'yxatdan o'tkazuvchi skript build vaqtida
+         (vite-plugin-pwa) index.html'ga AVTOMATIK qo'shiladi — shuning
+         uchun bu yerda faqat iOS Safari uchun maxsus teglar kerak (Apple
+         hali <link rel="manifest">'ni to'liq qo'llab-quvvatlamaydi). -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="CASME" />
 
     <!-- Ijtimoiy tarmoq (Facebook/Instagram/Telegram/WhatsApp ulashish)
          oldindan ko'rish kartochkasi uchun — bu botlar ko'pincha saytning
