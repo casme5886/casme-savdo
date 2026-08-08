@@ -132,8 +132,35 @@ function sendRobots(res) {
   return res.status(200).send(body);
 }
 
+// Google qidiruv natijalarida saytning ikonkasi (favicon) ko'rinishi uchun
+// u SAYT BILAN BIR XIL DOMENDA bo'lishi shart (Google'ning rasmiy talabi) —
+// logotipimiz esa boshqa domenda (Cloudflare R2, pub-...r2.dev) turadi,
+// shuning uchun to'g'ridan-to'g'ri R2 manzilini <link rel="icon"> qilib
+// qo'ysak ham Google buni "begona domen" deb rad etib, o'rniga standart
+// globus belgisini ko'rsatadi. Shu funksiya R2'dagi logotipni www.casme.uz
+// domeni ORQALI (proksi qilib) uzatadi — brauzer va Google uchun xuddi
+// saytning o'zidan kelayotgandek ko'rinadi.
+async function sendFavicon(res) {
+  const LOGO_URL = "https://pub-6a37909dbe8741249b8e364db72918b6.r2.dev/settings/logo";
+  try {
+    const upstream = await fetch(LOGO_URL);
+    if (!upstream.ok) throw new Error(`Logotip yuklanmadi: ${upstream.status}`);
+    const buf = Buffer.from(await upstream.arrayBuffer());
+    const contentType = upstream.headers.get("content-type") || "image/png";
+    res.setHeader("Content-Type", contentType);
+    // Bir soat brauzerda, bir kun CDN'da keshlanadi — har so'rovda R2'ga
+    // qayta murojaat qilinmaydi.
+    res.setHeader("Cache-Control", "public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400");
+    return res.status(200).send(buf);
+  } catch (e) {
+    console.error("favicon proksi xatosi:", e);
+    return res.status(404).end();
+  }
+}
+
 export default async function handler(req, res) {
   const kind = (req.query && req.query.kind) || "";
   if (kind === "robots") return sendRobots(res);
+  if (kind === "favicon") return sendFavicon(res);
   return sendSitemap(res);
 }

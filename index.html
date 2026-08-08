@@ -26,10 +26,16 @@
     <link rel="alternate" hreflang="ru-UZ" href="https://www.casme.uz/?lang=ru" />
     <link rel="alternate" hreflang="x-default" href="https://www.casme.uz/" />
 
-    <!-- Favicon / site icon — do'kon logotipi (Sozlamalarda o'zgartirilsa,
-         JS orqali ham avtomatik yangilanadi — src/App.jsx). -->
-    <link rel="icon" href="https://pub-6a37909dbe8741249b8e364db72918b6.r2.dev/settings/logo" />
-    <link rel="apple-touch-icon" href="https://pub-6a37909dbe8741249b8e364db72918b6.r2.dev/settings/logo" />
+    <!-- Favicon / site icon — do'kon logotipi. MUHIM: Google qidiruv
+         natijalarida ikonka ko'rinishi uchun bu manzil saytning O'ZI bilan
+         BIR domenda bo'lishi shart — shuning uchun to'g'ridan-to'g'ri R2'ga
+         emas, "/favicon.ico" ga (u www.casme.uz orqali api/sitemap.js
+         proksisiga yo'naladi — vercel.json'ga qarang) ishora qiladi.
+         Brauzer tab'idagi ikonka esa Sozlamalar o'zgarganda JS orqali ham
+         yangilanadi (src/App.jsx) — u yerda to'g'ridan-to'g'ri R2 manzili
+         ishlatilaveradi, chunki bu cheklov faqat Google favicon'iga tegishli. -->
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" href="/favicon.ico" />
 
     <!-- Ijtimoiy tarmoq (Facebook/Instagram/Telegram/WhatsApp ulashish)
          oldindan ko'rish kartochkasi uchun — bu botlar ko'pincha saytning
