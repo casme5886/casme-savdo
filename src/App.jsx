@@ -1008,8 +1008,8 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
   // to'g'ri sarlavha/tavsif ko'rsatish imkonini beradi.
   useEffect(() => {
     const canonicalHref = selectedProduct
-      ? `https://casme.uz/product/${selectedProduct.id}`
-      : "https://casme.uz/";
+      ? `https://www.casme.uz/product/${selectedProduct.id}`
+      : "https://www.casme.uz/";
     let canonicalTag = document.querySelector('link[rel="canonical"]');
     if (!canonicalTag) {
       canonicalTag = document.createElement("link");
