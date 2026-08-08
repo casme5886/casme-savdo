@@ -3,6 +3,7 @@
     { "source": "/sitemap.xml", "destination": "/api/sitemap" },
     { "source": "/robots.txt", "destination": "/api/sitemap?kind=robots" },
     { "source": "/favicon.ico", "destination": "/api/sitemap?kind=favicon" },
+    { "source": "/merchant-feed.xml", "destination": "/api/sitemap?kind=merchant" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }

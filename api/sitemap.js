@@ -72,6 +72,32 @@ async function fetchActiveProductIds() {
     .map((p) => p.id);
 }
 
+/** "products" kolleksiyasidan Google Merchant Center feed'i uchun kerakli
+ *  BARCHA maydonlarni o'qiydi (yuqoridagi fetchActiveProductIds'dan farqli —
+ *  bu yerda nom/narx/rasm/brend/shtrix-kod kabi to'liq ma'lumot kerak). */
+async function fetchActiveProductsFull() {
+  const body = {
+    structuredQuery: {
+      from: [{ collectionId: "products" }],
+      limit: 5000,
+    },
+  };
+  const res = await fetch(`${FIRESTORE_BASE}:runQuery`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const errText = await res.text().catch(() => "");
+    throw new Error(`Firestore runQuery xatosi: ${res.status} ${errText}`);
+  }
+  const rows = await res.json();
+  return (Array.isArray(rows) ? rows : [])
+    .filter((r) => r.document)
+    .map((r) => ({ id: r.document.name.split("/").pop(), ...decodeFields(r.document.fields || {}) }))
+    .filter((p) => p.active !== false);
+}
+
 function escapeXml(s) {
   return String(s).replace(/[<>&'"]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", "'": "&apos;", '"': "&quot;" }[c]));
 }
@@ -158,9 +184,87 @@ async function sendFavicon(res) {
   }
 }
 
+// ==========================================================
+// Google Merchant Center MAHSULOT FEED'I ("/merchant-feed.xml")
+//
+// Google'ning rasmiy "Google Shopping" XML feed formatida (RSS 2.0 +
+// "g:" nomlar maydoni) — Merchant Center'da "Data sources" → "Add data
+// source" → "Scheduled fetch" bo'limiga shu manzilni qo'shsangiz, Google
+// har kuni avtomatik o'qib turadi (qo'lda qayta yuklash shart emas).
+//
+// Faqat FAOL (active !== false) mahsulotlar kiritiladi. Narx, qoldiq
+// holati (mavjud/tugagan) va boshqa hammasi to'g'ridan-to'g'ri saytdagi
+// haqiqiy ma'lumotdan olinadi — alohida qo'lda kiritish shart emas.
+// ==========================================================
+function productAvailability(p) {
+  if (p.stockType === "unlimited") return "in_stock";
+  if (p.stockType === "out") return "out_of_stock";
+  return (Number(p.stock) || 0) > 0 ? "in_stock" : "out_of_stock";
+}
+
+function isLikelyGtin(code) {
+  return typeof code === "string" && /^\d{8}(\d{4}|\d{5}|\d{6})?$/.test(code.trim());
+}
+
+async function sendMerchantFeed(res) {
+  let products = [];
+  try {
+    products = await fetchActiveProductsFull();
+  } catch (e) {
+    console.error("merchant-feed: mahsulotlarni o'qishda xatolik:", e);
+  }
+
+  const items = products
+    .map((p) => {
+      const name = p.nameUz || p.name || "";
+      if (!name) return "";
+      const desc = p.descriptionUz || p.description || name;
+      const images = Array.isArray(p.imageUrls) && p.imageUrls.length ? p.imageUrls : (p.imageUrl ? [p.imageUrl] : []);
+      if (!images.length) return ""; // Google rasmsiz mahsulotni rad etadi
+      const price = Number(p.price) || 0;
+      const barcode = (p.barcode || "").trim();
+      const gtin = isLikelyGtin(barcode) ? barcode : "";
+
+      return (
+        `  <item>\n` +
+        `    <g:id>${escapeXml(p.id)}</g:id>\n` +
+        `    <g:title>${escapeXml(name.slice(0, 150))}</g:title>\n` +
+        `    <g:description>${escapeXml(desc.slice(0, 5000))}</g:description>\n` +
+        `    <g:link>${escapeXml(`${SITE_URL}/product/${p.id}`)}</g:link>\n` +
+        `    <g:image_link>${escapeXml(images[0])}</g:image_link>\n` +
+        images.slice(1, 10).map((img) => `    <g:additional_image_link>${escapeXml(img)}</g:additional_image_link>\n`).join("") +
+        `    <g:availability>${productAvailability(p)}</g:availability>\n` +
+        `    <g:price>${price.toFixed(2)} UZS</g:price>\n` +
+        `    <g:condition>new</g:condition>\n` +
+        (p.brand ? `    <g:brand>${escapeXml(p.brand)}</g:brand>\n` : "") +
+        (gtin ? `    <g:gtin>${escapeXml(gtin)}</g:gtin>\n` : `    <g:identifier_exists>no</g:identifier_exists>\n`) +
+        `    <g:google_product_category>Health &amp; Beauty &gt; Personal Care &gt; Cosmetics</g:google_product_category>\n` +
+        (p.category ? `    <g:product_type>${escapeXml(p.category)}</g:product_type>\n` : "") +
+        `  </item>\n`
+      );
+    })
+    .join("");
+
+  const xml =
+    `<?xml version="1.0" encoding="UTF-8"?>\n` +
+    `<rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">\n` +
+    `<channel>\n` +
+    `  <title>CASME — mahsulotlar feed'i</title>\n` +
+    `  <link>${SITE_URL}/</link>\n` +
+    `  <description>CASME do'konidagi barcha faol mahsulotlar (Google Merchant Center uchun)</description>\n` +
+    items +
+    `</channel>\n` +
+    `</rss>\n`;
+
+  res.setHeader("Content-Type", "application/xml; charset=utf-8");
+  res.setHeader("Cache-Control", "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400");
+  return res.status(200).send(xml);
+}
+
 export default async function handler(req, res) {
   const kind = (req.query && req.query.kind) || "";
   if (kind === "robots") return sendRobots(res);
   if (kind === "favicon") return sendFavicon(res);
+  if (kind === "merchant") return sendMerchantFeed(res);
   return sendSitemap(res);
 }
