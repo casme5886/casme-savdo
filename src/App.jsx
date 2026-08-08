@@ -749,10 +749,47 @@ function AddToCartControl({ qty, soldOut, onIncrease, onDecrease, emptyContent, 
 }
 
 /* ---------------------------------------------------------------
+   SEO — sozlamalarda (Admin → Sozlamalar) hali kiritilmagan bo'lsa
+   ishlatiladigan standart sarlavha/tavsif matnlari (uz va ru).
+   Admin panelda "SEO sozlamalari" bo'limiga o'zingiz istagan matnni
+   kiritsangiz, shu yerdagi standart qiymatlar o'rniga O'SHA matn
+   ishlatiladi.
+--------------------------------------------------------------- */
+const SEO_DEFAULTS = {
+  uz: {
+    title: "CASME — Original Koreys Kosmetikasi | O'zbekistonda",
+    description: "CASME — original Koreya kosmetikalari va teri parvarishi mahsulotlari. Akne, dog'lar, quruq va sezgir teri uchun mahsulotlar.",
+    keywords: "casme, casme kosmetika, casme uz, original kosmetika, koreys kosmetikasi, koreys kosmetikasi uzbekistan, yuz uchun kosmetika, aknega qarshi kosmetika",
+  },
+  ru: {
+    title: "CASME — Оригинальная Корейская Косметика | Узбекистан",
+    description: "CASME — оригинальная корейская косметика и средства по уходу за кожей. Товары от акне, пигментации, для сухой и чувствительной кожи.",
+    keywords: "casme косметика, casme узбекистан, корейская косметика, оригинальная корейская косметика, корейская косметика в узбекистане, косметика для лица, уход за кожей, косметика от акне, средства от акне, корейский уход за кожей",
+  },
+};
+const SITE_ORIGIN = "https://www.casme.uz";
+
+/* ---------------------------------------------------------------
    CUSTOMER-FACING STOREFRONT
 --------------------------------------------------------------- */
 function StorefrontPage({ lang, setLang, products, categories, banners, brands, collections, testimonials, faqs, storeSettings, tgUser, inTelegram }) {
   const t = T[lang];
+  // Til almashtirilganda — brauzer manzilidagi "?lang=ru" parametrini ham
+  // shunga moslab yangilaydi (replaceState — orqaga tugmasi tarixiga
+  // qo'shimcha qatlam qo'shmaydi). Shu tufayli havolani ulashsangiz ham,
+  // Google uni qayta kashf qilganda ham — tanlangan til saqlanib qoladi
+  // (SEO uchun ru-UZ/uz-UZ hreflang manzillari ham shu parametrga tayanadi).
+  const changeLang = (next) => {
+    setLang(next);
+    try {
+      const url = new URL(window.location.href);
+      if (next === "ru") url.searchParams.set("lang", "ru");
+      else url.searchParams.delete("lang");
+      window.history.replaceState(window.history.state, "", url.pathname + url.search);
+    } catch {
+      // URL API mavjud bo'lmasa ham — tilni o'zgartirish davom etadi
+    }
+  };
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState(t.store.allCategories);
   const [activeBrand, setActiveBrand] = useState(t.store.allBrands);
@@ -1001,39 +1038,158 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
       setSelectedProduct(found);
     }
   }, [products]);
-  // SEO: mahsulot ochilganda/yopilganda sahifa sarlavhasi (<title>),
-  // qidiruv tavsifi (<meta name="description">) va canonical havolasini
-  // shu mahsulotga moslab yangilaydi — yopilganda esa asl (bosh sahifa)
-  // qiymatlariga qaytaradi. Bu Google'ga har bir mahsulot sahifasi uchun
-  // to'g'ri sarlavha/tavsif ko'rsatish imkonini beradi.
+  // ---------------------------------------------------------------
+  // SEO — <title>, <meta description/keywords>, canonical, hreflang
+  // (uz-UZ / ru-UZ / x-default), <html lang>, Open Graph va Twitter
+  // Card teglarini bitta joydan boshqaradi:
+  //   - Mahsulot ochiq bo'lsa    → o'sha mahsulotning nomi/tavsifi/rasmi
+  //   - Mahsulot ochiq bo'lmasa  → Admin → Sozlamalar'dagi seoTitle/
+  //     seoDescription (yoki, agar hali kiritilmagan bo'lsa, yuqoridagi
+  //     SEO_DEFAULTS) — joriy tilga (lang) mos holda.
+  // Til (lang) URL'dagi "?lang=ru" parametri bilan ham bog'langan (pastga
+  // qarang — "changeLang"), shuning uchun har bir til uchun canonical va
+  // hreflang alohida, to'g'ri manzilga ishora qiladi (dublikat kontent
+  // muammosisiz).
+  // ---------------------------------------------------------------
   useEffect(() => {
-    const canonicalHref = selectedProduct
-      ? `https://www.casme.uz/product/${selectedProduct.id}`
-      : "https://www.casme.uz/";
-    let canonicalTag = document.querySelector('link[rel="canonical"]');
-    if (!canonicalTag) {
-      canonicalTag = document.createElement("link");
-      canonicalTag.setAttribute("rel", "canonical");
-      document.head.appendChild(canonicalTag);
-    }
-    canonicalTag.setAttribute("href", canonicalHref);
+    const path = selectedProduct ? `/product/${selectedProduct.id}` : "/";
+    const isRu = lang === "ru";
+    const selfHref = `${SITE_ORIGIN}${path}${isRu ? "?lang=ru" : ""}`;
+    const uzHref = `${SITE_ORIGIN}${path}`;
+    const ruHref = `${SITE_ORIGIN}${path}?lang=ru`;
 
-    let descTag = document.querySelector('meta[name="description"]');
-    if (!descTag) {
-      descTag = document.createElement("meta");
-      descTag.setAttribute("name", "description");
-      document.head.appendChild(descTag);
-    }
+    document.documentElement.setAttribute("lang", isRu ? "ru" : "uz");
 
+    const ensureTag = (selector, create) => {
+      let tag = document.querySelector(selector);
+      if (!tag) { tag = create(); document.head.appendChild(tag); }
+      return tag;
+    };
+    const setMeta = (attr, key, content) => {
+      const tag = ensureTag(`meta[${attr}="${key}"]`, () => {
+        const el = document.createElement("meta");
+        el.setAttribute(attr, key);
+        return el;
+      });
+      tag.setAttribute("content", content);
+    };
+    const setLink = (rel, href, hreflang) => {
+      const selector = hreflang ? `link[rel="${rel}"][hreflang="${hreflang}"]` : `link[rel="${rel}"]`;
+      const tag = ensureTag(selector, () => {
+        const el = document.createElement("link");
+        el.setAttribute("rel", rel);
+        if (hreflang) el.setAttribute("hreflang", hreflang);
+        return el;
+      });
+      tag.setAttribute("href", href);
+    };
+
+    // Canonical — joriy til uchun O'ZIGA (self-referencing) ishora qiladi.
+    setLink("canonical", selfHref);
+    // Hreflang — Google'ga ikkala til versiyasi ham mavjudligini va ular
+    // bir-birining TARJIMASI (dublikat emas) ekanini bildiradi.
+    setLink("alternate", uzHref, "uz-UZ");
+    setLink("alternate", ruHref, "ru-UZ");
+    setLink("alternate", uzHref, "x-default");
+
+    let title, desc, image, keywords;
     if (selectedProduct) {
       const name = pname(selectedProduct, lang);
-      document.title = `${name} — CASME`;
-      const desc = (pdesc(selectedProduct, lang) || "").slice(0, 160) || `${name} — CASME'da original mahsulotlar.`;
-      descTag.setAttribute("content", desc);
+      title = `${name} — CASME`;
+      desc = (pdesc(selectedProduct, lang) || "").slice(0, 160) || `${name} — CASME'da original mahsulotlar.`;
+      image = (selectedProduct.imageUrls && selectedProduct.imageUrls[0]) || selectedProduct.imageUrl || storeSettings?.logoUrl || "";
+      keywords = "";
     } else {
-      document.title = "CASME";
-      descTag.setAttribute("content", "Original Koreya kosmetikasi qulay narxlarda.");
+      const d = SEO_DEFAULTS[isRu ? "ru" : "uz"];
+      title = (isRu ? storeSettings?.seoTitleRu : storeSettings?.seoTitle) || d.title;
+      desc = (isRu ? storeSettings?.seoDescriptionRu : storeSettings?.seoDescription) || d.description;
+      keywords = (isRu ? storeSettings?.seoKeywordsRu : storeSettings?.seoKeywords) || d.keywords;
+      image = storeSettings?.logoUrl || "";
     }
+
+    document.title = title;
+    setMeta("name", "description", desc);
+    if (keywords) setMeta("name", "keywords", keywords);
+    setMeta("name", "robots", "index, follow");
+
+    // Open Graph (Facebook/Instagram/Telegram oldindan ko'rish kartochkasi)
+    setMeta("property", "og:title", title);
+    setMeta("property", "og:description", desc);
+    setMeta("property", "og:url", selfHref);
+    setMeta("property", "og:type", selectedProduct ? "product" : "website");
+    if (image) setMeta("property", "og:image", image);
+
+    // Twitter/X Card
+    setMeta("name", "twitter:card", image ? "summary_large_image" : "summary");
+    setMeta("name", "twitter:title", title);
+    setMeta("name", "twitter:description", desc);
+    if (image) setMeta("name", "twitter:image", image);
+  }, [selectedProduct, lang, storeSettings]);
+
+  // ---------------------------------------------------------------
+  // Structured data (JSON-LD) — mahsulot ochilganda Product +
+  // BreadcrumbList sxemalarini <head>ga qo'shadi, yopilganda olib
+  // tashlaydi. Organization va WebSite sxemalari (sayt bo'yicha bir xil)
+  // index.html ichida statik joylashgan — bu yerda faqat mahsulotga
+  // BOG'LIQ, DINAMIK sxemalar boshqariladi.
+  // ---------------------------------------------------------------
+  useEffect(() => {
+    const PRODUCT_ID = "ld-product-jsonld";
+    const BREADCRUMB_ID = "ld-breadcrumb-jsonld";
+    document.getElementById(PRODUCT_ID)?.remove();
+    document.getElementById(BREADCRUMB_ID)?.remove();
+    if (!selectedProduct) return;
+
+    const name = pname(selectedProduct, lang);
+    const desc = pdesc(selectedProduct, lang) || name;
+    const image = (selectedProduct.imageUrls && selectedProduct.imageUrls[0]) || selectedProduct.imageUrl || "";
+    const url = `${SITE_ORIGIN}/product/${selectedProduct.id}${lang === "ru" ? "?lang=ru" : ""}`;
+    const soldOut = isSoldOut(selectedProduct);
+
+    const productLd = {
+      "@context": "https://schema.org",
+      "@type": "Product",
+      name,
+      description: desc,
+      ...(image ? { image: [image] } : {}),
+      ...(selectedProduct.brand ? { brand: { "@type": "Brand", name: selectedProduct.brand } } : {}),
+      sku: selectedProduct.id,
+      offers: {
+        "@type": "Offer",
+        url,
+        priceCurrency: "UZS",
+        price: String(Number(selectedProduct.price) || 0),
+        availability: soldOut ? "https://schema.org/OutOfStock" : "https://schema.org/InStock",
+      },
+    };
+    const productScript = document.createElement("script");
+    productScript.type = "application/ld+json";
+    productScript.id = PRODUCT_ID;
+    productScript.textContent = JSON.stringify(productLd);
+    document.head.appendChild(productScript);
+
+    const breadcrumbItems = [
+      { "@type": "ListItem", position: 1, name: lang === "ru" ? "Главная" : "Bosh sahifa", item: SITE_ORIGIN + "/" },
+    ];
+    if (selectedProduct.category) {
+      breadcrumbItems.push({ "@type": "ListItem", position: 2, name: selectedProduct.category });
+    }
+    breadcrumbItems.push({ "@type": "ListItem", position: breadcrumbItems.length + 1, name, item: url });
+    const breadcrumbLd = {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      itemListElement: breadcrumbItems,
+    };
+    const breadcrumbScript = document.createElement("script");
+    breadcrumbScript.type = "application/ld+json";
+    breadcrumbScript.id = BREADCRUMB_ID;
+    breadcrumbScript.textContent = JSON.stringify(breadcrumbLd);
+    document.head.appendChild(breadcrumbScript);
+
+    return () => {
+      document.getElementById(PRODUCT_ID)?.remove();
+      document.getElementById(BREADCRUMB_ID)?.remove();
+    };
   }, [selectedProduct, lang]);
   // Xarid qilingan mahsulotga sharh qoldirish oynasi — { order, item } yoki null.
   const [reviewModal, setReviewModal] = useState(null);
@@ -1399,34 +1555,11 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
     }
   }, [myAddresses]);
 
-  // SEO — sayt sarlavhasi va qisqa tavsifini Sozlamalarda kiritilgan
-  // qiymatlar bilan yangilaymiz (Google va boshqa qidiruv tizimlari uchun).
+  // Brauzer tab'idagi ikonka (favicon) — standart "globus" o'rniga
+  // Sozlamalarda yuklangan do'kon logotipini qo'yamiz. (<title>/<meta
+  // description/keywords> endi yuqoridagi asosiy SEO effektida — mahsulot
+  // ochiq-yopiqligiga va tilga (lang) qarab — boshqariladi.)
   useEffect(() => {
-    if (storeSettings?.seoTitle) {
-      document.title = storeSettings.seoTitle;
-    } else if (storeSettings?.storeName) {
-      document.title = storeSettings.storeName;
-    }
-    if (storeSettings?.seoDescription) {
-      let meta = document.querySelector('meta[name="description"]');
-      if (!meta) {
-        meta = document.createElement("meta");
-        meta.setAttribute("name", "description");
-        document.head.appendChild(meta);
-      }
-      meta.setAttribute("content", storeSettings.seoDescription);
-    }
-    if (storeSettings?.seoKeywords) {
-      let meta = document.querySelector('meta[name="keywords"]');
-      if (!meta) {
-        meta = document.createElement("meta");
-        meta.setAttribute("name", "keywords");
-        document.head.appendChild(meta);
-      }
-      meta.setAttribute("content", storeSettings.seoKeywords);
-    }
-    // Brauzer tab'idagi ikonka (favicon) — standart "globus" o'rniga
-    // Sozlamalarda yuklangan do'kon logotipini qo'yamiz.
     if (storeSettings?.logoUrl) {
       let link = document.querySelector('link[rel="icon"]');
       if (!link) {
@@ -1436,7 +1569,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
       }
       link.setAttribute("href", storeSettings.logoUrl);
     }
-  }, [storeSettings?.seoTitle, storeSettings?.seoDescription, storeSettings?.seoKeywords, storeSettings?.storeName, storeSettings?.logoUrl]);
+  }, [storeSettings?.logoUrl]);
 
   // Facebook (Meta) Pixel — Sozlamalarda kiritilgan Pixel ID bo'lsa,
   // rasmiy Facebook skriptini (fbevents.js) bir marta yuklab, initsializatsiya
@@ -2305,6 +2438,13 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
       className="min-h-[600px] w-full bg-white"
       style={{ fontFamily: "Inter, system-ui, sans-serif", backgroundColor: "var(--tg-secondary-bg-color, #FFFFFF)" }}
     >
+      {/* SEO: sahifaning yagona asosiy H1'i — dizaynga ta'sir qilmasligi
+          uchun ko'zga ko'rinmas (sr-only), lekin Google va ekran o'quvchi
+          dasturlari uchun o'qiladi. Yuqoridagi header'dagi logotip/nom
+          shunchaki vizual brendlash — sahifaning semantik sarlavhasi SHU. */}
+      <h1 className="sr-only">
+        {lang === "ru" ? "CASME — Оригинальная Корейская Косметика" : "CASME — Original Koreys Kosmetikasi"}
+      </h1>
       {/* Store header */}
       <header className="sticky top-0 z-20 hidden border-b border-gray-100 bg-white/95 px-6 py-3 backdrop-blur md:block">
         <div className="flex items-center gap-4">
@@ -2346,7 +2486,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
 
           <div className="flex items-center gap-1">
             <button
-              onClick={() => setLang(lang === "uz" ? "ru" : "uz")}
+              onClick={() => changeLang(lang === "uz" ? "ru" : "uz")}
               className="flex items-center gap-1.5 rounded-full px-2.5 py-2 text-xs font-medium text-stone-600 hover:bg-rose-50"
             >
               <Globe size={19} />
@@ -4252,7 +4392,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
               {profileView === "settings" && (
                 <div className="space-y-1">
                   <button
-                    onClick={() => setLang(lang === "uz" ? "ru" : "uz")}
+                    onClick={() => changeLang(lang === "uz" ? "ru" : "uz")}
                     className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left hover:bg-gray-50"
                   >
                     <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-rose-50 text-rose-500">
@@ -4873,7 +5013,16 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
    APP SHELL
 --------------------------------------------------------------- */
 export default function App() {
-  const [lang, setLang] = useState("uz");
+  // SEO: sahifa to'g'ridan-to'g'ri "?lang=ru" bilan ochilsa (masalan
+  // Google'ning ru-UZ hreflang natijasidan), boshida ruscha ko'rinishda
+  // ochiladi — aks holda standart (o'zbekcha) bilan.
+  const [lang, setLang] = useState(() => {
+    try {
+      return new URLSearchParams(window.location.search).get("lang") === "ru" ? "ru" : "uz";
+    } catch {
+      return "uz";
+    }
+  });
   const route = typeof window !== "undefined" && window.location.pathname.startsWith("/admin") ? "admin" : "store";
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);

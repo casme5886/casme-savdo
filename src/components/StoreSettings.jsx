@@ -21,9 +21,12 @@ const T_LOCAL = {
     workDay: "Ish kuni", dayOff: "Dam olish kuni", from: "dan", to: "gacha",
 
     seo: "SEO sozlamalari", seoHint: "Bu ma'lumotlar Google va boshqa qidiruv tizimlarida qanday ko'rinishini belgilaydi.",
-    seoTitle: "Sayt sarlavhasi (title)", seoTitleHint: "Brauzer tab'ida va Google natijalarida chiqadi",
-    seoDescription: "Qisqa tavsif (description)", seoDescriptionHint: "Google natijalarida sarlavha ostida chiqadigan matn",
-    seoKeywords: "Kalit so'zlar (ixtiyoriy)", seoKeywordsHint: "Vergul bilan ajrating",
+    seoTitle: "Sayt sarlavhasi (title) — o'zbekcha", seoTitleHint: "Brauzer tab'ida va Google natijalarida chiqadi",
+    seoDescription: "Qisqa tavsif (description) — o'zbekcha", seoDescriptionHint: "Google natijalarida sarlavha ostida chiqadigan matn",
+    seoKeywords: "Kalit so'zlar (ixtiyoriy) — o'zbekcha", seoKeywordsHint: "Vergul bilan ajrating",
+    seoTitleRu: "Sayt sarlavhasi (title) — ruscha", seoTitleRuHint: "Sayt \"?lang=ru\" (ruscha) rejimida ochilganda ko'rinadi",
+    seoDescriptionRu: "Qisqa tavsif (description) — ruscha", seoDescriptionRuHint: "Ruscha qidiruv natijalarida chiqadigan matn",
+    seoKeywordsRu: "Kalit so'zlar — ruscha", seoKeywordsRuHint: "Vergul bilan ajrating",
 
     marketing: "Marketing", marketingHint: "Facebook/Instagram reklamalaringiz saytdagi xaridlarni to'g'ri hisoblashi va ularga optimallashishi uchun.",
     fbPixelId: "Facebook Pixel ID", fbPixelIdHint: "Facebook Events Manager'dan olinadi (faqat raqamlar, masalan: 1234567890123456). Bo'sh qoldirsangiz — pixel ishlamaydi.",
@@ -56,9 +59,12 @@ const T_LOCAL = {
     workDay: "Рабочий день", dayOff: "Выходной", from: "с", to: "до",
 
     seo: "SEO настройки", seoHint: "Эти данные определяют, как сайт отображается в Google и других поисковиках.",
-    seoTitle: "Заголовок сайта (title)", seoTitleHint: "Отображается во вкладке браузера и в результатах Google",
-    seoDescription: "Краткое описание (description)", seoDescriptionHint: "Текст под заголовком в результатах Google",
-    seoKeywords: "Ключевые слова (опционально)", seoKeywordsHint: "Разделяйте запятой",
+    seoTitle: "Заголовок сайта (title) — на узбекском", seoTitleHint: "Отображается во вкладке браузера и в результатах Google",
+    seoDescription: "Краткое описание (description) — на узбекском", seoDescriptionHint: "Текст под заголовком в результатах Google",
+    seoKeywords: "Ключевые слова (опционально) — на узбекском", seoKeywordsHint: "Разделяйте запятой",
+    seoTitleRu: "Заголовок сайта (title) — на русском", seoTitleRuHint: "Отображается, когда сайт открыт в режиме \"?lang=ru\" (русский)",
+    seoDescriptionRu: "Краткое описание (description) — на русском", seoDescriptionRuHint: "Текст в результатах поиска на русском языке",
+    seoKeywordsRu: "Ключевые слова — на русском", seoKeywordsRuHint: "Разделяйте запятой",
 
     marketing: "Маркетинг", marketingHint: "Чтобы реклама в Facebook/Instagram правильно считала покупки на сайте и оптимизировалась под них.",
     fbPixelId: "Facebook Pixel ID", fbPixelIdHint: "Берётся из Facebook Events Manager (только цифры, например: 1234567890123456). Если оставить пустым — pixel не будет работать.",
@@ -103,6 +109,9 @@ const emptyForm = (settings) => ({
   seoTitle: settings?.seoTitle || "",
   seoDescription: settings?.seoDescription || "",
   seoKeywords: settings?.seoKeywords || "",
+  seoTitleRu: settings?.seoTitleRu || "",
+  seoDescriptionRu: settings?.seoDescriptionRu || "",
+  seoKeywordsRu: settings?.seoKeywordsRu || "",
   fbPixelId: settings?.fbPixelId || "",
   trustFeature1: settings?.trustFeature1 || "",
   trustFeature2: settings?.trustFeature2 || "",
@@ -140,6 +149,9 @@ export default function StoreSettings({ lang, settings }) {
       seoTitle: form.seoTitle.trim(),
       seoDescription: form.seoDescription.trim(),
       seoKeywords: form.seoKeywords.trim(),
+      seoTitleRu: form.seoTitleRu.trim(),
+      seoDescriptionRu: form.seoDescriptionRu.trim(),
+      seoKeywordsRu: form.seoKeywordsRu.trim(),
       fbPixelId: form.fbPixelId.trim(),
       trustFeature1: form.trustFeature1.trim(),
       trustFeature2: form.trustFeature2.trim(),
@@ -336,6 +348,20 @@ export default function StoreSettings({ lang, settings }) {
         <Field label={t.seoKeywords}>
           <input className={inputCls} value={form.seoKeywords} onChange={(e) => setForm({ ...form, seoKeywords: e.target.value })} placeholder={t.seoKeywordsHint} />
         </Field>
+
+        <div className="mt-4 border-t border-slate-100 pt-4">
+          <Field label={t.seoTitleRu}>
+            <input className={inputCls} value={form.seoTitleRu} onChange={(e) => setForm({ ...form, seoTitleRu: e.target.value })} />
+            <p className="mt-1 text-[11px] text-slate-400">{t.seoTitleRuHint}</p>
+          </Field>
+          <Field label={t.seoDescriptionRu}>
+            <textarea className={`${inputCls} min-h-[70px] resize-y`} value={form.seoDescriptionRu} onChange={(e) => setForm({ ...form, seoDescriptionRu: e.target.value })} />
+            <p className="mt-1 text-[11px] text-slate-400">{t.seoDescriptionRuHint}</p>
+          </Field>
+          <Field label={t.seoKeywordsRu}>
+            <input className={inputCls} value={form.seoKeywordsRu} onChange={(e) => setForm({ ...form, seoKeywordsRu: e.target.value })} placeholder={t.seoKeywordsRuHint} />
+          </Field>
+        </div>
         <button onClick={save} disabled={saving} className="mt-1 flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-60">
           {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />} {saving ? t.saving : t.save}
         </button>

@@ -5,23 +5,78 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <meta name="color-scheme" content="light only" />
     <meta name="theme-color" content="#FFFFFF" />
-    <title>CASME</title>
-    <!-- Qidiruv tizimlari uchun asosiy tavsif va canonical manzil.
-         Mahsulot sahifasi ochilganda (src/App.jsx) bular JS orqali
-         o'sha mahsulotga moslab yangilanadi; JS ishlamagan holatda
-         (yoki JS ishga tushmasdan oldin) shu bosh sahifa qiymatlari
-         ko'rinadi. -->
-    <meta name="description" content="Original Koreya kosmetikasi qulay narxlarda." />
+    <title>CASME — Original Koreys Kosmetikasi | O'zbekistonda</title>
+
+    <!-- Qidiruv tizimlari uchun asosiy tavsif, robots ruxsati va canonical
+         manzil. Mahsulot sahifasi ochilganda yoki til (uz/ru) almashtirilganda
+         (src/App.jsx) bular JS orqali moslab yangilanadi; JS ishlamagan holatda
+         (yoki JS ishga tushmasdan oldin, masalan ba'zi botlar uchun) shu bosh
+         sahifa (o'zbekcha) qiymatlari ko'rinadi. -->
+    <meta name="description" content="CASME — original Koreya kosmetikalari va teri parvarishi mahsulotlari. Akne, dog'lar, quruq va sezgir teri uchun mahsulotlar." />
+    <meta name="keywords" content="casme, casme kosmetika, casme uz, original kosmetika, koreys kosmetikasi, koreys kosmetikasi uzbekistan, yuz uchun kosmetika, aknega qarshi kosmetika" />
+    <meta name="robots" content="index, follow" />
     <link rel="canonical" href="https://www.casme.uz/" />
-    <!-- Ijtimoiy tarmoq (Facebook/Instagram reklama, ulashish) oldindan
-         ko'rish kartochkasi uchun — bu botlar saytning JS kodini
-         ishga tushirmaydi, shuning uchun "sayt nomi" shu yerdagi statik
-         qiymatdan olinadi (aks holda "Savdo Panel" kabi ko'rinib qolardi). -->
+
+    <!-- Hreflang — sahifaning o'zbekcha va ruscha (?lang=ru) versiyalari bir
+         xil URL ostida (SPA), lekin Google'ga ikkalasi ham mavjudligini va
+         bir-birining TARJIMASI ekanini (dublikat emas) bildirish uchun.
+         Mahsulot sahifalarida (src/App.jsx) shu teglar o'sha mahsulotning
+         manziliga moslab qayta yoziladi. -->
+    <link rel="alternate" hreflang="uz-UZ" href="https://www.casme.uz/" />
+    <link rel="alternate" hreflang="ru-UZ" href="https://www.casme.uz/?lang=ru" />
+    <link rel="alternate" hreflang="x-default" href="https://www.casme.uz/" />
+
+    <!-- Favicon / site icon — do'kon logotipi (Sozlamalarda o'zgartirilsa,
+         JS orqali ham avtomatik yangilanadi — src/App.jsx). -->
+    <link rel="icon" href="https://pub-6a37909dbe8741249b8e364db72918b6.r2.dev/settings/logo" />
+    <link rel="apple-touch-icon" href="https://pub-6a37909dbe8741249b8e364db72918b6.r2.dev/settings/logo" />
+
+    <!-- Ijtimoiy tarmoq (Facebook/Instagram/Telegram/WhatsApp ulashish)
+         oldindan ko'rish kartochkasi uchun — bu botlar ko'pincha saytning
+         JS kodini ishga tushirmaydi, shuning uchun bu qiymatlar shu yerda
+         STATIK holda ham kerak (JS ular ustidan qayta yozadi — src/App.jsx). -->
     <meta property="og:site_name" content="CASME" />
-    <meta property="og:title" content="CASME — original kosmetika mahsulotlari" />
-    <meta property="og:description" content="Original Koreya kosmetikasi qulay narxlarda." />
+    <meta property="og:title" content="CASME — Original Koreys Kosmetikasi | O'zbekistonda" />
+    <meta property="og:description" content="CASME — original Koreya kosmetikalari va teri parvarishi mahsulotlari. Akne, dog'lar, quruq va sezgir teri uchun mahsulotlar." />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://www.casme.uz" />
+    <meta property="og:url" content="https://www.casme.uz/" />
+    <meta property="og:image" content="https://pub-6a37909dbe8741249b8e364db72918b6.r2.dev/settings/logo" />
+    <meta property="og:locale" content="uz_UZ" />
+    <meta property="og:locale:alternate" content="ru_UZ" />
+
+    <!-- Twitter/X Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="CASME — Original Koreys Kosmetikasi | O'zbekistonda" />
+    <meta name="twitter:description" content="CASME — original Koreya kosmetikalari va teri parvarishi mahsulotlari. Akne, dog'lar, quruq va sezgir teri uchun mahsulotlar." />
+    <meta name="twitter:image" content="https://pub-6a37909dbe8741249b8e364db72918b6.r2.dev/settings/logo" />
+
+    <!-- Structured data (JSON-LD) — sayt bo'yicha bir xil bo'lgan sxemalar
+         (Organization, WebSite). Mahsulotga BOG'LIQ sxemalar (Product,
+         BreadcrumbList) mahsulot ochilganda src/App.jsx orqali dinamik
+         qo'shiladi/olib tashlanadi. -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "CASME",
+        "url": "https://www.casme.uz/",
+        "logo": "https://pub-6a37909dbe8741249b8e364db72918b6.r2.dev/settings/logo",
+        "sameAs": [
+          "https://www.instagram.com/casme/",
+          "https://t.me/casme_uz"
+        ]
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "CASME",
+        "url": "https://www.casme.uz/",
+        "inLanguage": ["uz-UZ", "ru-UZ"]
+      }
+    </script>
+
     <!-- Telegram Mini App SDK — Telegram ichida ochilganda window.Telegram.WebApp shu orqali keladi.
          "defer" qo'shildi: bu skript oddiy (async/defer'siz) holatda HTML
          o'qilishini to'xtatib turardi (barcha mijozlar uchun, Telegram
