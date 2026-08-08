@@ -4,6 +4,7 @@
     { "source": "/robots.txt", "destination": "/api/sitemap?kind=robots" },
     { "source": "/favicon.ico", "destination": "/api/sitemap?kind=favicon" },
     { "source": "/merchant-feed.xml", "destination": "/api/sitemap?kind=merchant" },
+    { "source": "/product-image", "destination": "/api/sitemap?kind=product-image" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }

@@ -25,9 +25,14 @@
 // fayllar bilan bir xil uslubda) murojaat qilinadi.
 // ==========================================================
 
+import sharp from "sharp";
+
 const FIREBASE_PROJECT_ID = "casme-savdo";
 const FIRESTORE_BASE = `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/databases/(default)/documents`;
 const SITE_URL = "https://www.casme.uz";
+// Mahsulot rasmlari faqat shu manzildan (R2) ruxsat etiladi — boshqa
+// domendagi ixtiyoriy rasmni "proksi" qilib bo'lmasligi uchun (xavfsizlik).
+const ALLOWED_IMAGE_HOST = "https://pub-6a37909dbe8741249b8e364db72918b6.r2.dev/";
 
 function decodeValue(val) {
   if (!val) return null;
@@ -219,8 +224,13 @@ async function sendMerchantFeed(res) {
       const name = p.nameUz || p.name || "";
       if (!name) return "";
       const desc = p.descriptionUz || p.description || name;
-      const images = Array.isArray(p.imageUrls) && p.imageUrls.length ? p.imageUrls : (p.imageUrl ? [p.imageUrl] : []);
-      if (!images.length) return ""; // Google rasmsiz mahsulotni rad etadi
+      const rawImages = Array.isArray(p.imageUrls) && p.imageUrls.length ? p.imageUrls : (p.imageUrl ? [p.imageUrl] : []);
+      if (!rawImages.length) return ""; // Google rasmsiz mahsulotni rad etadi
+      // Rasmlar qora fonli bo'lgani uchun — Merchant Center'ga to'g'ridan-
+      // to'g'ri R2 manzilini emas, /product-image proksisini yuboramiz —
+      // u fonni oq qilib qaytaradi. Sayt (do'kon sahifasi) esa asl (qora
+      // fonli) rasmni ko'rsatishda davom etadi — bu yerga tegilmagan.
+      const images = rawImages.map((u) => `${SITE_URL}/product-image?src=${encodeURIComponent(u)}`);
       const price = Number(p.price) || 0;
       const barcode = (p.barcode || "").trim();
       const gtin = isLikelyGtin(barcode) ? barcode : "";
@@ -261,10 +271,93 @@ async function sendMerchantFeed(res) {
   return res.status(200).send(xml);
 }
 
+// ==========================================================
+// /product-image?src=<R2 rasm manzili> — MAHSULOT RASMINING QORA FONINI
+// OQ (#FFFFFF) GA ALMASHTIRIB QAYTARADI. Faqat Google Merchant Center
+// feed'i uchun ishlatiladi ("merchant-feed.xml") — saytdagi asl rasmlar
+// (do'kon sahifasi, admin panel) BUTUNLAY TEGILMAYDI, o'zgarmaydi.
+//
+// Usul: to'liq AI fon o'chirish EMAS (bu og'ir, Vercel serverless
+// funksiyaga sig'maydi) — balki rasmning CHETIDAN (burchaklaridan)
+// boshlab, bir-biriga ULANGAN deyarli-qora piksellarni "suv toshqini"
+// (flood fill) usulida topib, ularni oq bilan almashtiramiz. Mahsulotning
+// o'zidagi qora qismlar (masalan qora qopqoq) FONGA ULANMAGANI uchun
+// tegilmay qoladi — faqat rasmning chetidan boshlanadigan, yaxlit qora
+// FON tegadi.
+// ==========================================================
+const BLACK_THRESHOLD = 55; // shundan past R/G/B — "deyarli qora" deb hisoblanadi
+const MAX_PROCESS_DIM = 1400; // tezlik uchun — juda katta rasmlar shu o'lchamgacha kichraytiriladi
+
+async function whitenBlackBackground(inputBuffer) {
+  const img = sharp(inputBuffer).rotate(); // EXIF orientatsiyasini to'g'rilaydi
+  const meta = await img.metadata();
+  const resized = (meta.width || 0) > MAX_PROCESS_DIM || (meta.height || 0) > MAX_PROCESS_DIM
+    ? img.resize({ width: MAX_PROCESS_DIM, height: MAX_PROCESS_DIM, fit: "inside" })
+    : img;
+
+  const { data, info } = await resized.ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const { width, height, channels } = info; // channels = 4 (RGBA)
+  const isBlack = (idx) => data[idx] < BLACK_THRESHOLD && data[idx + 1] < BLACK_THRESHOLD && data[idx + 2] < BLACK_THRESHOLD;
+  const visited = new Uint8Array(width * height);
+  const stack = [];
+
+  // Boshlang'ich nuqtalar — rasmning TO'RT CHETIDAGI barcha piksellar
+  // (faqat qora bo'lsagina navbatga qo'shiladi).
+  for (let x = 0; x < width; x++) {
+    stack.push(x, 0);
+    stack.push(x, height - 1);
+  }
+  for (let y = 0; y < height; y++) {
+    stack.push(0, y);
+    stack.push(width - 1, y);
+  }
+
+  while (stack.length) {
+    const y = stack.pop();
+    const x = stack.pop();
+    if (x < 0 || y < 0 || x >= width || y >= height) continue;
+    const pos = y * width + x;
+    if (visited[pos]) continue;
+    const idx = pos * channels;
+    if (!isBlack(idx)) continue;
+    visited[pos] = 1;
+    data[idx] = 255; data[idx + 1] = 255; data[idx + 2] = 255;
+    stack.push(x + 1, y, x - 1, y, x, y + 1, x, y - 1);
+  }
+
+  return sharp(data, { raw: { width, height, channels } }).jpeg({ quality: 90, background: "#ffffff" }).flatten({ background: "#ffffff" }).toBuffer();
+}
+
+async function sendProductImage(req, res) {
+  const src = (req.query && req.query.src) || "";
+  if (!src.startsWith(ALLOWED_IMAGE_HOST)) {
+    return res.status(400).send("Noto'g'ri rasm manzili");
+  }
+  try {
+    const upstream = await fetch(src);
+    if (!upstream.ok) throw new Error(`Rasm yuklanmadi: ${upstream.status}`);
+    const inputBuffer = Buffer.from(await upstream.arrayBuffer());
+    const outBuffer = await whitenBlackBackground(inputBuffer);
+    res.setHeader("Content-Type", "image/jpeg");
+    // 30 kun CDN'da keshlanadi — har mahsulot rasmi faqat BIR MARTA
+    // qayta ishlanadi, keyingi so'rovlar Vercel CDN keshidan darhol qaytadi.
+    res.setHeader("Cache-Control", "public, max-age=86400, s-maxage=2592000, stale-while-revalidate=86400");
+    return res.status(200).send(outBuffer);
+  } catch (e) {
+    console.error("product-image (fon oqartirish) xatosi:", e);
+    // Xato bo'lsa ham mijoz/Google rasmsiz qolib ketmasligi uchun — asl
+    // rasmga vaqtincha yo'naltiramiz (qora fon bilan, lekin ko'rinadi).
+    return res.redirect(302, src);
+  }
+}
+
 export default async function handler(req, res) {
   const kind = (req.query && req.query.kind) || "";
   if (kind === "robots") return sendRobots(res);
   if (kind === "favicon") return sendFavicon(res);
   if (kind === "merchant") return sendMerchantFeed(res);
+  if (kind === "product-image") return sendProductImage(req, res);
   return sendSitemap(res);
 }
+
+export const config = { maxDuration: 30 };
