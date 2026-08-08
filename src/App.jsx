@@ -1168,13 +1168,15 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
     productScript.textContent = JSON.stringify(productLd);
     document.head.appendChild(productScript);
 
+    // MUHIM: Google BreadcrumbList'da OXIRGI bo'g'indan tashqari HAR bir
+    // bo'g'in uchun haqiqiy "item" (URL) talab qiladi. Kategoriyalar
+    // saytda alohida sahifa/URL emas (filtr sifatida ishlaydi), shuning
+    // uchun uni breadcrumb'ga qo'shmaymiz — faqat haqiqiy URL'ga ega
+    // bo'g'inlarni (Bosh sahifa, Mahsulot) qoldiramiz.
     const breadcrumbItems = [
       { "@type": "ListItem", position: 1, name: lang === "ru" ? "Главная" : "Bosh sahifa", item: SITE_ORIGIN + "/" },
+      { "@type": "ListItem", position: 2, name, item: url },
     ];
-    if (selectedProduct.category) {
-      breadcrumbItems.push({ "@type": "ListItem", position: 2, name: selectedProduct.category });
-    }
-    breadcrumbItems.push({ "@type": "ListItem", position: breadcrumbItems.length + 1, name, item: url });
     const breadcrumbLd = {
       "@context": "https://schema.org",
       "@type": "BreadcrumbList",
