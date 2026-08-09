@@ -2520,8 +2520,35 @@ function AdminLogin({ lang }) {
 /* ---------------------------------------------------------------
    ADMIN APP SHELL — sidebar, sahifa marshrutlash, login qo'riqlash
 --------------------------------------------------------------- */
+// Sidebar menyusidagi haqiqiy sahifa kalitlari — brauzer manzili (URL) bilan
+// solishtirish uchun (sahifani yangilaganda qaysi bo'limda ekanini bilish uchun).
+const ADMIN_PAGE_KEYS = ["dashboard", "orders", "customers", "products", "banner", "testimonials", "faqs", "marketing", "telegram", "settings"];
+
 export default function AdminApp({ lang, setLang, products, categories, brands, collections, banners, testimonials, faqs, storeSettings }) {
-  const [page, setPage] = useState("dashboard");
+  // Sahifa (page) holati endi manzil satridan (URL) o'qib boshlanadi — shunga
+  // ko'ra brauzerni yangilaganda (F5/Ctrl+R) foydalanuvchi qaysi bo'limda
+  // (masalan "Mahsulotlar") turgan bo'lsa, o'sha bo'limda qolaveradi, har
+  // safar "Boshqaruv paneli"ga (dashboard) qaytarib yubormaydi.
+  const [page, setPage] = useState(() => {
+    try {
+      const seg = window.location.pathname.replace(/^\/admin\/?/, "").split("/")[0];
+      return ADMIN_PAGE_KEYS.includes(seg) ? seg : "dashboard";
+    } catch {
+      return "dashboard";
+    }
+  });
+  // Sahifa o'zgarganda manzil satrini ham yangilab boramiz (replaceState —
+  // brauzer tarixiga yangi qadam qo'shmaydi, faqat joriy manzilni almashtiradi).
+  useEffect(() => {
+    try {
+      const target = page === "dashboard" ? "/admin" : `/admin/${page}`;
+      if (window.location.pathname !== target) {
+        window.history.replaceState(window.history.state, "", target);
+      }
+    } catch {
+      // xavfsiz rejim yoki history API yo'q bo'lsa — jim o'tib ketamiz
+    }
+  }, [page]);
   const [orders, setOrders] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [billzSync, setBillzSync] = useState(null);
