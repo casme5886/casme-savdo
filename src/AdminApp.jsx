@@ -19,7 +19,7 @@ import {
   MessageSquareQuote, HelpCircle, Settings as SettingsIcon, Bell, Download, Phone, Send, Copy, Tag,
   ArrowUp, ArrowDown, EyeOff, MapPin,
   Filter, CheckSquare, Square, MinusSquare,
-  AlertTriangle, UserCheck, UserX, UserPlus, PanelLeftClose, PanelLeftOpen, PackageX,
+  AlertTriangle, UserCheck, UserX, UserPlus, PanelLeftClose, PanelLeftOpen, PackageX, Boxes, Wallet,
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
@@ -1948,6 +1948,22 @@ function ProductsPage({ lang, products, categories, brands, collections }) {
   const lowStockCount = useMemo(() => products.filter(isLowStock).length, [products]);
   const outOfStockCount = useMemo(() => products.filter(p => !isInStock(p)).length, [products]);
 
+  // Omborda jami nechta DONA mahsulot borligi (mahsulot TURI emas, sonlarning
+  // yig'indisi) — faqat "soni bilan" (limited) turdagi mahsulotlar hisoblanadi,
+  // chunki "cheksiz" turda aniq son yo'q. Xuddi shu qoldiqlarni narxiga
+  // ko'paytirib, hozirgi omborning umumiy SOTUV qiymatini ham hisoblaymiz.
+  const { totalStockUnits, totalStockValue } = useMemo(() => {
+    let units = 0, value = 0;
+    for (const p of products) {
+      if ((p.stockType || "limited") === "limited") {
+        const qty = Number(p.stock) || 0;
+        units += qty;
+        value += qty * (Number(p.price) || 0);
+      }
+    }
+    return { totalStockUnits: units, totalStockValue: value };
+  }, [products]);
+
   /** Kategoriya/brend ro'yxatlari alifbo bo'yicha tartiblangan (chiplar ketma-ketligi barqaror bo'lishi uchun). */
   const sortedCategories = useMemo(() => [...categories].sort((a, b) => (a.name || "").localeCompare(b.name || "", "uz")), [categories]);
   const sortedBrands = useMemo(() => [...brands].sort((a, b) => (a.name || "").localeCompare(b.name || "", "uz")), [brands]);
@@ -2134,6 +2150,34 @@ function ProductsPage({ lang, products, categories, brands, collections }) {
           <div className="min-w-0">
             <p className="text-xl font-bold leading-tight text-slate-800">{totalSoldCount}</p>
             <p className="truncate text-xs text-slate-400">{t.products.sold}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-cyan-50 text-cyan-600"><Boxes size={19} /></div>
+          <div className="min-w-0">
+            <p className="text-xl font-bold leading-tight text-slate-800">{totalStockUnits}</p>
+            <p className="truncate text-xs text-slate-400">{lang === "uz" ? "Omborda jami dona" : "Всего единиц на складе"}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600"><Tag size={19} /></div>
+          <div className="min-w-0">
+            <p className="text-xl font-bold leading-tight text-slate-800">{brands.length}</p>
+            <p className="truncate text-xs text-slate-400">{lang === "uz" ? "Brendlar" : "Бренды"}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-600"><LayoutGrid size={19} /></div>
+          <div className="min-w-0">
+            <p className="text-xl font-bold leading-tight text-slate-800">{categories.length}</p>
+            <p className="truncate text-xs text-slate-400">{lang === "uz" ? "Kategoriyalar" : "Категории"}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-600"><Wallet size={19} /></div>
+          <div className="min-w-0">
+            <p className="truncate text-xl font-bold leading-tight text-slate-800">{fmtMoney(totalStockValue)}</p>
+            <p className="truncate text-xs text-slate-400">{lang === "uz" ? "Omborning sotuv qiymati" : "Стоимость склада (продажа)"}</p>
           </div>
         </div>
       </div>
