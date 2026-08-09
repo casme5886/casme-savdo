@@ -2110,6 +2110,44 @@ function ProductsPage({ lang, products, categories, brands, collections }) {
   return (
     <div className="flex flex-col gap-5">
       {/* Statistika kartochkalari — haqiqiy sonlar, taxminiy foiz o'zgarish ko'rsatilmaydi */}
+      {/* Ombor umumiy ko'rsatkichlari — pastdagi (filtr) kartochkalardan ajratish
+          uchun alohida, ranglangan panelda, o'z sarlavhasi bilan ko'rsatiladi. */}
+      <div className="rounded-2xl border border-indigo-100 bg-indigo-50/40 p-4">
+        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-indigo-500">
+          {lang === "uz" ? "Ombor umumiy ko'rsatkichlari" : "Общие показатели склада"}
+        </p>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-cyan-50 text-cyan-600"><Boxes size={19} /></div>
+            <div className="min-w-0">
+              <p className="text-xl font-bold leading-tight text-slate-800">{totalStockUnits}</p>
+              <p className="truncate text-xs text-slate-400">{lang === "uz" ? "Omborda jami dona" : "Всего единиц на складе"}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600"><Tag size={19} /></div>
+            <div className="min-w-0">
+              <p className="text-xl font-bold leading-tight text-slate-800">{brands.length}</p>
+              <p className="truncate text-xs text-slate-400">{lang === "uz" ? "Brendlar" : "Бренды"}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-600"><LayoutGrid size={19} /></div>
+            <div className="min-w-0">
+              <p className="text-xl font-bold leading-tight text-slate-800">{categories.length}</p>
+              <p className="truncate text-xs text-slate-400">{lang === "uz" ? "Kategoriyalar" : "Категории"}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-600"><Wallet size={19} /></div>
+            <div className="min-w-0">
+              <p className="truncate text-xl font-bold leading-tight text-slate-800">{fmtMoney(totalStockValue)}</p>
+              <p className="truncate text-xs text-slate-400">{lang === "uz" ? "Omborning sotuv qiymati" : "Стоимость склада (продажа)"}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         <div className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600"><Package size={19} /></div>
@@ -2150,34 +2188,6 @@ function ProductsPage({ lang, products, categories, brands, collections }) {
           <div className="min-w-0">
             <p className="text-xl font-bold leading-tight text-slate-800">{totalSoldCount}</p>
             <p className="truncate text-xs text-slate-400">{t.products.sold}</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-cyan-50 text-cyan-600"><Boxes size={19} /></div>
-          <div className="min-w-0">
-            <p className="text-xl font-bold leading-tight text-slate-800">{totalStockUnits}</p>
-            <p className="truncate text-xs text-slate-400">{lang === "uz" ? "Omborda jami dona" : "Всего единиц на складе"}</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600"><Tag size={19} /></div>
-          <div className="min-w-0">
-            <p className="text-xl font-bold leading-tight text-slate-800">{brands.length}</p>
-            <p className="truncate text-xs text-slate-400">{lang === "uz" ? "Brendlar" : "Бренды"}</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-600"><LayoutGrid size={19} /></div>
-          <div className="min-w-0">
-            <p className="text-xl font-bold leading-tight text-slate-800">{categories.length}</p>
-            <p className="truncate text-xs text-slate-400">{lang === "uz" ? "Kategoriyalar" : "Категории"}</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-600"><Wallet size={19} /></div>
-          <div className="min-w-0">
-            <p className="truncate text-xl font-bold leading-tight text-slate-800">{fmtMoney(totalStockValue)}</p>
-            <p className="truncate text-xs text-slate-400">{lang === "uz" ? "Omborning sotuv qiymati" : "Стоимость склада (продажа)"}</p>
           </div>
         </div>
       </div>
