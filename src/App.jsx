@@ -2593,6 +2593,11 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                     ) : (
                       <div className="flex h-full w-full items-center justify-center"><Package size={32} strokeWidth={1.3} /></div>
                     )}
+                    {soldOut && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/45">
+                        <span className="rounded-full bg-white/95 px-2.5 py-1 text-[10px] font-semibold text-rose-600">{t.store.outOfStock}</span>
+                      </div>
+                    )}
                     {hasDiscount && (
                       <span className="absolute left-0 top-0 rounded-full bg-[#E01876] px-2 py-0.5 text-[10px] font-bold text-white">-{pct}%</span>
                     )}
@@ -2701,6 +2706,11 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                       <img loading="lazy" src={thumb} alt={name} className="h-full w-full object-cover transition-transform duration-300 ease-out group-hover:scale-105" draggable={false} onDragStart={(e) => e.preventDefault()} />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center"><Package size={24} strokeWidth={1.3} /></div>
+                    )}
+                    {soldOut && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/45">
+                        <span className="rounded-full bg-white/95 px-2 py-0.5 text-[9px] font-semibold text-rose-600">{t.store.outOfStock}</span>
+                      </div>
                     )}
                     {hasDiscount && (
                       <span className="absolute left-1 top-1 rounded-full bg-rose-100 px-1.5 py-0.5 text-[10px] font-bold text-rose-600">-{pct}%</span>
@@ -2818,6 +2828,11 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                                     <img loading="lazy" src={thumb} alt={name} className="relative h-full w-full object-contain p-1.5 transition-transform duration-300 ease-out group-hover:scale-105" draggable={false} onDragStart={(e) => e.preventDefault()} />
                                   ) : (
                                     <div className="flex h-full w-full items-center justify-center"><Package size={22} strokeWidth={1.3} /></div>
+                                  )}
+                                  {soldOut && (
+                                    <div className="absolute inset-0 flex items-center justify-center bg-black/45">
+                                      <span className="rounded-full bg-white/95 px-2 py-0.5 text-[9px] font-semibold text-rose-600">{t.store.outOfStock}</span>
+                                    </div>
                                   )}
                                   {hasDiscount && (
                                     <span className="absolute left-0 top-0 rounded-full bg-[#E01876] px-2 py-0.5 text-[10px] font-bold text-white">-{pct}%</span>
@@ -2944,6 +2959,11 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                     <div className={`${thumb ? "hidden" : "flex"} absolute inset-0 items-center justify-center`}>
                       <Package size={36} strokeWidth={1.3} />
                     </div>
+                    {soldOut && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/45">
+                        <span className="rounded-full bg-white/95 px-2.5 py-1 text-[10px] font-semibold text-rose-600">{t.store.outOfStock}</span>
+                      </div>
+                    )}
                     <div className="absolute left-2 top-2 flex flex-col items-start gap-1">
                       {p.brand && (
                         <span className="flex items-center gap-1 rounded-full bg-white/95 py-0.5 pl-0.5 pr-2 shadow-sm">
@@ -3152,6 +3172,11 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                         ) : (
                           <div className="flex h-full w-full items-center justify-center"><Package size={28} strokeWidth={1.3} /></div>
                         )}
+                        {soldOut && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/45">
+                            <span className="rounded-full bg-white/95 px-2 py-0.5 text-[9px] font-semibold text-rose-600">{t.store.outOfStock}</span>
+                          </div>
+                        )}
                         <span className="absolute left-1.5 top-1.5 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-bold text-rose-600">-{pct}%</span>
                         <button
                           onClick={(e) => { e.stopPropagation(); toggleWishlist(p.id); }}
@@ -3294,6 +3319,11 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                           <img loading="lazy" src={thumb} alt={name} className="h-full w-full object-contain p-2" draggable={false} onDragStart={(e) => e.preventDefault()} />
                         ) : (
                           <div className="flex h-full w-full items-center justify-center"><Package size={28} strokeWidth={1.3} /></div>
+                        )}
+                        {soldOut && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/45">
+                            <span className="rounded-full bg-white/95 px-2 py-0.5 text-[9px] font-semibold text-rose-600">{t.store.outOfStock}</span>
+                          </div>
                         )}
                         {hasDiscount && (
                           <span className="absolute left-1.5 top-1.5 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-bold text-rose-600">-{pct}%</span>
@@ -3550,6 +3580,11 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                           ) : (
                             <div className="flex h-full w-full items-center justify-center"><Package size={28} strokeWidth={1.3} /></div>
                           )}
+                          {soldOut && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/45">
+                              <span className="rounded-full bg-white/95 px-2 py-0.5 text-[9px] font-semibold text-rose-600">{t.store.outOfStock}</span>
+                            </div>
+                          )}
                           {hasDiscount && (
                             <span className="absolute left-1.5 top-1.5 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-bold text-rose-600">-{pct}%</span>
                           )}
@@ -3727,6 +3762,11 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                             <img loading="lazy" src={thumb} alt={name} className="h-full w-full object-contain p-2" draggable={false} onDragStart={(e) => e.preventDefault()} />
                           ) : (
                             <div className="flex h-full w-full items-center justify-center"><Package size={28} strokeWidth={1.3} /></div>
+                          )}
+                          {soldOut && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/45">
+                              <span className="rounded-full bg-white/95 px-2 py-0.5 text-[9px] font-semibold text-rose-600">{t.store.outOfStock}</span>
+                            </div>
                           )}
                           {hasDiscount && (
                             <span className="absolute left-1.5 top-1.5 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-bold text-rose-600">-{pct}%</span>
