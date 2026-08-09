@@ -19,7 +19,7 @@ import {
   MessageSquareQuote, HelpCircle, Settings as SettingsIcon, Bell, Download, Phone, Send, Copy, Tag,
   ArrowUp, ArrowDown, EyeOff, MapPin,
   Filter, CheckSquare, Square, MinusSquare,
-  AlertTriangle, UserCheck, UserX, UserPlus, PanelLeftClose, PanelLeftOpen,
+  AlertTriangle, UserCheck, UserX, UserPlus, PanelLeftClose, PanelLeftOpen, PackageX,
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
@@ -1946,6 +1946,7 @@ function ProductsPage({ lang, products, categories, brands, collections }) {
   const LOW_STOCK_THRESHOLD = 5;
   const isLowStock = (p) => (p.stockType || "limited") === "limited" && (p.stock || 0) > 0 && (p.stock || 0) <= LOW_STOCK_THRESHOLD;
   const lowStockCount = useMemo(() => products.filter(isLowStock).length, [products]);
+  const outOfStockCount = useMemo(() => products.filter(p => !isInStock(p)).length, [products]);
 
   /** Kategoriya/brend ro'yxatlari alifbo bo'yicha tartiblangan (chiplar ketma-ketligi barqaror bo'lishi uchun). */
   const sortedCategories = useMemo(() => [...categories].sort((a, b) => (a.name || "").localeCompare(b.name || "", "uz")), [categories]);
@@ -2093,7 +2094,7 @@ function ProductsPage({ lang, products, categories, brands, collections }) {
   return (
     <div className="flex flex-col gap-5">
       {/* Statistika kartochkalari — haqiqiy sonlar, taxminiy foiz o'zgarish ko'rsatilmaydi */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         <div className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600"><Package size={19} /></div>
           <div className="min-w-0">
@@ -2116,6 +2117,16 @@ function ProductsPage({ lang, products, categories, brands, collections }) {
           <div className="min-w-0">
             <p className="text-xl font-bold leading-tight text-slate-800">{lowStockCount}</p>
             <p className="truncate text-xs text-slate-400">{t.products.stockStatusLow}</p>
+          </div>
+        </button>
+        <button
+          onClick={() => setStockFilter(v => v === "out" ? "all" : "out")}
+          className={`flex items-center gap-3 rounded-2xl border p-4 text-left shadow-sm transition ${stockFilter === "out" ? "border-rose-300 bg-rose-50" : "border-slate-100 bg-white hover:border-rose-200"}`}
+        >
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-rose-50 text-rose-600"><PackageX size={19} /></div>
+          <div className="min-w-0">
+            <p className="text-xl font-bold leading-tight text-slate-800">{outOfStockCount}</p>
+            <p className="truncate text-xs text-slate-400">{t.products.stockStatusOut}</p>
           </div>
         </button>
         <div className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
