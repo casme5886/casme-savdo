@@ -373,18 +373,25 @@ async function sendProductImage(req, res) {
   if (!src.startsWith(ALLOWED_IMAGE_HOST)) {
     return res.status(400).send("Noto'g'ri rasm manzili");
   }
+  // "raw=1" — fon oqartirilmaydi (Merchant Center uchun emas), faqat admin
+  // panelning Excel eksporti kabi ichki ehtiyojlar uchun kichik (thumbnail)
+  // o'lchamdagi JPEG qaytaradi — tez yuklanishi va fayl hajmi katta
+  // bo'lib ketmasligi uchun.
+  const raw = (req.query && req.query.raw) === "1";
   try {
     const upstream = await fetch(src);
     if (!upstream.ok) throw new Error(`Rasm yuklanmadi: ${upstream.status}`);
     const inputBuffer = Buffer.from(await upstream.arrayBuffer());
-    const outBuffer = await whitenBlackBackground(inputBuffer);
+    const outBuffer = raw
+      ? await sharp(inputBuffer).rotate().resize({ width: 200, height: 200, fit: "inside", withoutEnlargement: true }).jpeg({ quality: 82 }).toBuffer()
+      : await whitenBlackBackground(inputBuffer);
     res.setHeader("Content-Type", "image/jpeg");
     // 30 kun CDN'da keshlanadi — har mahsulot rasmi faqat BIR MARTA
     // qayta ishlanadi, keyingi so'rovlar Vercel CDN keshidan darhol qaytadi.
     res.setHeader("Cache-Control", "public, max-age=86400, s-maxage=2592000, stale-while-revalidate=86400");
     return res.status(200).send(outBuffer);
   } catch (e) {
-    console.error("product-image (fon oqartirish) xatosi:", e);
+    console.error("product-image xatosi:", e);
     // Xato bo'lsa ham mijoz/Google rasmsiz qolib ketmasligi uchun — asl
     // rasmga vaqtincha yo'naltiramiz (qora fon bilan, lekin ko'rinadi).
     return res.redirect(302, src);

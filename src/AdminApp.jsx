@@ -1420,18 +1420,78 @@ function CustomerDetailModal({ customer, orders, products, t, onClose, onEdit, o
 /* ---------------------------------------------------------------
    PRODUCTS PAGE
 --------------------------------------------------------------- */
-/** Joriy mahsulot ro'yxatini CSV faylga aylantirib yuklab beradi. */
-function exportProductsToCSV(list, t, lang) {
-  const headers = [t.products.name, t.products.brand, t.products.category, t.products.price, t.products.oldPrice, t.products.stock];
-  const rows = list.map(p => [pname(p, lang) || "", p.brand || "", p.category || "", p.price || 0, p.oldPrice || 0, p.stockType === "unlimited" ? t.products.unlimited : p.stockType === "out" ? 0 : (p.stock ?? 0)]);
-  const csv = [headers, ...rows]
-    .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(","))
-    .join("\n");
-  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+/** Rasm (Blob) ni ExcelJS "addImage" kutadigan base64 data-URL'ga aylantiradi. */
+async function blobToBase64(blob) {
+  const buf = await blob.arrayBuffer();
+  const bytes = new Uint8Array(buf);
+  let binary = "";
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  return `data:${blob.type || "image/jpeg"};base64,${btoa(binary)}`;
+}
+
+/** Joriy mahsulot ro'yxatini \u2014 HAR BIR MAHSULOTNING BITTA (asosiy) SURATI
+ *  bilan birga \u2014 haqiqiy Excel (.xlsx) faylga aylantirib yuklab beradi.
+ *  Rasmlar /product-image proksisi orqali (kichraytirilgan, ~200px)
+ *  olinadi \u2014 bu bir xil domendan (CORS muammosisiz) va tez ishlaydi.
+ *  ExcelJS kutubxonasi faqat shu funksiya chaqirilganda ("dynamic import")
+ *  yuklanadi \u2014 admin panelning boshlang'ich yuklanishini sekinlashtirmaydi. */
+async function exportProductsToExcel(list, t, lang, onProgress) {
+  const ExcelJS = (await import("exceljs")).default;
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet(t.products.title || "Mahsulotlar");
+  ws.columns = [
+    { header: t.products.photoColumn, key: "photo", width: 12 },
+    { header: t.products.name, key: "name", width: 34 },
+    { header: t.products.brand, key: "brand", width: 18 },
+    { header: t.products.category, key: "category", width: 18 },
+    { header: t.products.price, key: "price", width: 14 },
+    { header: t.products.oldPrice, key: "oldPrice", width: 14 },
+    { header: t.products.stock, key: "stock", width: 14 },
+  ];
+  ws.getRow(1).font = { bold: true };
+
+  let done = 0;
+  let nextIdx = 0;
+  const CONCURRENCY = 6;
+  async function worker() {
+    while (nextIdx < list.length) {
+      const i = nextIdx++;
+      const p = list[i];
+      const row = ws.getRow(i + 2);
+      row.height = 46;
+      row.values = {
+        name: pname(p, lang) || "",
+        brand: p.brand || "",
+        category: p.category || "",
+        price: p.price || 0,
+        oldPrice: p.oldPrice || 0,
+        stock: p.stockType === "unlimited" ? t.products.unlimited : p.stockType === "out" ? 0 : (p.stock ?? 0),
+      };
+      const imgUrl = (Array.isArray(p.imageUrls) && p.imageUrls[0]) || p.imageUrl || "";
+      if (imgUrl) {
+        try {
+          const resp = await fetch(`/product-image?src=${encodeURIComponent(imgUrl)}&raw=1`);
+          if (resp.ok) {
+            const base64 = await blobToBase64(await resp.blob());
+            const imageId = wb.addImage({ base64, extension: "jpeg" });
+            ws.addImage(imageId, { tl: { col: 0, row: row.number - 1 }, ext: { width: 46, height: 46 } });
+          }
+        } catch {
+          // Rasm yuklanmasa ham \u2014 shu qatorni rasmsiz qoldirib davom etamiz.
+        }
+      }
+      done++;
+      if (onProgress) onProgress(done, list.length);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(CONCURRENCY, list.length) || 1 }, worker));
+
+  const buf = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `mahsulotlar-${todayISO()}.csv`;
+  a.download = `mahsulotlar-${todayISO()}.xlsx`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -1926,6 +1986,7 @@ function ProductsPage({ lang, products, categories, brands, collections }) {
   const [formOpen, setFormOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null); // null = qo'shish
   const [search, setSearch] = useState("");
+  const [exporting, setExporting] = useState(false); // Excel'ga (surat bilan) eksport qilinayotganda true
   const [activeCategories, setActiveCategories] = useState(() => new Set());
   const [activeBrands, setActiveBrands] = useState(() => new Set());
   const [stockFilter, setStockFilter] = useState("all");
@@ -2199,8 +2260,22 @@ function ProductsPage({ lang, products, categories, brands, collections }) {
             <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-500">{filtered.length}</span>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={() => exportProductsToCSV(filtered, t, lang)} className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-3.5 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50">
-              <Download size={16} /> {t.orders.export}
+            <button
+              disabled={exporting}
+              onClick={async () => {
+                if (exporting) return;
+                setExporting(true);
+                try {
+                  await exportProductsToExcel(filtered, t, lang);
+                } catch (e) {
+                  console.error("Excel eksport xatosi:", e);
+                } finally {
+                  setExporting(false);
+                }
+              }}
+              className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-3.5 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 disabled:opacity-60"
+            >
+              {exporting ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />} {exporting ? t.products.exporting : t.orders.export}
             </button>
             <button onClick={openAdd} className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-emerald-700">
               <Plus size={16} /> {t.products.add}

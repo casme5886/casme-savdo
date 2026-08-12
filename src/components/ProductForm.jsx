@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { X, Plus, Loader2, Save, Package, Lock, ArrowLeft, UploadCloud, ChevronDown } from "lucide-react";
+import { X, Plus, Loader2, Save, Package, Lock, ArrowLeft, UploadCloud, ChevronDown, Star } from "lucide-react";
 import { setItem, deleteItem, uploadImage, deleteStorageFile, addItem } from "../storage.js";
 import { Field, inputCls, uid, fmtMoney, discountPct } from "./ui.jsx";
 
@@ -38,7 +38,7 @@ const T_LOCAL = {
     brand: "Brend (ixtiyoriy)", brandPh: "Mavjuddan tanlang yoki yangisini yozing",
     price: "Narx", oldPrice: "Eski narx / chegirmadan oldingi narx", oldPriceHint: "Ixtiyoriy — kiritilsa chegirma foizi avtomatik hisoblanadi",
     costPrice: "Tannarx (faqat sizga ko'rinadi)", costPriceHint: "Mahsulotning sizga tushgan narxi — mijozlarga hech qachon ko'rsatilmaydi",
-    rating: "Reyting (ixtiyoriy)", ratingHint: "Masalan: 4.8 (0 dan 5 gacha)",
+    rating: "Reyting (ixtiyoriy)", ratingHint: "Yulduzchalarni bosing (1 dan 5 gacha)",
     reviewCount: "Sharhlar soni (ixtiyoriy)", reviewCountHint: "Masalan: 124",
     tag: "Nishon (ixtiyoriy)", tagNone: "Yo'q", tagNew: "Yangi", tagBestseller: "Top / Ko'p sotilgan",
     discount: "chegirma", discountBadge: "Chegirma", autoHint: "avtomatik",
@@ -75,7 +75,7 @@ const T_LOCAL = {
     brand: "Бренд (опционально)", brandPh: "Выберите или введите новый",
     price: "Цена", oldPrice: "Старая цена / до скидки", oldPriceHint: "Опционально — если указана, скидка считается автоматически",
     costPrice: "Себестоимость (видно только вам)", costPriceHint: "Ваша закупочная цена — покупателям никогда не показывается",
-    rating: "Рейтинг (опционально)", ratingHint: "Например: 4.8 (от 0 до 5)",
+    rating: "Рейтинг (опционально)", ratingHint: "Нажмите на звёзды (от 1 до 5)",
     reviewCount: "Количество отзывов (опционально)", reviewCountHint: "Например: 124",
     tag: "Значок (опционально)", tagNone: "Нет", tagNew: "Новинка", tagBestseller: "Топ / Хит продаж",
     discount: "скидка", discountBadge: "Скидка", autoHint: "автоматически",
@@ -410,7 +410,20 @@ export default function ProductForm({ lang, product, products, categories, brand
 
               <div className="grid grid-cols-2 gap-3">
                 <Field label={t.rating}>
-                  <input type="number" step="0.1" min="0" max="5" className={inputCls} value={form.rating} onChange={(e) => setForm({ ...form, rating: e.target.value })} placeholder={t.ratingHint} />
+                  <div className="flex h-[42px] items-center gap-1 rounded-xl border border-slate-200 px-3">
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <button
+                        key={n}
+                        type="button"
+                        onClick={() => setForm({ ...form, rating: Number(form.rating) === n ? "" : String(n) })}
+                        className="p-0.5"
+                      >
+                        <Star size={20} className={n <= Number(form.rating) ? "fill-amber-400 text-amber-400" : "text-slate-200"} />
+                      </button>
+                    ))}
+                    {form.rating !== "" && <span className="ml-1 text-xs text-slate-400">{form.rating}/5</span>}
+                  </div>
+                  <p className="mt-1 text-[11px] text-slate-400">{t.ratingHint}</p>
                 </Field>
                 <Field label={t.reviewCount}>
                   <input type="number" min="0" className={inputCls} value={form.reviewCount} onChange={(e) => setForm({ ...form, reviewCount: e.target.value })} placeholder={t.reviewCountHint} />
