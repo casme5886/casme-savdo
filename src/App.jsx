@@ -5149,7 +5149,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                       type="button"
                       onClick={() => setForm({ ...form, payment: opt.key })}
                       className={`flex items-center justify-center overflow-hidden rounded-lg border text-xs font-medium transition ${
-                        opt.logo && !clickLogoFailed ? "min-h-[3.25rem] p-0" : "gap-1.5 px-2 py-2"
+                        opt.logo && !clickLogoFailed ? "relative min-h-[2.75rem] p-0" : "gap-1.5 px-2 py-2"
                       } ${
                         form.payment === opt.key
                           ? `border-rose-600 ${opt.logo && !clickLogoFailed ? "ring-2 ring-rose-600" : "bg-rose-50 text-rose-700"}`
@@ -5162,7 +5162,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                         <img
                           src={opt.logo}
                           alt={opt.label}
-                          className="h-full min-h-[3.25rem] w-full object-cover"
+                          className="absolute inset-0 h-full w-full object-cover"
                           onError={(e) => {
                             const el = e.currentTarget;
                             if (!el.dataset.triedJpg) { el.dataset.triedJpg = "1"; el.src = opt.logo.replace(/\.png$/, ".jpg"); }
