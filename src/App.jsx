@@ -4957,10 +4957,20 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                 </a>
               )}
               {paidInfo?.payment === "uzum" && (
-                <div className="mt-2 w-full rounded-2xl border border-violet-100 bg-violet-50/60 p-4 text-left text-xs text-slate-600">
-                  {lang === "ru"
-                    ? "Наш оператор свяжется с вами и оформит рассрочку через Uzum Nasiya."
-                    : "Operatorimiz siz bilan bog'lanib, Uzum Nasiya orqali muddatli to'lovni rasmiylashtiradi."}
+                <div className="mt-2 w-full space-y-1.5 rounded-2xl border border-violet-100 bg-violet-50/60 p-4 text-left text-xs text-slate-600">
+                  {lang === "ru" ? (
+                    <>
+                      <p className="font-semibold text-slate-700">Ваш заказ через Uzum Nasiya принят.</p>
+                      <p>Наш оператор свяжется с вами с 10:00 до 18:00 и оформит рассрочку.</p>
+                      <p>Пожалуйста, будьте на связи и проверьте, что ваш лимит в Uzum достаточен для суммы заказа.</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="font-semibold text-slate-700">Uzum Nasiya orqali buyurtmangiz qabul qilindi.</p>
+                      <p>Operatorimiz soat 10:00 dan 18:00 gacha siz bilan aloqaga chiqadi va nasiyani rasmiylashtiradi.</p>
+                      <p>Iltimos, telefoningiz aloqada bo'lsin va Uzum ilovasidagi limitingiz buyurtma summasiga yetishini tekshirib qo'ying.</p>
+                    </>
+                  )}
                 </div>
               )}
 
