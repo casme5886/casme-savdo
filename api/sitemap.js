@@ -257,6 +257,10 @@ async function sendMerchantFeed(res) {
     products = await fetchActiveProductsFull();
   } catch (e) {
     console.error("merchant-feed: mahsulotlarni o'qishda xatolik:", e);
+    // Xato bo'lsa BO'SH feed'ni keshlab qo'ymaymiz (aks holda Google 1 soat
+    // davomida mahsulotsiz feed oladi) — 503 qaytaramiz, Google keyinroq qayta uriniadi.
+    res.setHeader("Cache-Control", "no-store");
+    return res.status(503).send("Mahsulotlar vaqtincha o'qilmadi, keyinroq urinib ko'ring");
   }
 
   const items = products
@@ -307,7 +311,8 @@ async function sendMerchantFeed(res) {
     `</rss>\n`;
 
   res.setHeader("Content-Type", "application/xml; charset=utf-8");
-  res.setHeader("Cache-Control", "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400");
+  // Mahsulot bo'lmasa — keshlamaymiz (vaqtinchalik bo'sh holat 1 soatga qotib qolmasligi uchun)
+  res.setHeader("Cache-Control", items ? "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400" : "no-store");
   return res.status(200).send(xml);
 }
 
