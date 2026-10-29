@@ -571,14 +571,14 @@ function ProfileOrderCard({ order, t, reviewedKeys, onReview }) {
                 {canReview && it.productId && (
                   reviewState ? (
                     <span className="shrink-0 whitespace-nowrap text-[11px] text-stone-400">
-                      {reviewState === "pending" ? t.store.profile.review.pending : t.store.profile.review.done}
+                      {reviewState === "pending" ? t.store.review.pending : t.store.review.done}
                     </span>
                   ) : (
                     <button
                       onClick={() => onReview && onReview(order, it)}
                       className="shrink-0 whitespace-nowrap rounded-full bg-rose-50 px-2.5 py-1 text-[11px] font-medium text-rose-600 hover:bg-rose-100"
                     >
-                      {t.store.profile.review.btn}
+                      {t.store.review.btn}
                     </button>
                   )
                 )}
@@ -604,7 +604,7 @@ function ProfileOrderCard({ order, t, reviewedKeys, onReview }) {
  */
 function ReviewFormModal({ order, item, lang, myName, myPhone, testimonialsCount, onClose }) {
   const t = T[lang];
-  const rt = t.store.profile.review;
+  const rt = t.store.review;
   const [rating, setRating] = useState(5);
   const [text, setText] = useState("");
   const [imageUrl, setImageUrl] = useState("");
