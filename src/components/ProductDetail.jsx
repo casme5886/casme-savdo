@@ -37,7 +37,7 @@ export default function ProductDetail({ product, cartQty, onClose, onAddToCart, 
   const goNext = () => setImgIndex((i) => (i + 1) % images.length);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/50 sm:items-center sm:p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-[65] flex items-end justify-center bg-slate-900/50 sm:items-center sm:p-4" onClick={onClose}>
       <div
         className="flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-2xl bg-white shadow-xl sm:rounded-2xl"
         style={sheetStyle}

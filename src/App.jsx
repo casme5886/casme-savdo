@@ -65,7 +65,7 @@ export const T = {
       searchPh: "Mijoz nomi bo'yicha qidirish...",
       st: { new: "Yangi", ready: "Tayyor", on_way: "Yo'lda", delivered: "Yetkazib berildi", cancelled: "Bekor qilindi" },
       payment: "To'lov", address: "Manzil", phone: "Telefon",
-      paymentLabels: { cash: "Naqd", card: "Karta" },
+      paymentLabels: { cash: "Naqd", card: "Karta", click: "Click", uzum: "Uzum Nasiya" },
       items: "Mahsulotlar", detailTitle: "Buyurtma", total: "Jami summa",
       tabAll: "Barchasi", deliveryPrice: "Yetkazib berish narxi", deliveryPriceHint: "Masalan: 20000",
       saveDelivery: "Saqlash",
@@ -207,6 +207,7 @@ export const T = {
         otpTitle: "Tasdiqlash kodi",
         otpSubtitle: "Kod Telegram botimizga yuborildi. Botni ochib, kodni ko'ring:",
         otpResend: "Telegramni qayta ochish",
+        otpManualLink: "Telegram avtomatik ochilmadimi? Shu yerga bosing",
         otpConfirm: "Tasdiqlash",
         otpWrong: "Kod noto'g'ri yoki muddati tugagan",
         yourName: "Ismingiz", namePlaceholder: "Qabul qiluvchi nomini kiriting",
@@ -274,7 +275,7 @@ export const T = {
       searchPh: "Поиск по имени клиента...",
       st: { new: "Новый", ready: "Готово", on_way: "В пути", delivered: "Доставлено", cancelled: "Отменено" },
       payment: "Оплата", address: "Адрес", phone: "Телефон",
-      paymentLabels: { cash: "Наличные", card: "Карта" },
+      paymentLabels: { cash: "Наличные", card: "Карта", click: "Click", uzum: "Uzum Nasiya" },
       items: "Товары", detailTitle: "Заказ", total: "Итоговая сумма",
       tabAll: "Все", deliveryPrice: "Стоимость доставки", deliveryPriceHint: "Например: 20000",
       saveDelivery: "Сохранить",
@@ -416,6 +417,7 @@ export const T = {
         otpTitle: "Код подтверждения",
         otpSubtitle: "Код отправлен в наш Telegram-бот. Откройте бота и посмотрите код:",
         otpResend: "Открыть Telegram снова",
+        otpManualLink: "Telegram не открылся автоматически? Нажмите здесь",
         otpConfirm: "Подтвердить",
         otpWrong: "Неверный код или истёк срок",
         yourName: "Ваше имя", namePlaceholder: "Введите имя получателя",
@@ -456,7 +458,7 @@ import {
   subscribeCollection, subscribeDoc, addItem, setItem, updateItem, deleteItem,
   findCustomerByPhone, findCustomerByTelegramId, isCollectionEmpty, placeOrderBatch, getCustomersCount, getOrdersCount,
   findPromoCode, incrementPromoCodeUsage,
-  findOrdersByTelegramId, findOrdersByPhone, uploadImage, adjustCustomerBonus,
+  findMyOrders, uploadImage, adjustCustomerBonus,
 } from "./storage.js";
 // MUHIM: T (tarjimalar) va COL (Firestore kolleksiya nomlari) — do'kon
 // (StorefrontPage) VA admin panel (AdminApp.jsx, alohida faylda, lazy
@@ -1411,6 +1413,11 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
   // to'g'ri checkout) o'tkazish uchun kerak.
   const [loginIntent, setLoginIntent] = useState("profile");
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  // Buyurtma tasdiqlangach "to'lov" ko'rsatmasi uchun (karta/Click/Uzum Nasiya)
+  const [paidInfo, setPaidInfo] = useState(null);
+  // Checkout'dagi "Oluvchi" kartasi: false = ixcham ko'rinish, true = tahrirlash
+  const [editRecipient, setEditRecipient] = useState(true);
+  const [cardCopied, setCardCopied] = useState(false);
   const [form, setForm] = useState({ name: "", phone: "", phone2: "", payment: "cash", address: "" });
   const [showPhone2, setShowPhone2] = useState(false);
   const [location, setLocation] = useState(null); // {lat, lng}
@@ -1629,24 +1636,26 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
   // ochilgan bo'lsa) — saqlangan telefon raqami bo'yicha.
   useEffect(() => {
     if (!profileOpen) return;
+    let cancelled = false;
     setMyOrdersLoading(true);
     const run = async () => {
       try {
-        let list = [];
-        if (tgUser?.id) {
-          list = await findOrdersByTelegramId(tgUser.id);
-        } else if (myPhone) {
-          list = await findOrdersByPhone(myPhone);
-        }
-        setMyOrders(list);
+        // Telegram ID, mijoz yozuvi ID'si va telefon — hammasi bo'yicha
+        // birga qidiramiz va natijalarni birlashtiramiz.
+        const list = await findMyOrders({
+          telegramUserId: tgUser?.id || null,
+          customerId: myCustomerId || null,
+          phone: myPhone || null,
+        });
+        if (!cancelled) setMyOrders(list);
       } catch (e) {
         console.error("Buyurtmalarni yuklashda xatolik:", e);
-        setMyOrders([]);
       }
-      setMyOrdersLoading(false);
+      if (!cancelled) setMyOrdersLoading(false);
     };
     run();
-  }, [profileOpen, tgUser, myPhone]);
+    return () => { cancelled = true; };
+  }, [profileOpen, tgUser, myPhone, myCustomerId, checkoutOpen]);
 
   /**
    * Profildagi "Telefon raqamni qo'shish" tugmasi. Telefonni Firestore
@@ -1841,6 +1850,17 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
     window.open(`https://t.me/${botUsername}?start=otp_${digits}`, "_blank");
     setOtpStep("code");
   };
+
+  /** Ba'zi brauzerlarda (mas. Instagram/Facebook ichki brauzeri) yuqoridagi
+   *  window.open() Telegramni avtomatik ocholmasligi mumkin — shu holat
+   *  uchun mijoz qo'lda bosishi mumkin bo'lgan zaxira havola. */
+  const otpTelegramLink = (() => {
+    const botUsername = import.meta.env.VITE_TELEGRAM_BOT_USERNAME;
+    if (!botUsername || !phoneInput) return null;
+    const digits = phoneInput.replace(/\D/g, "");
+    if (!digits) return null;
+    return `https://t.me/${botUsername}?start=otp_${digits}`;
+  })();
 
   const verifyOtpAndLogin = async () => {
     if (otpCode.length !== 6) return;
@@ -2246,6 +2266,13 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
   // (forma to'ldirilayotganda tegilmaydi). Tugma bosilganda esa doim ENG
   // OXIRGI submitOrder'ni chaqiradigan ref orqali ishlaydi — shu sabab
   // eski (stale) forma qiymatlari bilan yuborilib qolish xavfi ham yo'q.
+  // Checkout ochilganda: ism va telefon allaqachon to'g'ri bo'lsa — ixcham
+  // "Oluvchi" kartasi, aks holda to'g'ridan-to'g'ri tahrirlash maydonlari.
+  useEffect(() => {
+    if (checkoutOpen) setEditRecipient(!(form.name.trim() && isValidUzPhone(form.phone)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [checkoutOpen]);
+
   const submitOrderRef = useRef(() => {});
   useEffect(() => {
     const tg = getWebApp();
@@ -2373,6 +2400,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
 
       hapticFeedback("notification", "success");
       setPlacing(false);
+      setPaidInfo({ payment: form.payment, amount: cartTotalAfterBonus });
       setDone(true);
       // Faqat BUYURTMA QILINGAN (belgilangan) mahsulotlarni savatdan olib
       // tashlaymiz — belgilanmagan qolgan mahsulotlar savatda saqlanib qoladi.
@@ -2421,6 +2449,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
 
   const resetAll = () => {
     setDone(false);
+    setPaidInfo(null);
     setCheckoutOpen(false);
     setCartOpen(false);
     // Ism/telefonni butunlay bo'shatib qo'ymaymiz — mijoz keyingi safar
@@ -4128,6 +4157,16 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                 >
                   {t.store.profile.otpResend}
                 </button>
+                {otpTelegramLink && (
+                  <a
+                    href={otpTelegramLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-2 text-left text-xs font-medium text-stone-400 underline"
+                  >
+                    {t.store.profile.otpManualLink}
+                  </a>
+                )}
               </div>
               <div className="flex items-center gap-3 px-6 pb-[calc(env(safe-area-inset-bottom)+20px)]">
                 <button
@@ -4320,7 +4359,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                     <div className="space-y-2">
                       {myOrders
                         .slice()
-                        .sort((a, b) => (b.date || "").localeCompare(a.date || ""))
+                        .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0) || (b.date || "").localeCompare(a.date || ""))
                         .map((o) => (
                           <ProfileOrderCard
                             key={o.id}
@@ -4621,32 +4660,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
 
               {cartItems.length > 0 && (
                 <>
-                  {/* Promo kod */}
-                  <div className="mt-4">
-                    {appliedPromo ? (
-                      <div className="flex items-center justify-between rounded-full bg-emerald-50 px-4 py-2.5 text-xs font-medium text-emerald-700">
-                        <span className="flex items-center gap-1.5"><CheckCircle2 size={14} /> {appliedPromo.code} {t.store.promoApplied}</span>
-                        <button onClick={removePromoCode} className="text-emerald-600 underline hover:text-emerald-800">{t.store.promoRemove}</button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <input
-                          value={promoInput}
-                          onChange={(e) => setPromoInput(e.target.value)}
-                          placeholder={t.store.promoPh}
-                          className="flex-1 rounded-full border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm outline-none focus:border-rose-400 focus:bg-white"
-                        />
-                        <button
-                          onClick={applyPromoCode}
-                          disabled={checkingPromo || !promoInput.trim()}
-                          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-rose-600 text-white hover:bg-rose-700 disabled:opacity-50"
-                        >
-                          {checkingPromo ? <Loader2 size={16} className="animate-spin" /> : <ArrowRight size={16} />}
-                        </button>
-                      </div>
-                    )}
-                    {promoError && <p className="mt-1.5 px-1 text-xs text-rose-500">{promoError}</p>}
-                  </div>
+                  {/* Promo kod savatda emas — faqat rasmiylashtirish (checkout) oynasida kiritiladi */}
 
                   {/* Xulosa — FAQAT belgilangan (checkbox bosilgan) mahsulotlar bo'yicha */}
                   <div className="mt-4 space-y-1.5 border-t border-gray-100 pt-4 text-sm">
@@ -4754,6 +4768,41 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
               <PartyPopper className="text-rose-500" size={32} />
               <p className="text-sm font-medium text-slate-700">{t.store.success}</p>
               <p className="text-xs text-slate-400">{t.store.successNote}</p>
+
+              {/* To'lov ko'rsatmasi — tanlangan usulga qarab */}
+              {paidInfo?.payment === "card" && storeSettings?.payCardNumber && (
+                <div className="mt-2 w-full rounded-2xl border border-rose-100 bg-rose-50/50 p-4 text-left">
+                  <p className="text-xs text-slate-500">{lang === "ru" ? "Переведите сумму на карту:" : "Summani quyidagi kartaga o'tkazing:"}</p>
+                  <p className="mt-1 text-lg font-bold tracking-wider text-slate-800">{storeSettings.payCardNumber}</p>
+                  {storeSettings.payCardHolder && <p className="text-xs text-slate-500">{storeSettings.payCardHolder}</p>}
+                  <p className="mt-2 text-sm font-semibold text-rose-600">{fmtMoney(paidInfo.amount)} {t.common.uzs}</p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      try { navigator.clipboard.writeText(storeSettings.payCardNumber.replace(/\s/g, "")); } catch {}
+                      setCardCopied(true);
+                      setTimeout(() => setCardCopied(false), 2000);
+                    }}
+                    className="mt-2 rounded-lg border border-rose-200 bg-white px-3 py-1.5 text-xs font-medium text-rose-600 hover:bg-rose-50"
+                  >
+                    {cardCopied ? (lang === "ru" ? "Скопировано" : "Nusxalandi") : (lang === "ru" ? "Скопировать номер" : "Karta raqamini nusxalash")}
+                  </button>
+                  <p className="mt-2 text-[11px] text-slate-400">{lang === "ru" ? "После оплаты отправьте чек оператору." : "To'lovdan so'ng chekni operatorga yuboring."}</p>
+                </div>
+              )}
+              {paidInfo?.payment === "click" && storeSettings?.payClickLink && (
+                <a href={storeSettings.payClickLink} target="_blank" rel="noopener noreferrer"
+                  className="mt-2 block w-full rounded-xl bg-sky-500 px-4 py-3 text-center text-sm font-semibold text-white hover:bg-sky-600">
+                  {lang === "ru" ? "Оплатить через Click" : "Click orqali to'lash"} · {fmtMoney(paidInfo.amount)} {t.common.uzs}
+                </a>
+              )}
+              {paidInfo?.payment === "uzum" && storeSettings?.payUzumLink && (
+                <a href={storeSettings.payUzumLink} target="_blank" rel="noopener noreferrer"
+                  className="mt-2 block w-full rounded-xl bg-violet-600 px-4 py-3 text-center text-sm font-semibold text-white hover:bg-violet-700">
+                  {lang === "ru" ? "Оформить Uzum Nasiya" : "Uzum Nasiya orqali rasmiylashtirish"}
+                </a>
+              )}
+
               <button onClick={resetAll} className="mt-3 rounded-lg bg-rose-600 px-4 py-2 text-sm font-medium text-white hover:bg-rose-700">
                 {t.store.newOrder}
               </button>
@@ -4862,6 +4911,28 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                 </div>
               )}
 
+              {/* Oluvchi — ixcham karta; qalamcha bosilganda ism/telefon tahrirlanadi */}
+              {!editRecipient && (
+                <div className="mb-3 flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-3">
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-violet-50 text-violet-500">
+                    <UserRound size={20} />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs text-slate-400">{lang === "ru" ? "Получатель" : "Oluvchi"}</p>
+                    <p className="truncate text-sm font-semibold text-slate-800">{form.name}</p>
+                    <p className="text-xs text-slate-500">{form.phone}{form.phone2 && isValidUzPhone(form.phone2) ? `, ${form.phone2}` : ""}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setEditRecipient(true)}
+                    aria-label={lang === "ru" ? "Изменить" : "Tahrirlash"}
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-400 hover:bg-gray-100 hover:text-rose-600"
+                  >
+                    <Pencil size={16} />
+                  </button>
+                </div>
+              )}
+              {editRecipient && (<>
               <Field label={t.store.yourName} error={error && !form.name ? error : ""}>
                 <input className={inputCls} value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
               </Field>
@@ -4891,12 +4962,23 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                   <Plus size={13} /> {t.store.addPhone2}
                 </button>
               )}
+              <button
+                type="button"
+                disabled={!form.name.trim() || !isValidUzPhone(form.phone)}
+                onClick={() => setEditRecipient(false)}
+                className="mb-3 w-full rounded-lg border border-gray-200 py-2 text-xs font-medium text-slate-600 hover:bg-gray-50 disabled:opacity-50"
+              >
+                {lang === "ru" ? "Готово" : "Tayyor"}
+              </button>
+              </>)}
 
               <Field label={t.store.payment}>
                 <div className="grid grid-cols-2 gap-2">
                   {[
-                    { key: "cash", label: t.store.cash },
+                    ...(storeSettings?.payClickLink ? [{ key: "click", label: "Click" }] : []),
+                    ...(storeSettings?.payUzumLink ? [{ key: "uzum", label: "Uzum Nasiya" }] : []),
                     { key: "card", label: t.store.card },
+                    { key: "cash", label: t.store.cash },
                   ].map(opt => (
                     <button
                       key={opt.key}

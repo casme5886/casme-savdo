@@ -301,6 +301,32 @@ export async function findOrdersByPhone(phone) {
 }
 
 /**
+ * "Buyurtmalarim" uchun YAGONA, ishonchli qidiruv: mijozni barcha mavjud
+ * identifikatorlari bo'yicha (Telegram ID, mijoz yozuvi ID'si, telefon)
+ * BIR VAQTDA qidirib, natijalarni birlashtiradi (dublikatsiz). Avval faqat
+ * bittasi ishlatilgani sabab (masalan Telegram ichida telefon orqali
+ * berilgan eski buyurtmalar, yoki checkout'da boshqa raqam yozilgan
+ * buyurtmalar) ko'rinmay qolardi.
+ */
+export async function findMyOrders({ telegramUserId, customerId, phone }) {
+  const queries = [];
+  if (telegramUserId) queries.push(query(collection(db, "orders"), where("telegramUserId", "==", telegramUserId)));
+  if (customerId) queries.push(query(collection(db, "orders"), where("customerId", "==", customerId)));
+  if (phone) queries.push(query(collection(db, "orders"), where("phone", "==", phone)));
+  if (!queries.length) return [];
+  const results = await Promise.allSettled(queries.map((q) => getDocs(q)));
+  const byId = new Map();
+  let anyOk = false;
+  for (const r of results) {
+    if (r.status !== "fulfilled") continue;
+    anyOk = true;
+    r.value.docs.forEach((d) => byId.set(d.id, { id: d.id, ...d.data() }));
+  }
+  if (!anyOk) throw new Error("Buyurtmalarni yuklab bo'lmadi");
+  return Array.from(byId.values());
+}
+
+/**
  * Checkout uchun: bir nechta hujjatni BIR PAYTDA (batch) yozadi —
  * mahsulot qoldiqlarini kamaytiradi, mijozni yaratadi/yangilaydi,
  * yangi buyurtmani qo'shadi. `increment()` ishlatilgani uchun
@@ -331,6 +357,10 @@ export async function placeOrderBatch({ cartItems, existingCustomer, customerNam
       }
     : {};
 
+  // Buyurtmani mijoz yozuviga ham bog'laymiz (customerId) — "Buyurtmalarim"
+  // shu orqali ham ishonchli topadi.
+  let linkedCustomerId = existingCustomer ? existingCustomer.id : null;
+
   if (existingCustomer) {
     batch.update(doc(db, "customers", existingCustomer.id), {
       orders: increment(1),
@@ -349,6 +379,7 @@ export async function placeOrderBatch({ cartItems, existingCustomer, customerNam
     // buyurtma berish) umuman kelib qolmaydi. Agar shunga qaramay shu
     // yerga kelib qolsa (haqiqiy mehmon, ro'yxatdan o'tmagan) — bonus 0.
     const newCustomerRef = doc(collection(db, "customers"));
+    linkedCustomerId = newCustomerRef.id;
     batch.set(newCustomerRef, {
       name: customerName, phone: customerPhone, address: customerAddress,
       orders: 1, spent: cartTotal, date: orderData.date,
@@ -358,7 +389,7 @@ export async function placeOrderBatch({ cartItems, existingCustomer, customerNam
   }
 
   const newOrderRef = doc(collection(db, "orders"));
-  batch.set(newOrderRef, { ...orderData, createdAt: serverTimestamp() });
+  batch.set(newOrderRef, { ...orderData, customerId: linkedCustomerId, createdAt: serverTimestamp() });
 
   await batch.commit();
   return newOrderRef.id;

@@ -113,6 +113,10 @@ const emptyForm = (settings) => ({
   seoDescriptionRu: settings?.seoDescriptionRu || "",
   seoKeywordsRu: settings?.seoKeywordsRu || "",
   fbPixelId: settings?.fbPixelId || "",
+  payCardNumber: settings?.payCardNumber || "",
+  payCardHolder: settings?.payCardHolder || "",
+  payClickLink: settings?.payClickLink || "",
+  payUzumLink: settings?.payUzumLink || "",
   trustFeature1: settings?.trustFeature1 || "",
   trustFeature2: settings?.trustFeature2 || "",
   trustFeature3: settings?.trustFeature3 || "",
@@ -153,6 +157,10 @@ export default function StoreSettings({ lang, settings }) {
       seoDescriptionRu: form.seoDescriptionRu.trim(),
       seoKeywordsRu: form.seoKeywordsRu.trim(),
       fbPixelId: form.fbPixelId.trim(),
+      payCardNumber: form.payCardNumber.trim(),
+      payCardHolder: form.payCardHolder.trim(),
+      payClickLink: form.payClickLink.trim(),
+      payUzumLink: form.payUzumLink.trim(),
       trustFeature1: form.trustFeature1.trim(),
       trustFeature2: form.trustFeature2.trim(),
       trustFeature3: form.trustFeature3.trim(),
@@ -378,6 +386,33 @@ export default function StoreSettings({ lang, settings }) {
           <input className={inputCls} value={form.fbPixelId} onChange={(e) => setForm({ ...form, fbPixelId: e.target.value })} placeholder="1234567890123456" />
           <p className="mt-1 text-[11px] text-slate-400">{t.fbPixelIdHint}</p>
         </Field>
+        <button onClick={save} disabled={saving} className="mt-1 flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-60">
+          {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />} {saving ? t.saving : t.save}
+        </button>
+      </div>
+
+      {/* To'lov usullari (karta / Click / Uzum Nasiya) */}
+      <div className="rounded-2xl bg-white p-4 shadow-sm">
+        <h3 className="mb-1 text-sm font-semibold text-slate-800">{lang === "ru" ? "Способы оплаты" : "To'lov usullari"}</h3>
+        <p className="mb-3 text-xs text-slate-400">
+          {lang === "ru"
+            ? "Эти данные покажутся клиенту после подтверждения заказа. Пустые поля — способ не показывается."
+            : "Bu ma'lumotlar mijozga buyurtma tasdiqlangandan keyin ko'rsatiladi. Bo'sh qoldirilsa — o'sha usul ko'rsatilmaydi."}
+        </p>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <Field label={lang === "ru" ? "Номер карты" : "Karta raqami"}>
+            <input className={inputCls} value={form.payCardNumber} onChange={(e) => setForm({ ...form, payCardNumber: e.target.value })} placeholder="8600 0000 0000 0000" />
+          </Field>
+          <Field label={lang === "ru" ? "Владелец карты" : "Karta egasi (ism familiya)"}>
+            <input className={inputCls} value={form.payCardHolder} onChange={(e) => setForm({ ...form, payCardHolder: e.target.value })} />
+          </Field>
+          <Field label={lang === "ru" ? "Ссылка для оплаты Click" : "Click to'lov havolasi"}>
+            <input className={inputCls} value={form.payClickLink} onChange={(e) => setForm({ ...form, payClickLink: e.target.value })} placeholder="https://..." />
+          </Field>
+          <Field label={lang === "ru" ? "Ссылка Uzum Nasiya" : "Uzum Nasiya havolasi"}>
+            <input className={inputCls} value={form.payUzumLink} onChange={(e) => setForm({ ...form, payUzumLink: e.target.value })} placeholder="https://..." />
+          </Field>
+        </div>
         <button onClick={save} disabled={saving} className="mt-1 flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-60">
           {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />} {saving ? t.saving : t.save}
         </button>
