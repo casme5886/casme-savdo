@@ -5180,6 +5180,17 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                     );
                   })}
                 </div>
+                {/* Uzum Nasiya tanlanganda — limit haqida ogohlantirish */}
+                {form.payment === "uzum" && (
+                  <div className="mt-2 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-800">
+                    <span className="mt-px">⚠️</span>
+                    <p>
+                      {lang === "ru"
+                        ? `Для рассрочки Uzum Nasiya ваш лимит должен быть не меньше суммы заказа (${fmtMoney(cartTotalAfterBonus)} ${t.common.uzs}). Если лимита недостаточно, рассрочка не будет оформлена.`
+                        : `Uzum Nasiya uchun sizning limitingiz buyurtma summasidek (${fmtMoney(cartTotalAfterBonus)} ${t.common.uzs}) bo'lishi kerak. Limit yetarli bo'lmasa, nasiya rasmiylashtirilmaydi.`}
+                    </p>
+                  </div>
+                )}
               </Field>
 
               <Field label={t.store.address} error={error && !form.address ? error : ""}>
