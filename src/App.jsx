@@ -538,6 +538,15 @@ async function notifyTelegramBot(payload) {
    SMALL UI PRIMITIVES (App.jsx'ga xos, umumiy bo'lmaganlari)
 --------------------------------------------------------------- */
 
+/** Bitta buyurtma kartasi buzuq ma'lumot tufayli xato bersa ham butun
+ *  profil oynasi oq ekranga aylanib qolmasin — faqat shu karta o'tkazib yuboriladi. */
+class OrderCardBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { failed: false }; }
+  static getDerivedStateFromError() { return { failed: true }; }
+  componentDidCatch(error) { console.error("Buyurtma kartasi xatosi:", error); }
+  render() { return this.state.failed ? null : this.props.children; }
+}
+
 /** "Mening profilim" panelida bitta buyurtmani ko'rsatadigan karta. */
 function ProfileOrderCard({ order, t, reviewedKeys, onReview }) {
   const fmt = (n) => (Number(n) || 0).toLocaleString("ru-RU");
@@ -551,11 +560,11 @@ function ProfileOrderCard({ order, t, reviewedKeys, onReview }) {
     <div className="rounded-xl border border-gray-100 p-3">
       <div role="button" tabIndex={0} onClick={() => setOpen((v) => !v)} onKeyDown={(e) => { if (e.key === "Enter") setOpen((v) => !v); }} className="mb-1.5 flex cursor-pointer items-center justify-between">
         <span className="text-xs font-medium text-slate-400">
-          {t.store.profile.order} #{order.id.slice(-6).toUpperCase()}
+          {t.store.profile.order} #{String(order.id || "").slice(-6).toUpperCase()}
         </span>
         <StatusBadge status={order.status} labels={t.orders.st} />
       </div>
-      <p className="mb-2 text-xs text-slate-400">{order.date}</p>
+      <p className="mb-2 text-xs text-slate-400">{typeof order.date === "string" ? order.date : ""}</p>
       {Array.isArray(order.items) && order.items.length > 0 && (
         <div className="mb-2 space-y-1.5">
           {order.items.map((it, idx) => {
@@ -4394,15 +4403,16 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                     <div className="space-y-2">
                       {myOrders
                         .slice()
-                        .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0) || (b.date || "").localeCompare(a.date || ""))
+                        .sort((a, b) => (Number(b.createdAt?.seconds) || 0) - (Number(a.createdAt?.seconds) || 0) || String(b.date || "").localeCompare(String(a.date || "")))
                         .map((o) => (
-                          <ProfileOrderCard
-                            key={o.id}
-                            order={o}
-                            t={t}
-                            reviewedKeys={reviewedKeys}
-                            onReview={(order, item) => setReviewModal({ order, item })}
-                          />
+                          <OrderCardBoundary key={o.id}>
+                            <ProfileOrderCard
+                              order={o}
+                              t={t}
+                              reviewedKeys={reviewedKeys}
+                              onReview={(order, item) => setReviewModal({ order, item })}
+                            />
+                          </OrderCardBoundary>
                         ))}
                     </div>
                   )}
