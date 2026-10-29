@@ -542,9 +542,14 @@ async function notifyTelegramBot(payload) {
 function ProfileOrderCard({ order, t, reviewedKeys, onReview }) {
   const fmt = (n) => (Number(n) || 0).toLocaleString("ru-RU");
   const canReview = order.status === "delivered";
+  // Karta bosilganda ochiladi: har bir mahsulot to'liq nomi, soni, narxi va umumiy hisob
+  const [open, setOpen] = useState(false);
+  const itemsSum = Array.isArray(order.items)
+    ? order.items.reduce((s, it) => s + (Number(it.price) || 0) * (Number(it.qty) || 0), 0)
+    : 0;
   return (
     <div className="rounded-xl border border-gray-100 p-3">
-      <div className="mb-1.5 flex items-center justify-between">
+      <div role="button" tabIndex={0} onClick={() => setOpen((v) => !v)} onKeyDown={(e) => { if (e.key === "Enter") setOpen((v) => !v); }} className="mb-1.5 flex cursor-pointer items-center justify-between">
         <span className="text-xs font-medium text-slate-400">
           {t.store.profile.order} #{order.id.slice(-6).toUpperCase()}
         </span>
@@ -565,9 +570,12 @@ function ProfileOrderCard({ order, t, reviewedKeys, onReview }) {
                     <Package size={16} />
                   )}
                 </div>
-                <p className="min-w-0 flex-1 truncate text-xs text-slate-600">
-                  {it.productName} × {it.qty}
-                </p>
+                <div className="min-w-0 flex-1">
+                  <p className={`text-xs text-slate-600 ${open ? "" : "truncate"}`}>{it.productName}</p>
+                  <p className="text-[11px] text-slate-400">
+                    {it.qty} × {fmt(it.price)} {t.common.uzs}{open ? ` = ${fmt((Number(it.price) || 0) * (Number(it.qty) || 0))} ${t.common.uzs}` : ""}
+                  </p>
+                </div>
                 {canReview && it.productId && (
                   reviewState ? (
                     <span className="shrink-0 whitespace-nowrap text-[11px] text-stone-400">
@@ -591,7 +599,25 @@ function ProfileOrderCard({ order, t, reviewedKeys, onReview }) {
         <span className="font-semibold text-slate-800">{fmt(order.amount)} {t.common.uzs}</span>
         <span className="text-xs text-slate-500">{t.orders.paymentLabels[order.payment] || order.payment || "—"}</span>
       </div>
-      {order.address && <p className="mt-1 truncate text-xs text-slate-400">📍 {order.address}</p>}
+      {order.address && <p className={`mt-1 text-xs text-slate-400 ${open ? "" : "truncate"}`}>📍 {order.address}</p>}
+
+      {open && (
+        <div className="mt-2 space-y-1 border-t border-gray-100 pt-2 text-xs text-slate-500">
+          <div className="flex justify-between"><span>Mahsulotlar / Товары</span><span>{fmt(itemsSum)} {t.common.uzs}</span></div>
+          {Number(order.promoDiscount) > 0 && (
+            <div className="flex justify-between text-rose-600"><span>Promo{order.promoCode ? ` (${order.promoCode})` : ""}</span><span>-{fmt(order.promoDiscount)} {t.common.uzs}</span></div>
+          )}
+          {Number(order.bonusUsed) > 0 && (
+            <div className="flex justify-between text-rose-600"><span>Bonus</span><span>-{fmt(order.bonusUsed)} {t.common.uzs}</span></div>
+          )}
+          {Number(order.deliveryPrice) > 0 && (
+            <div className="flex justify-between"><span>Yetkazib berish / Доставка</span><span>{fmt(order.deliveryPrice)} {t.common.uzs}</span></div>
+          )}
+          <div className="flex justify-between font-semibold text-slate-800"><span>{t.store.total}</span><span>{fmt(order.amount)} {t.common.uzs}</span></div>
+          {order.phone && <p>📞 {order.phone}</p>}
+        </div>
+      )}
+      <p className="mt-1.5 text-center text-[10px] text-slate-300">{open ? "▲" : "▼"}</p>
     </div>
   );
 }
