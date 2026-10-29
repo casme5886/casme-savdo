@@ -5140,7 +5140,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                 <div className="grid grid-cols-2 gap-2">
                   {[
                     ...(storeSettings?.payClickLink ? [{ key: "click", label: "Click", logo: "/click-logo.png" }] : []),
-                    ...(storeSettings?.payUzumLink ? [{ key: "uzum", label: "Uzum Nasiya" }] : []),
+                    ...(storeSettings?.payUzumLink ? [{ key: "uzum", label: "Uzum Nasiya", logo: "/uzum-logo.png" }] : []),
                     { key: "card", label: t.store.card, logo: "/uzcard-logo.png" },
                     { key: "cash", label: t.store.cash },
                   ].map((opt, idx, arr) => {
@@ -5152,12 +5152,12 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                       key={opt.key}
                       type="button"
                       onClick={() => setForm({ ...form, payment: opt.key })}
-                      className={`${wide ? "col-span-2 " : ""}flex items-center justify-center overflow-hidden rounded-lg border text-xs font-medium transition ${
+                      className={`${wide ? "col-span-2 " : ""}flex items-center justify-center overflow-hidden rounded-lg border text-xs font-bold transition ${
                         showLogo ? "relative min-h-[2.75rem] bg-white p-0" : "gap-1.5 px-2 py-2"
                       } ${
                         form.payment === opt.key
                           ? `border-rose-600 ${showLogo ? "ring-2 ring-rose-600" : "bg-rose-50 text-rose-700"}`
-                          : "border-gray-200 text-slate-500 hover:bg-gray-50"
+                          : "border-gray-200 text-slate-700 hover:bg-gray-50"
                       }`}
                     >
                       {/* Click va Karta (Uzcard): tugma TO'LIQ logotip rasmidan iborat
@@ -5167,7 +5167,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                         <img
                           src={opt.logo}
                           alt={opt.label}
-                          className={`absolute inset-0 h-full w-full ${opt.key === "card" ? "object-contain" : "object-cover"}`}
+                          className={`absolute inset-0 h-full w-full ${opt.key === "click" ? "object-cover" : "object-contain"}`}
                           onError={(e) => {
                             const el = e.currentTarget;
                             if (!el.dataset.triedJpg) { el.dataset.triedJpg = "1"; el.src = opt.logo.replace(/\.png$/, ".jpg"); }
