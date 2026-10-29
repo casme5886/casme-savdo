@@ -116,7 +116,7 @@ const emptyForm = (settings) => ({
   payCardNumber: settings?.payCardNumber || "",
   payCardHolder: settings?.payCardHolder || "",
   payClickLink: settings?.payClickLink || "",
-  payUzumLink: settings?.payUzumLink || "",
+  payUzumEnabled: !!settings?.payUzumEnabled,
   trustFeature1: settings?.trustFeature1 || "",
   trustFeature2: settings?.trustFeature2 || "",
   trustFeature3: settings?.trustFeature3 || "",
@@ -160,7 +160,7 @@ export default function StoreSettings({ lang, settings }) {
       payCardNumber: form.payCardNumber.trim(),
       payCardHolder: form.payCardHolder.trim(),
       payClickLink: form.payClickLink.trim(),
-      payUzumLink: form.payUzumLink.trim(),
+      payUzumEnabled: !!form.payUzumEnabled,
       trustFeature1: form.trustFeature1.trim(),
       trustFeature2: form.trustFeature2.trim(),
       trustFeature3: form.trustFeature3.trim(),
@@ -409,8 +409,22 @@ export default function StoreSettings({ lang, settings }) {
           <Field label={lang === "ru" ? "Ссылка для оплаты Click" : "Click to'lov havolasi"}>
             <input className={inputCls} value={form.payClickLink} onChange={(e) => setForm({ ...form, payClickLink: e.target.value })} placeholder="https://..." />
           </Field>
-          <Field label={lang === "ru" ? "Ссылка Uzum Nasiya" : "Uzum Nasiya havolasi"}>
-            <input className={inputCls} value={form.payUzumLink} onChange={(e) => setForm({ ...form, payUzumLink: e.target.value })} placeholder="https://..." />
+          <Field label="Uzum Nasiya">
+            <button
+              type="button"
+              onClick={() => setForm({ ...form, payUzumEnabled: !form.payUzumEnabled })}
+              className="flex items-center gap-2.5"
+              aria-pressed={form.payUzumEnabled}
+            >
+              <span className={`relative inline-block h-6 w-11 rounded-full transition ${form.payUzumEnabled ? "bg-emerald-500" : "bg-gray-300"}`}>
+                <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${form.payUzumEnabled ? "left-[22px]" : "left-0.5"}`} />
+              </span>
+              <span className="text-sm font-medium text-slate-700">
+                {form.payUzumEnabled
+                  ? (lang === "ru" ? "Включено — клиенты видят Uzum Nasiya" : "Yoqilgan — mijozlar ko'radi")
+                  : (lang === "ru" ? "Выключено" : "O'chirilgan")}
+              </span>
+            </button>
           </Field>
         </div>
         <button onClick={save} disabled={saving} className="mt-1 flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-60">

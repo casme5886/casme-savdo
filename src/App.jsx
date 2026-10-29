@@ -2393,7 +2393,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
       setEditRecipient(!(form.name.trim() && isValidUzPhone(form.phone)));
       // To'lov usuli avtomatik ravishda ro'yxatdagi birinchisi (Click) tanlanadi;
       // Click sozlanmagan bo'lsa — keyingi mavjud usul (Uzum Nasiya, so'ng Karta).
-      const defaultPay = storeSettings?.payClickLink ? "click" : storeSettings?.payUzumLink ? "uzum" : "card";
+      const defaultPay = storeSettings?.payClickLink ? "click" : storeSettings?.payUzumEnabled ? "uzum" : "card";
       setForm((f) => ({ ...f, payment: defaultPay }));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -4956,11 +4956,12 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                   {lang === "ru" ? "Оплатить через Click" : "Click orqali to'lash"} · {fmtMoney(paidInfo.amount)} {t.common.uzs}
                 </a>
               )}
-              {paidInfo?.payment === "uzum" && storeSettings?.payUzumLink && (
-                <a href={storeSettings.payUzumLink} target="_blank" rel="noopener noreferrer"
-                  className="mt-2 block w-full rounded-xl bg-violet-600 px-4 py-3 text-center text-sm font-semibold text-white hover:bg-violet-700">
-                  {lang === "ru" ? "Оформить Uzum Nasiya" : "Uzum Nasiya orqali rasmiylashtirish"}
-                </a>
+              {paidInfo?.payment === "uzum" && (
+                <div className="mt-2 w-full rounded-2xl border border-violet-100 bg-violet-50/60 p-4 text-left text-xs text-slate-600">
+                  {lang === "ru"
+                    ? "Наш оператор свяжется с вами и оформит рассрочку через Uzum Nasiya."
+                    : "Operatorimiz siz bilan bog'lanib, Uzum Nasiya orqali muddatli to'lovni rasmiylashtiradi."}
+                </div>
               )}
 
               <button onClick={resetAll} className="mt-3 rounded-lg bg-rose-600 px-4 py-2 text-sm font-medium text-white hover:bg-rose-700">
@@ -5140,7 +5141,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                 <div className="grid grid-cols-2 gap-2">
                   {[
                     ...(storeSettings?.payClickLink ? [{ key: "click", label: "Click", logo: "/click-logo.png" }] : []),
-                    ...(storeSettings?.payUzumLink ? [{ key: "uzum", label: "Uzum Nasiya", logo: "/uzum-logo.png" }] : []),
+                    ...(storeSettings?.payUzumEnabled ? [{ key: "uzum", label: "Uzum Nasiya", logo: "/uzum-logo.png" }] : []),
                     { key: "card", label: t.store.card, logo: "/uzcard-logo.png" },
                     { key: "cash", label: t.store.cash },
                   ].map((opt, idx, arr) => {
