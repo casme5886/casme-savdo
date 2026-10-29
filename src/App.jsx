@@ -5143,14 +5143,16 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                     ...(storeSettings?.payUzumLink ? [{ key: "uzum", label: "Uzum Nasiya" }] : []),
                     { key: "card", label: t.store.card, logo: "/uzcard-logo.png" },
                     { key: "cash", label: t.store.cash },
-                  ].map(opt => {
+                  ].map((opt, idx, arr) => {
                     const showLogo = !!opt.logo && !logoFailed[opt.key];
+                    // Tugmalar soni toq bo'lsa, oxirgisi yolg'iz qoladi — butun qatorga yoyiladi
+                    const wide = idx === arr.length - 1 && arr.length % 2 === 1;
                     return (
                     <button
                       key={opt.key}
                       type="button"
                       onClick={() => setForm({ ...form, payment: opt.key })}
-                      className={`flex items-center justify-center overflow-hidden rounded-lg border text-xs font-medium transition ${
+                      className={`${wide ? "col-span-2 " : ""}flex items-center justify-center overflow-hidden rounded-lg border text-xs font-medium transition ${
                         showLogo ? "relative min-h-[2.75rem] bg-white p-0" : "gap-1.5 px-2 py-2"
                       } ${
                         form.payment === opt.key
