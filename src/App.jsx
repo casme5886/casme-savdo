@@ -5153,7 +5153,12 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                     >
                       {/* Logo faylisi (public/click-logo.png) bo'lmasa — yashiriladi, faqat nom qoladi */}
                       {opt.logo && (
-                        <img src={opt.logo} alt="" className="h-5 w-5 shrink-0 rounded object-contain" onError={(e) => { e.currentTarget.style.display = "none"; }} />
+                        <img src={opt.logo} alt="" className="h-5 w-5 shrink-0 rounded object-contain" onError={(e) => {
+                          // Avval .png, bo'lmasa .jpg ni sinaydi; ikkalasi ham bo'lmasa — yashiradi
+                          const el = e.currentTarget;
+                          if (!el.dataset.triedJpg) { el.dataset.triedJpg = "1"; el.src = opt.logo.replace(/\.png$/, ".jpg"); }
+                          else el.style.display = "none";
+                        }} />
                       )}
                       {opt.label}
                     </button>
