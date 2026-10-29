@@ -1096,15 +1096,45 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
   const openedPageFromUrlRef = useRef(false);
   useEffect(() => {
     if (openedPageFromUrlRef.current) return;
-    const m = window.location.pathname.match(/^\/(brand|category)\/([^/]+)\/?$/);
-    if (!m) { openedPageFromUrlRef.current = true; return; }
-    if (!products.length) return; // mahsulotlar hali yuklanmagan — kutamiz
+    const path = window.location.pathname;
+    const m = path.match(/^\/(brand|category|banner)\/([^/]+)\/?$/);
+    const simple = path.match(/^\/(hits|discounts|categories|search|wishlist|cart|profile)\/?$/);
+    if (!m && !simple) { openedPageFromUrlRef.current = true; return; }
+    if (!products.length) return; // ma'lumotlar hali yuklanmagan — kutamiz
+
+    let openFn = null;
+    if (m) {
+      let name = m[2];
+      try { name = decodeURIComponent(name); } catch {}
+      if (m[1] === "brand") openFn = () => openBrandPage(name);
+      else if (m[1] === "category") openFn = () => openCategoryPage(name);
+      else {
+        // Banner: avval bosh banner (id = "banner-<id>"), keyin "keng banner" kolleksiyalari
+        const b = banners.find((x) => `banner-${x.id}` === name && (x.linkedProductIds || []).length > 0);
+        const c = (collections || []).find((x) => x.id === name);
+        if (b) openFn = () => viewLinkedProducts(b, b.linkedProductIds);
+        else if (c) openFn = () => viewWideBannerProducts(c);
+        else if (!banners.length && !(collections || []).length) return; // hali yuklanmagan
+      }
+    } else {
+      const key = simple[1];
+      openFn = {
+        hits: openHitsPage,
+        discounts: () => setDiscountsPageOpen(true),
+        categories: () => setCategoriesPageOpen(true),
+        search: () => setSearchPageOpen(true),
+        wishlist: () => setWishlistOpen(true),
+        cart: () => setCartOpen(true),
+        profile: () => openProfile(),
+      }[key];
+    }
     openedPageFromUrlRef.current = true;
-    let name = m[2];
-    try { name = decodeURIComponent(name); } catch {}
-    if (m[1] === "brand") openBrandPage(name); else openCategoryPage(name);
+    // Brauzer tarixida joriy yozuvni bosh sahifaga almashtiramiz, so'ng sahifani
+    // ochamiz — shunda "orqaga" tugmasi bosh sahifaga olib boradi.
+    try { window.history.replaceState(null, "", "/"); } catch {}
+    if (openFn) openFn();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [products]);
+  }, [products, banners, collections]);
 
   /** Havolani ulashadi: Telegram ichida — Telegram oynasi, telefonda — tizim menyusi, aks holda — nusxalaydi. */
   const [shareToast, setShareToast] = useState(false);
@@ -1632,14 +1662,26 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
         // to'g'ridan-to'g'ri ochiladigan mahsulot URL'iga o'zgartiramiz
         // (SEO va ulashish uchun). Boshqa qatlamlar (savat, checkout va h.k.)
         // manzilni o'zgartirmaydi — ular alohida indekslanadigan sahifa emas.
-        if (key === "selectedProduct" && selectedProduct) {
-          window.history.pushState({ navLayer: key }, "", `/product/${selectedProduct.id}`);
-        } else if (key === "categoryPageOpen" && (categoryPageMode === "brand" || categoryPageMode === "category") && categoryPageName) {
-          // Brend/kategoriya sahifasi — ulashish mumkin bo'lgan haqiqiy havola
-          window.history.pushState({ navLayer: key }, "", `/${categoryPageMode}/${encodeURIComponent(categoryPageName)}`);
-        } else {
-          window.history.pushState({ navLayer: key }, "");
+        // Har bir sahifaning (qatlamning) o'z havolasi bor:
+        //   /product/<id>, /brand/<nom>, /category/<nom>, /hits, /discounts,
+        //   /categories, /search, /wishlist, /cart, /profile, /checkout,
+        //   /banner/<id>
+        let layerUrl = null;
+        if (key === "selectedProduct" && selectedProduct) layerUrl = `/product/${selectedProduct.id}`;
+        else if (key === "categoryPageOpen") {
+          if ((categoryPageMode === "brand" || categoryPageMode === "category") && categoryPageName) layerUrl = `/${categoryPageMode}/${encodeURIComponent(categoryPageName)}`;
+          else if (categoryPageMode === "hits") layerUrl = "/hits";
         }
+        else if (key === "bannerPageOpen" && bannerCollection?.id) layerUrl = `/banner/${encodeURIComponent(bannerCollection.id)}`;
+        else if (key === "discountsPageOpen") layerUrl = "/discounts";
+        else if (key === "categoriesPageOpen") layerUrl = "/categories";
+        else if (key === "searchPageOpen") layerUrl = "/search";
+        else if (key === "wishlistOpen") layerUrl = "/wishlist";
+        else if (key === "cartOpen") layerUrl = "/cart";
+        else if (key === "profileOpen") layerUrl = "/profile";
+        else if (key === "checkoutOpen") layerUrl = "/checkout";
+        if (layerUrl) window.history.pushState({ navLayer: key }, "", layerUrl);
+        else window.history.pushState({ navLayer: key }, "");
       } else if (!isOpen && wasOpen) {
         const idx = navStackRef.current.lastIndexOf(key);
         if (idx !== -1) {
