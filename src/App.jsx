@@ -1454,6 +1454,28 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
   // Checkout'dagi "Oluvchi" kartasi: false = ixcham ko'rinish, true = tahrirlash
   const [editRecipient, setEditRecipient] = useState(true);
   const [cardCopied, setCardCopied] = useState(false);
+  // To'lov cheki (skrinshot) yuklash
+  const [receiptUploading, setReceiptUploading] = useState(false);
+  const [receiptUrl, setReceiptUrl] = useState("");
+  const [receiptError, setReceiptError] = useState("");
+  const uploadReceipt = async (file) => {
+    if (!file || !paidInfo?.orderId) return;
+    if (!file.type.startsWith("image/")) {
+      setReceiptError(lang === "ru" ? "Выберите изображение" : "Iltimos, rasm tanlang");
+      return;
+    }
+    setReceiptUploading(true);
+    setReceiptError("");
+    try {
+      const url = await uploadImage(`receipts/${paidInfo.orderId}/${Date.now()}`, file);
+      await updateItem(COL.orders, paidInfo.orderId, { receiptUrl: url });
+      setReceiptUrl(url);
+    } catch (e) {
+      console.error("Chekni yuklashda xatolik:", e);
+      setReceiptError(lang === "ru" ? "Не удалось загрузить. Попробуйте ещё раз." : "Yuklab bo'lmadi. Qayta urinib ko'ring.");
+    }
+    setReceiptUploading(false);
+  };
   const [form, setForm] = useState({ name: "", phone: "", phone2: "", payment: "cash", address: "" });
   const [showPhone2, setShowPhone2] = useState(false);
   const [location, setLocation] = useState(null); // {lat, lng}
@@ -2473,7 +2495,9 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
 
       hapticFeedback("notification", "success");
       setPlacing(false);
-      setPaidInfo({ payment: form.payment, amount: cartTotalAfterBonus });
+      setPaidInfo({ payment: form.payment, amount: cartTotalAfterBonus, orderId });
+      setReceiptUrl("");
+      setReceiptError("");
       setDone(true);
       // Faqat BUYURTMA QILINGAN (belgilangan) mahsulotlarni savatdan olib
       // tashlaymiz — belgilanmagan qolgan mahsulotlar savatda saqlanib qoladi.
@@ -2523,6 +2547,8 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
   const resetAll = () => {
     setDone(false);
     setPaidInfo(null);
+    setReceiptUrl("");
+    setReceiptError("");
     setCheckoutOpen(false);
     setCartOpen(false);
     // Ism/telefonni butunlay bo'shatib qo'ymaymiz — mijoz keyingi safar
@@ -4868,7 +4894,29 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                   >
                     {cardCopied ? (lang === "ru" ? "Скопировано" : "Nusxalandi") : (lang === "ru" ? "Скопировать номер" : "Karta raqamini nusxalash")}
                   </button>
-                  <p className="mt-2 text-[11px] text-slate-400">{lang === "ru" ? "После оплаты отправьте чек оператору." : "To'lovdan so'ng chekni operatorga yuboring."}</p>
+                  <p className="mt-2 text-[11px] text-slate-400">{lang === "ru" ? "После оплаты загрузите скриншот чека ниже." : "To'lovdan so'ng chek skrinshotini quyida yuklang."}</p>
+                </div>
+              )}
+
+              {/* To'lov cheki (skrinshot) yuklash — karta va Click uchun */}
+              {(paidInfo?.payment === "card" || paidInfo?.payment === "click") && paidInfo?.orderId && (
+                <div className="mt-2 w-full rounded-2xl border border-dashed border-rose-200 p-3 text-left">
+                  <p className="mb-2 text-xs font-medium text-slate-600">{lang === "ru" ? "Подтверждение оплаты" : "To'lov tasdig'i (chek)"}</p>
+                  {receiptUrl ? (
+                    <div className="flex items-center gap-3">
+                      <img src={receiptUrl} alt="" className="h-16 w-16 rounded-lg border border-gray-100 object-cover" />
+                      <p className="flex-1 text-xs font-medium text-emerald-600">{lang === "ru" ? "Чек отправлен. Спасибо!" : "Chek yuborildi. Rahmat!"}</p>
+                    </div>
+                  ) : (
+                    <label className={`flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-rose-200 bg-white px-3 py-2.5 text-xs font-medium text-rose-600 hover:bg-rose-50 ${receiptUploading ? "pointer-events-none opacity-60" : ""}`}>
+                      {receiptUploading ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+                      {receiptUploading
+                        ? (lang === "ru" ? "Загрузка..." : "Yuklanmoqda...")
+                        : (lang === "ru" ? "Загрузить скриншот оплаты" : "To'lov skrinshotini yuklash")}
+                      <input type="file" accept="image/*" className="hidden" onChange={(e) => { uploadReceipt(e.target.files?.[0]); e.target.value = ""; }} />
+                    </label>
+                  )}
+                  {receiptError && <p className="mt-1.5 text-[11px] text-rose-500">{receiptError}</p>}
                 </div>
               )}
               {paidInfo?.payment === "click" && storeSettings?.payClickLink && (

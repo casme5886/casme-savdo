@@ -841,6 +841,14 @@ function OrderDetailModal({ order, t, products, onClose, onChangeStatus }) {
               <p className="text-xs text-slate-400">{t.orders.payment}</p>
               <p className="font-medium text-slate-700">{t.orders.paymentLabels[order.payment] || order.payment || "—"}</p>
             </div>
+            {order.receiptUrl && (
+              <div className="col-span-2">
+                <p className="mb-1 text-xs text-slate-400">{t.orders.paymentLabels.card} — chek / чек</p>
+                <a href={order.receiptUrl} target="_blank" rel="noopener noreferrer">
+                  <img src={order.receiptUrl} alt="" className="max-h-64 rounded-xl border border-gray-100 object-contain" />
+                </a>
+              </div>
+            )}
             <div>
               <p className="mb-1 text-xs text-slate-400">{t.orders.status}</p>
               <select

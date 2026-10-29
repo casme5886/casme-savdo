@@ -41,7 +41,12 @@ service cloud.firestore {
     match /orders/{orderId} {
       allow read: if true;   // "Buyurtmalarim" qidiruvi uchun kerak (yuqoridagi izohni o'qing)
       allow create: if true;
-      allow update, delete: if request.auth != null; // status o'zgartirish/o'chirish — faqat admin
+      // Mijoz FAQAT to'lov chekining (skrinshot) havolasini qo'sha oladi —
+      // boshqa hech narsani (status, summa va h.k.) o'zgartira olmaydi.
+      allow update: if request.auth != null || (
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['receiptUrl'])
+      );
+      allow delete: if request.auth != null; // o'chirish — faqat admin
     }
 
     // ---------------- MIJOZLAR ----------------
