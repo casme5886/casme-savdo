@@ -455,7 +455,7 @@ export default async function handler(req, res) {
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 chat_id: cbChatId,
-                text: "⚠️ Holatni o'zgartirib bo'lmadi. Vercel'da FIREBASE_SERVICE_ACCOUNT o'zgaruvchisi sozlanganini tekshiring.",
+                text: `⚠️ Holatni o'zgartirib bo'lmadi.\nSabab: ${String(e && e.message || e).slice(0, 300)}`,
               }),
             }).catch(() => {});
           }
@@ -509,7 +509,7 @@ export default async function handler(req, res) {
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 chat_id: cbChatId,
-                text: "⚠️ To'lov holatini saqlab bo'lmadi: Firebase'da yangilangan Firestore qoidalari publish qilinganini (yoki FIREBASE_SERVICE_ACCOUNT sozlanganini) tekshiring.",
+                text: `⚠️ To'lov holatini saqlab bo'lmadi.\nSabab: ${String(e && e.message || e).slice(0, 300)}`,
               }),
             }).catch(() => {});
           }
