@@ -608,6 +608,20 @@ function ProfileOrderCard({ order, t, reviewedKeys, onReview }) {
         <span className="font-semibold text-slate-800">{fmt(order.amount)} {t.common.uzs}</span>
         <span className="text-xs text-slate-500">{t.orders.paymentLabels[order.payment] || order.payment || "—"}</span>
       </div>
+      {/* To'lov holati: admin chekni tasdiqlagan / rad etgan / hali tekshirilmoqda */}
+      {(order.paymentStatus === "paid" || order.paymentStatus === "rejected" || order.receiptUrl) && (
+        <p className={`mt-1.5 inline-block rounded-full px-2.5 py-1 text-[11px] font-medium ${
+          order.paymentStatus === "paid" ? "bg-emerald-50 text-emerald-700"
+            : order.paymentStatus === "rejected" ? "bg-rose-50 text-rose-700"
+            : "bg-amber-50 text-amber-700"
+        }`}>
+          {order.paymentStatus === "paid"
+            ? (t === T.ru ? "✅ Оплата подтверждена" : "✅ To'lov tasdiqlandi")
+            : order.paymentStatus === "rejected"
+              ? (t === T.ru ? "❌ Оплата не подтверждена" : "❌ To'lov tasdiqlanmadi")
+              : (t === T.ru ? "⏳ Чек проверяется" : "⏳ Chek tekshirilmoqda")}
+        </p>
+      )}
       {order.address && <p className={`mt-1 text-xs text-slate-400 ${open ? "" : "truncate"}`}>📍 {order.address}</p>}
 
       {open && (
