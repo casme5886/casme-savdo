@@ -1497,16 +1497,28 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
     if (!anyOverlayOpen) return;
     const scrollY = window.scrollY;
     const body = document.body;
-    const prev = { position: body.style.position, top: body.style.top, width: body.style.width, overflow: body.style.overflow };
+    const html = document.documentElement;
+    const prev = {
+      position: body.style.position, top: body.style.top, width: body.style.width, overflow: body.style.overflow,
+      htmlOverflow: html.style.overflow, htmlOverscroll: html.style.overscrollBehavior, bodyOverscroll: body.style.overscrollBehavior,
+    };
     body.style.position = "fixed";
     body.style.top = `-${scrollY}px`;
     body.style.width = "100%";
     body.style.overflow = "hidden";
+    // html'ning o'zi ham skroll bo'lmasin va ichki oyna oxiriga yetganda
+    // skroll orqa fonga "o'tib ketmasin" (scroll chaining)
+    html.style.overflow = "hidden";
+    html.style.overscrollBehavior = "none";
+    body.style.overscrollBehavior = "none";
     return () => {
       body.style.position = prev.position;
       body.style.top = prev.top;
       body.style.width = prev.width;
       body.style.overflow = prev.overflow;
+      html.style.overflow = prev.htmlOverflow;
+      html.style.overscrollBehavior = prev.htmlOverscroll;
+      body.style.overscrollBehavior = prev.bodyOverscroll;
       window.scrollTo(0, scrollY);
     };
   }, [anyOverlayOpen]);
