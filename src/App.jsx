@@ -5141,8 +5141,8 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                 <div className="grid grid-cols-2 gap-2">
                   {[
                     ...(storeSettings?.payClickLink ? [{ key: "click", label: "Click", logo: "/click-logo.png" }] : []),
-                    ...(storeSettings?.payUzumEnabled ? [{ key: "uzum", label: "Uzum Nasiya", logo: "/uzum-logo.png" }] : []),
                     { key: "card", label: t.store.card, logo: "/uzcard-logo.png" },
+                    ...(storeSettings?.payUzumEnabled ? [{ key: "uzum", label: "Uzum Nasiya", logo: "/uzum-logo.png" }] : []),
                     { key: "cash", label: t.store.cash },
                   ].map((opt, idx, arr) => {
                     const showLogo = !!opt.logo && !logoFailed[opt.key];
