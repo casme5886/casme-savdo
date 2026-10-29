@@ -2374,7 +2374,13 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
   // Checkout ochilganda: ism va telefon allaqachon to'g'ri bo'lsa — ixcham
   // "Oluvchi" kartasi, aks holda to'g'ridan-to'g'ri tahrirlash maydonlari.
   useEffect(() => {
-    if (checkoutOpen) setEditRecipient(!(form.name.trim() && isValidUzPhone(form.phone)));
+    if (checkoutOpen) {
+      setEditRecipient(!(form.name.trim() && isValidUzPhone(form.phone)));
+      // To'lov usuli avtomatik ravishda ro'yxatdagi birinchisi (Click) tanlanadi;
+      // Click sozlanmagan bo'lsa — keyingi mavjud usul (Uzum Nasiya, so'ng Karta).
+      const defaultPay = storeSettings?.payClickLink ? "click" : storeSettings?.payUzumLink ? "uzum" : "card";
+      setForm((f) => ({ ...f, payment: defaultPay }));
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [checkoutOpen]);
 

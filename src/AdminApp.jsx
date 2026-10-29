@@ -841,6 +841,13 @@ function OrderDetailModal({ order, t, products, onClose, onChangeStatus }) {
               <p className="text-xs text-slate-400">{t.orders.payment}</p>
               <p className="font-medium text-slate-700">{t.orders.paymentLabels[order.payment] || order.payment || "—"}</p>
             </div>
+            {order.paymentStatus && (
+              <div className="col-span-2">
+                <span className={`inline-block rounded-full px-2.5 py-1 text-xs font-medium ${order.paymentStatus === "paid" ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"}`}>
+                  {order.paymentStatus === "paid" ? "✅ To'lov tasdiqlangan / Оплата подтверждена" : "❌ To'lov rad etilgan / Оплата отклонена"}
+                </span>
+              </div>
+            )}
             {order.receiptUrl && (
               <div className="col-span-2">
                 <p className="mb-1 text-xs text-slate-400">{t.orders.paymentLabels.card} — chek / чек</p>

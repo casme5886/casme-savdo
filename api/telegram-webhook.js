@@ -352,6 +352,46 @@ export default async function handler(req, res) {
         console.error("answerCallbackQuery xatoligi:", e);
       }
 
+      // To'lov chekini TASDIQLASH / RAD ETISH (admin chatidagi chek xabaridagi tugmalar).
+      // Faqat admin chatidan kelgan bosishlar qabul qilinadi.
+      if (/^pay_(ok|no):/.test(data)) {
+        const adminChat = String(process.env.TELEGRAM_ADMIN_CHAT_ID || "");
+        if (adminChat && String(cbChatId) === adminChat) {
+          const approved = data.startsWith("pay_ok:");
+          const orderId = data.split(":")[1];
+          try {
+            await firestorePatch(`orders/${orderId}`, { paymentStatus: approved ? "paid" : "rejected" });
+            const order = await firestoreGet(`orders/${orderId}`);
+            // Chek xabarini yangilaymiz: tugmalar o'rniga natija ko'rsatiladi
+            const verdict = approved ? "✅ To'lov TASDIQLANDI" : "❌ To'lov RAD ETILDI";
+            await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/editMessageCaption`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                chat_id: cbChatId,
+                message_id: cq.message.message_id,
+                caption: `${cq.message.caption || ""}\n\n${verdict}`,
+                reply_markup: { inline_keyboard: [] },
+              }),
+            });
+            // Mijozga (agar Telegram orqali kelgan bo'lsa) xabar yuboramiz
+            if (order?.telegramUserId) {
+              const msg = approved
+                ? "✅ To'lovingiz tasdiqlandi. Buyurtmangiz tayyorlanmoqda. Rahmat!"
+                : "❌ To'lovingiz tasdiqlanmadi. Iltimos, biz bilan bog'laning yoki chekni qayta yuboring.";
+              await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ chat_id: order.telegramUserId, text: msg }),
+              });
+            }
+          } catch (e) {
+            console.error("To'lov tasdiqlashda xatolik:", e);
+          }
+        }
+        return res.status(200).json({ ok: true });
+      }
+
       if (cbChatId && (data === "lang_uz" || data === "lang_ru")) {
         const chosenLang = data === "lang_ru" ? "ru" : "uz";
 

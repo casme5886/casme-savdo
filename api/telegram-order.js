@@ -57,7 +57,21 @@ export default async function handler(req, res) {
       const tgRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chat_id: CHAT_ID, photo, caption, parse_mode: "HTML" }),
+        body: JSON.stringify({
+          chat_id: CHAT_ID,
+          photo,
+          caption,
+          parse_mode: "HTML",
+          // Tasdiqlash / rad etish tugmalari — bosilganda api/telegram-webhook.js qayta ishlaydi
+          reply_markup: order.orderId
+            ? {
+                inline_keyboard: [[
+                  { text: "✅ Tasdiqlash", callback_data: `pay_ok:${order.orderId}` },
+                  { text: "❌ Rad etish", callback_data: `pay_no:${order.orderId}` },
+                ]],
+              }
+            : undefined,
+        }),
       });
       const tgData = await tgRes.json();
       if (!tgData.ok) {

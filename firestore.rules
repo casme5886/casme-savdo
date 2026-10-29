@@ -41,10 +41,13 @@ service cloud.firestore {
     match /orders/{orderId} {
       allow read: if true;   // "Buyurtmalarim" qidiruvi uchun kerak (yuqoridagi izohni o'qing)
       allow create: if true;
-      // Mijoz FAQAT to'lov chekining (skrinshot) havolasini qo'sha oladi —
-      // boshqa hech narsani (status, summa va h.k.) o'zgartira olmaydi.
+      // Login qilmasdan FAQAT ikki maydon yoziladi: 'receiptUrl' (mijoz
+      // yuklagan chek havolasi) va 'paymentStatus' (Telegram botda admin
+      // "Tasdiqlash/Rad etish" bosganda). Boshqa hech narsani (status, summa
+      // va h.k.) o'zgartirib bo'lmaydi. 'paymentStatus' faqat axborot uchun —
+      // pul tushganini baribir admin o'zi tekshiradi.
       allow update: if request.auth != null || (
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['receiptUrl'])
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['receiptUrl', 'paymentStatus'])
       );
       allow delete: if request.auth != null; // o'chirish — faqat admin
     }
