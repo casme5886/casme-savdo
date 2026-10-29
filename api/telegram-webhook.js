@@ -471,7 +471,13 @@ export default async function handler(req, res) {
           const approved = data.startsWith("pay_ok:");
           const orderId = data.split(":")[1];
           try {
-            await firestorePatch(`orders/${orderId}`, { paymentStatus: approved ? "paid" : "rejected" });
+            // Service account bo'lsa — admin huquqi bilan (Firestore qoidalariga bog'liq emas);
+            // bo'lmasa — qoidalar ruxsat bergan oddiy yozuv bilan.
+            if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+              await adminPatchOrder(orderId, { paymentStatus: approved ? "paid" : "rejected" });
+            } else {
+              await firestorePatch(`orders/${orderId}`, { paymentStatus: approved ? "paid" : "rejected" });
+            }
             const order = await firestoreGet(`orders/${orderId}`);
             // Chek xabarini yangilaymiz: tugmalar o'rniga natija ko'rsatiladi
             const verdict = approved ? "✅ To'lov TASDIQLANDI" : "❌ To'lov RAD ETILDI";
@@ -498,6 +504,14 @@ export default async function handler(req, res) {
             }
           } catch (e) {
             console.error("To'lov tasdiqlashda xatolik:", e);
+            await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                chat_id: cbChatId,
+                text: "⚠️ To'lov holatini saqlab bo'lmadi: Firebase'da yangilangan Firestore qoidalari publish qilinganini (yoki FIREBASE_SERVICE_ACCOUNT sozlanganini) tekshiring.",
+              }),
+            }).catch(() => {});
           }
         }
         return res.status(200).json({ ok: true });
