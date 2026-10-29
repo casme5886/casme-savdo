@@ -1468,7 +1468,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
   // Checkout'dagi "Oluvchi" kartasi: false = ixcham ko'rinish, true = tahrirlash
   const [editRecipient, setEditRecipient] = useState(true);
   const [cardCopied, setCardCopied] = useState(false);
-  const [clickLogoFailed, setClickLogoFailed] = useState(false); // Click logo fayli topilmasa — matnli tugma
+  const [logoFailed, setLogoFailed] = useState({}); // logo fayli topilmasa — shu tugma matn bilan ko'rsatiladi
   // To'lov cheki (skrinshot) yuklash
   const [receiptUploading, setReceiptUploading] = useState(false);
   const [receiptUrl, setReceiptUrl] = useState("");
@@ -5141,37 +5141,41 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                   {[
                     ...(storeSettings?.payClickLink ? [{ key: "click", label: "Click", logo: "/click-logo.png" }] : []),
                     ...(storeSettings?.payUzumLink ? [{ key: "uzum", label: "Uzum Nasiya" }] : []),
-                    { key: "card", label: t.store.card },
+                    { key: "card", label: t.store.card, logo: "/uzcard-logo.png" },
                     { key: "cash", label: t.store.cash },
-                  ].map(opt => (
+                  ].map(opt => {
+                    const showLogo = !!opt.logo && !logoFailed[opt.key];
+                    return (
                     <button
                       key={opt.key}
                       type="button"
                       onClick={() => setForm({ ...form, payment: opt.key })}
                       className={`flex items-center justify-center overflow-hidden rounded-lg border text-xs font-medium transition ${
-                        opt.logo && !clickLogoFailed ? "relative min-h-[2.75rem] p-0" : "gap-1.5 px-2 py-2"
+                        showLogo ? "relative min-h-[2.75rem] bg-white p-0" : "gap-1.5 px-2 py-2"
                       } ${
                         form.payment === opt.key
-                          ? `border-rose-600 ${opt.logo && !clickLogoFailed ? "ring-2 ring-rose-600" : "bg-rose-50 text-rose-700"}`
+                          ? `border-rose-600 ${showLogo ? "ring-2 ring-rose-600" : "bg-rose-50 text-rose-700"}`
                           : "border-gray-200 text-slate-500 hover:bg-gray-50"
                       }`}
                     >
-                      {/* Click: tugma TO'LIQ logotip rasmidan iborat (public/click-logo.png yoki .jpg).
-                          Rasm topilmasa — oddiy "Click" matni ko'rsatiladi. */}
-                      {opt.logo && !clickLogoFailed ? (
+                      {/* Click va Karta (Uzcard): tugma TO'LIQ logotip rasmidan iborat
+                          (public/click-logo.* va public/uzcard-logo.*, .png yoki .jpg).
+                          Rasm topilmasa — oddiy matn ko'rsatiladi. */}
+                      {showLogo ? (
                         <img
                           src={opt.logo}
                           alt={opt.label}
-                          className="absolute inset-0 h-full w-full object-cover"
+                          className={`absolute inset-0 h-full w-full ${opt.key === "card" ? "object-contain" : "object-cover"}`}
                           onError={(e) => {
                             const el = e.currentTarget;
                             if (!el.dataset.triedJpg) { el.dataset.triedJpg = "1"; el.src = opt.logo.replace(/\.png$/, ".jpg"); }
-                            else setClickLogoFailed(true);
+                            else setLogoFailed((prev) => ({ ...prev, [opt.key]: true }));
                           }}
                         />
                       ) : opt.label}
                     </button>
-                  ))}
+                    );
+                  })}
                 </div>
               </Field>
 
