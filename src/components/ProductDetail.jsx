@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { X, ChevronLeft, ChevronRight, Package, Plus, Loader2 } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, Package, Plus, Loader2, Share2 } from "lucide-react";
 import { pname, pdesc, discountPct, useSwipeDownToClose } from "./ui.jsx";
 
 /**
@@ -33,6 +33,40 @@ export default function ProductDetail({ product, cartQty, onClose, onAddToCart, 
   else if (soldOut) stockLabel = t.store.outOfStock;
   else stockLabel = `${product.stock} ${t.store.inStock}`;
 
+  // Mahsulot havolasi: har bir mahsulotning o'z manzili bor (/product/<id>)
+  const [copied, setCopied] = useState(false);
+  const shareProduct = async () => {
+    const url = `https://www.casme.uz/product/${product.id}`;
+    const title = name;
+    const tg = typeof window !== "undefined" ? window.Telegram?.WebApp : null;
+    try {
+      if (tg && typeof tg.openTelegramLink === "function") {
+        // Telegram Mini App ichida — Telegramning o'zining "ulashish" oynasi ochiladi
+        tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(title)}`);
+        return;
+      }
+      if (navigator.share) {
+        await navigator.share({ title, text: title, url });
+        return;
+      }
+    } catch (e) {
+      if (e && e.name === "AbortError") return; // foydalanuvchi o'zi bekor qildi
+    }
+    // Zaxira: havolani nusxalaymiz
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = url;
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand("copy"); } catch {}
+      document.body.removeChild(ta);
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   const goPrev = () => setImgIndex((i) => (i - 1 + images.length) % images.length);
   const goNext = () => setImgIndex((i) => (i + 1) % images.length);
 
@@ -46,7 +80,19 @@ export default function ProductDetail({ product, cartQty, onClose, onAddToCart, 
         {/* Tutqich + yopish tugmasi — shu qismdan pastga tortib yopish mumkin */}
         <div className="cursor-grab touch-none pt-2.5 active:cursor-grabbing" {...dragHandleProps}>
           <div className="mx-auto h-1.5 w-10 rounded-full bg-gray-300 sm:hidden" />
-          <div className="flex items-center justify-end px-4 pt-1.5">
+          <div className="flex items-center justify-end gap-2 px-4 pt-1.5">
+            {copied && (
+              <span className="mr-auto rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-medium text-emerald-700">
+                {lang === "ru" ? "Ссылка скопирована" : "Havola nusxalandi"}
+              </span>
+            )}
+            <button
+              onClick={shareProduct}
+              aria-label={lang === "ru" ? "Поделиться" : "Ulashish"}
+              className="rounded-full bg-gray-100 p-1.5 text-slate-500 hover:bg-gray-200"
+            >
+              <Share2 size={16} />
+            </button>
             <button onClick={onClose} className="rounded-full bg-gray-100 p-1.5 text-slate-500 hover:bg-gray-200">
               <X size={16} />
             </button>
