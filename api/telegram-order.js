@@ -102,6 +102,21 @@ export default async function handler(req, res) {
         chat_id: CHAT_ID,
         text,
         parse_mode: "HTML",
+        // Buyurtma holatini bot orqali boshqarish tugmalari (webhook qayta ishlaydi)
+        reply_markup: order.orderId
+          ? {
+              inline_keyboard: [
+                [
+                  { text: "📦 Tayyor", callback_data: `st:ready:${order.orderId}` },
+                  { text: "🚚 Yo'lda", callback_data: `st:on_way:${order.orderId}` },
+                ],
+                [
+                  { text: "✅ Yetkazildi", callback_data: `st:delivered:${order.orderId}` },
+                  { text: "❌ Bekor", callback_data: `st:cancelled:${order.orderId}` },
+                ],
+              ],
+            }
+          : undefined,
       }),
     });
 

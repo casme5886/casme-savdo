@@ -234,6 +234,79 @@ async function firestorePatch(path, data) {
   }
 }
 
+// ---------- Buyurtma holatini bot orqali boshqarish ----------
+//
+// Buyurtma holatini (status) o'zgartirish Firestore qoidalarida FAQAT admin
+// (login qilgan) uchun ruxsat etilgan — begona odam buyurtmani "bekor
+// qildi" qilib qo'ymasligi uchun. Bot serverida esa login yo'q, shuning
+// uchun Firebase "service account" (xizmat hisobi) orqali admin huquqi bilan
+// yoziladi. Kalit Vercel'da FIREBASE_SERVICE_ACCOUNT o'zgaruvchisida (butun
+// JSON matni) saqlanadi — KODGA YOZILMAYDI.
+let cachedAdminToken = null; // { token, exp }
+
+async function getAdminAccessToken() {
+  const raw = process.env.FIREBASE_SERVICE_ACCOUNT;
+  if (!raw) return null;
+  if (cachedAdminToken && cachedAdminToken.exp > Date.now() + 60_000) return cachedAdminToken.token;
+  const sa = JSON.parse(raw);
+  const now = Math.floor(Date.now() / 1000);
+  const b64 = (obj) => Buffer.from(JSON.stringify(obj)).toString("base64url");
+  const unsigned = `${b64({ alg: "RS256", typ: "JWT" })}.${b64({
+    iss: sa.client_email,
+    scope: "https://www.googleapis.com/auth/datastore",
+    aud: "https://oauth2.googleapis.com/token",
+    iat: now,
+    exp: now + 3600,
+  })}`;
+  const signature = crypto.createSign("RSA-SHA256").update(unsigned).sign(sa.private_key, "base64url");
+  const res = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: `grant_type=${encodeURIComponent("urn:ietf:params:oauth:grant-type:jwt-bearer")}&assertion=${unsigned}.${signature}`,
+  });
+  const data = await res.json();
+  if (!res.ok || !data.access_token) throw new Error(`Admin token olinmadi: ${JSON.stringify(data)}`);
+  cachedAdminToken = { token: data.access_token, exp: Date.now() + (data.expires_in || 3600) * 1000 };
+  return cachedAdminToken.token;
+}
+
+/** Admin huquqi bilan buyurtmani yangilaydi (service account sozlanmagan bo'lsa — xato tashlaydi). */
+async function adminPatchOrder(orderId, data) {
+  const token = await getAdminAccessToken();
+  if (!token) throw new Error("FIREBASE_SERVICE_ACCOUNT sozlanmagan");
+  const fields = encodeFields(data);
+  const mask = Object.keys(data).map((k) => `updateMask.fieldPaths=${encodeURIComponent(k)}`).join("&");
+  const res = await fetch(`${FIRESTORE_BASE}/orders/${orderId}?${mask}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ fields }),
+  });
+  if (!res.ok) throw new Error(`Admin PATCH xatosi: ${res.status} ${await res.text().catch(() => "")}`);
+}
+
+const STATUS_BUTTONS = [
+  { key: "ready", label: "📦 Tayyor" },
+  { key: "on_way", label: "🚚 Yo'lda" },
+  { key: "delivered", label: "✅ Yetkazildi" },
+  { key: "cancelled", label: "❌ Bekor" },
+];
+
+function statusKeyboard(orderId, current) {
+  return {
+    inline_keyboard: [
+      STATUS_BUTTONS.slice(0, 2).map((b) => ({ text: (current === b.key ? "☑️ " : "") + b.label, callback_data: `st:${b.key}:${orderId}` })),
+      STATUS_BUTTONS.slice(2).map((b) => ({ text: (current === b.key ? "☑️ " : "") + b.label, callback_data: `st:${b.key}:${orderId}` })),
+    ],
+  };
+}
+
+const CUSTOMER_STATUS_TEXT = {
+  ready: "📦 Buyurtmangiz tayyorlandi!",
+  on_way: "🚚 Buyurtmangiz yo'lda! Kuryerimiz tez orada yetib boradi.",
+  delivered: "✅ Buyurtmangiz yetkazib berildi. Xaridingiz uchun rahmat! 💚",
+  cancelled: "❌ Buyurtmangiz bekor qilindi. Savollaringiz bo'lsa, biz bilan bog'laning.",
+};
+
 /** settings/telegramWelcome hujjatidan xabar matnini (tilga mos) o'qiydi (bo'lmasa — standart matn). */
 async function getWelcomeMessage(lang) {
   try {
@@ -350,6 +423,44 @@ export default async function handler(req, res) {
         });
       } catch (e) {
         console.error("answerCallbackQuery xatoligi:", e);
+      }
+
+      // Buyurtma HOLATINI o'zgartirish tugmalari ("st:<holat>:<buyurtmaId>") —
+      // faqat admin chatidan.
+      if (/^st:(ready|on_way|delivered|cancelled):/.test(data)) {
+        const adminChat = String(process.env.TELEGRAM_ADMIN_CHAT_ID || "");
+        if (adminChat && String(cbChatId) === adminChat) {
+          const [, newStatus, orderId] = data.split(":");
+          try {
+            await adminPatchOrder(orderId, { status: newStatus });
+            // Tugmalarda joriy holat belgilanadi
+            await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/editMessageReplyMarkup`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ chat_id: cbChatId, message_id: cq.message.message_id, reply_markup: statusKeyboard(orderId, newStatus) }),
+            });
+            // Mijozga (Telegram orqali kelgan bo'lsa) xabar
+            const order = await firestoreGet(`orders/${orderId}`);
+            if (order?.telegramUserId && CUSTOMER_STATUS_TEXT[newStatus]) {
+              await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ chat_id: order.telegramUserId, text: CUSTOMER_STATUS_TEXT[newStatus] }),
+              });
+            }
+          } catch (e) {
+            console.error("Buyurtma holatini o'zgartirishda xatolik:", e);
+            await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                chat_id: cbChatId,
+                text: "⚠️ Holatni o'zgartirib bo'lmadi. Vercel'da FIREBASE_SERVICE_ACCOUNT o'zgaruvchisi sozlanganini tekshiring.",
+              }),
+            }).catch(() => {});
+          }
+        }
+        return res.status(200).json({ ok: true });
       }
 
       // To'lov chekini TASDIQLASH / RAD ETISH (admin chatidagi chek xabaridagi tugmalar).
