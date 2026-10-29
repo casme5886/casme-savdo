@@ -4,7 +4,7 @@ import {
   Search, Globe, Wallet, CheckCircle2, Clock,
   ChevronDown, Save, Loader2, ShoppingCart, ShoppingBag,
   Minus, ArrowLeft, PartyPopper, Heart, UserRound, Truck, MapPin,
-  LogOut, Star, RotateCcw, ShieldCheck, Headphones,
+  LogOut, Star, Share2, RotateCcw, ShieldCheck, Headphones,
   Settings as SettingsIcon, Tag,
   ChevronLeft, ChevronRight, MessageCircle, Home,
   SlidersHorizontal, Filter, Check, ArrowRight,
@@ -1090,6 +1090,51 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
       setSelectedProduct(found);
     }
   }, [products]);
+
+  // Brend/kategoriya sahifasining o'z havolasi bor: /brand/<nom> va /category/<nom>.
+  // Ulashilgan havola ochilganda mahsulotlar yuklangach o'sha sahifa o'zi ochiladi.
+  const openedPageFromUrlRef = useRef(false);
+  useEffect(() => {
+    if (openedPageFromUrlRef.current) return;
+    const m = window.location.pathname.match(/^\/(brand|category)\/([^/]+)\/?$/);
+    if (!m) { openedPageFromUrlRef.current = true; return; }
+    if (!products.length) return; // mahsulotlar hali yuklanmagan — kutamiz
+    openedPageFromUrlRef.current = true;
+    let name = m[2];
+    try { name = decodeURIComponent(name); } catch {}
+    if (m[1] === "brand") openBrandPage(name); else openCategoryPage(name);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [products]);
+
+  /** Havolani ulashadi: Telegram ichida — Telegram oynasi, telefonda — tizim menyusi, aks holda — nusxalaydi. */
+  const [shareToast, setShareToast] = useState(false);
+  const shareLink = async (url, title) => {
+    const tg = window.Telegram?.WebApp;
+    try {
+      if (tg && typeof tg.openTelegramLink === "function") {
+        tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(title)}`);
+        return;
+      }
+      if (navigator.share) {
+        await navigator.share({ title, text: title, url });
+        return;
+      }
+    } catch (e) {
+      if (e && e.name === "AbortError") return;
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = url;
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand("copy"); } catch {}
+      document.body.removeChild(ta);
+    }
+    setShareToast(true);
+    setTimeout(() => setShareToast(false), 2000);
+  };
   // ---------------------------------------------------------------
   // SEO — <title>, <meta description/keywords>, canonical, hreflang
   // (uz-UZ / ru-UZ / x-default), <html lang>, Open Graph va Twitter
@@ -1589,6 +1634,9 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
         // manzilni o'zgartirmaydi — ular alohida indekslanadigan sahifa emas.
         if (key === "selectedProduct" && selectedProduct) {
           window.history.pushState({ navLayer: key }, "", `/product/${selectedProduct.id}`);
+        } else if (key === "categoryPageOpen" && (categoryPageMode === "brand" || categoryPageMode === "category") && categoryPageName) {
+          // Brend/kategoriya sahifasi — ulashish mumkin bo'lgan haqiqiy havola
+          window.history.pushState({ navLayer: key }, "", `/${categoryPageMode}/${encodeURIComponent(categoryPageName)}`);
         } else {
           window.history.pushState({ navLayer: key }, "");
         }
@@ -3870,6 +3918,21 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
               >
                 <ArrowLeft size={18} />
               </button>
+              {/* Ulashish — faqat brend/kategoriya sahifasida (o'z havolasi bor) */}
+              {(categoryPageMode === "brand" || categoryPageMode === "category") && categoryPageName && (
+                <button
+                  onClick={() => shareLink(`${SITE_ORIGIN}/${categoryPageMode}/${encodeURIComponent(categoryPageName)}`, categoryPageName)}
+                  aria-label={lang === "ru" ? "Поделиться" : "Ulashish"}
+                  className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-stone-700 shadow-sm hover:bg-white"
+                >
+                  <Share2 size={17} />
+                </button>
+              )}
+              {shareToast && (
+                <span className="absolute right-4 top-16 rounded-full bg-emerald-600 px-3 py-1 text-[11px] font-medium text-white shadow">
+                  {lang === "ru" ? "Ссылка скопирована" : "Havola nusxalandi"}
+                </span>
+              )}
               <h1 style={{ fontFamily: "'Playfair Display', Georgia, serif" }} className="absolute bottom-4 left-5 right-5 text-2xl font-bold text-white sm:text-3xl">
                 {categoryPageName}
               </h1>
