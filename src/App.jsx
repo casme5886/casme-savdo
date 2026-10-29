@@ -1487,6 +1487,30 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
     searchPageOpen: { open: searchPageOpen, close: () => setSearchPageOpen(false) },
   }), [selectedProduct, checkoutOpen, cartOpen, wishlistOpen, profileOpen, bannerPageOpen, categoryPageOpen, discountsPageOpen, categoriesPageOpen, searchPageOpen]);
 
+  // Savat, mahsulot sahifasi, profil, filtr va boshqa har qanday oyna/varaq
+  // ochiq turganda — orqa fon (asosiy sahifa) skroll bo'lmasligi uchun
+  // qotirib qo'yamiz. (Telefonlarda oddiy "overflow: hidden" yetarli emas,
+  // shuning uchun sahifani "fixed" qilib, joriy skroll o'rnini saqlab
+  // turamiz va yopilganda aynan o'sha joyga qaytaramiz.)
+  const anyOverlayOpen = Object.values(navLayers).some((l) => l.open) || sortModalOpen || filterModalOpen || phoneLoginOpen;
+  useEffect(() => {
+    if (!anyOverlayOpen) return;
+    const scrollY = window.scrollY;
+    const body = document.body;
+    const prev = { position: body.style.position, top: body.style.top, width: body.style.width, overflow: body.style.overflow };
+    body.style.position = "fixed";
+    body.style.top = `-${scrollY}px`;
+    body.style.width = "100%";
+    body.style.overflow = "hidden";
+    return () => {
+      body.style.position = prev.position;
+      body.style.top = prev.top;
+      body.style.width = prev.width;
+      body.style.overflow = prev.overflow;
+      window.scrollTo(0, scrollY);
+    };
+  }, [anyOverlayOpen]);
+
   // Har bir qatlam ochilganda/yopilganda brauzer tarixini shunga moslab yangilaydi.
   useEffect(() => {
     if (popGuardRef.current > 0) {
