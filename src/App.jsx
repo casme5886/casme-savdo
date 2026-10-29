@@ -1468,6 +1468,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
   // Checkout'dagi "Oluvchi" kartasi: false = ixcham ko'rinish, true = tahrirlash
   const [editRecipient, setEditRecipient] = useState(true);
   const [cardCopied, setCardCopied] = useState(false);
+  const [clickLogoFailed, setClickLogoFailed] = useState(false); // Click logo fayli topilmasa — matnli tugma
   // To'lov cheki (skrinshot) yuklash
   const [receiptUploading, setReceiptUploading] = useState(false);
   const [receiptUrl, setReceiptUrl] = useState("");
@@ -5147,20 +5148,28 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                       key={opt.key}
                       type="button"
                       onClick={() => setForm({ ...form, payment: opt.key })}
-                      className={`flex items-center justify-center gap-1.5 rounded-lg border px-2 py-2 text-xs font-medium transition ${
-                        form.payment === opt.key ? "border-rose-600 bg-rose-50 text-rose-700" : "border-gray-200 text-slate-500 hover:bg-gray-50"
+                      className={`flex items-center justify-center overflow-hidden rounded-lg border text-xs font-medium transition ${
+                        opt.logo && !clickLogoFailed ? "min-h-[3.25rem] p-0" : "gap-1.5 px-2 py-2"
+                      } ${
+                        form.payment === opt.key
+                          ? `border-rose-600 ${opt.logo && !clickLogoFailed ? "ring-2 ring-rose-600" : "bg-rose-50 text-rose-700"}`
+                          : "border-gray-200 text-slate-500 hover:bg-gray-50"
                       }`}
                     >
-                      {/* Logo faylisi (public/click-logo.png) bo'lmasa — yashiriladi, faqat nom qoladi */}
-                      {opt.logo && (
-                        <img src={opt.logo} alt="" className="h-5 w-5 shrink-0 rounded object-contain" onError={(e) => {
-                          // Avval .png, bo'lmasa .jpg ni sinaydi; ikkalasi ham bo'lmasa — yashiradi
-                          const el = e.currentTarget;
-                          if (!el.dataset.triedJpg) { el.dataset.triedJpg = "1"; el.src = opt.logo.replace(/\.png$/, ".jpg"); }
-                          else el.style.display = "none";
-                        }} />
-                      )}
-                      {opt.label}
+                      {/* Click: tugma TO'LIQ logotip rasmidan iborat (public/click-logo.png yoki .jpg).
+                          Rasm topilmasa — oddiy "Click" matni ko'rsatiladi. */}
+                      {opt.logo && !clickLogoFailed ? (
+                        <img
+                          src={opt.logo}
+                          alt={opt.label}
+                          className="h-full min-h-[3.25rem] w-full object-cover"
+                          onError={(e) => {
+                            const el = e.currentTarget;
+                            if (!el.dataset.triedJpg) { el.dataset.triedJpg = "1"; el.src = opt.logo.replace(/\.png$/, ".jpg"); }
+                            else setClickLogoFailed(true);
+                          }}
+                        />
+                      ) : opt.label}
                     </button>
                   ))}
                 </div>
