@@ -1004,6 +1004,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
   const [profileView, setProfileView] = useState("menu"); // "menu" | "personal" | "orders" | "addresses"
   const [myOrders, setMyOrders] = useState([]);
   const [myOrdersLoading, setMyOrdersLoading] = useState(false);
+  const [myOrdersError, setMyOrdersError] = useState("");
 
   // Telegram botidagi "📦 Mening buyurtmalarim" tugmasi (?view=orders bilan
   // ochiladi) bosilganda ilova to'g'ridan-to'g'ri profil/buyurtmalar
@@ -1647,9 +1648,10 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
           customerId: myCustomerId || null,
           phone: myPhone || null,
         });
-        if (!cancelled) setMyOrders(list);
+        if (!cancelled) { setMyOrders(list); setMyOrdersError(""); }
       } catch (e) {
         console.error("Buyurtmalarni yuklashda xatolik:", e);
+        if (!cancelled) setMyOrdersError(String(e?.code || e?.message || e));
       }
       if (!cancelled) setMyOrdersLoading(false);
     };
@@ -4354,7 +4356,14 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                       <Loader2 size={15} className="animate-spin" /> {t.store.profile.loading}
                     </div>
                   ) : myOrders.length === 0 ? (
-                    <EmptyState icon={ClipboardList} text={t.store.profile.noOrders} />
+                    <>
+                      <EmptyState icon={ClipboardList} text={t.store.profile.noOrders} />
+                      {myOrdersError && (
+                        <p className="mt-2 break-words text-center text-[11px] text-rose-500">
+                          {lang === "ru" ? "Не удалось загрузить заказы" : "Buyurtmalarni yuklab bo'lmadi"}: {myOrdersError}
+                        </p>
+                      )}
+                    </>
                   ) : (
                     <div className="space-y-2">
                       {myOrders
