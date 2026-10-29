@@ -4875,7 +4875,11 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                       <button
                         onClick={applyPromoCode}
                         disabled={checkingPromo || !promoInput.trim()}
-                        className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-gray-50 disabled:opacity-60"
+                        className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border px-3 py-2 text-xs font-medium transition disabled:cursor-not-allowed ${
+                          promoInput.trim()
+                            ? "border-rose-600 bg-rose-600 text-white hover:bg-rose-700"
+                            : "border-gray-200 text-slate-400 hover:bg-gray-50"
+                        }`}
                       >
                         {checkingPromo ? <Loader2 size={13} className="animate-spin" /> : null} {t.store.promoApply}
                       </button>
