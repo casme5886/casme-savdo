@@ -5138,7 +5138,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
               <Field label={t.store.payment}>
                 <div className="grid grid-cols-2 gap-2">
                   {[
-                    ...(storeSettings?.payClickLink ? [{ key: "click", label: "Click" }] : []),
+                    ...(storeSettings?.payClickLink ? [{ key: "click", label: "Click", logo: "/click-logo.png" }] : []),
                     ...(storeSettings?.payUzumLink ? [{ key: "uzum", label: "Uzum Nasiya" }] : []),
                     { key: "card", label: t.store.card },
                     { key: "cash", label: t.store.cash },
@@ -5147,10 +5147,14 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                       key={opt.key}
                       type="button"
                       onClick={() => setForm({ ...form, payment: opt.key })}
-                      className={`rounded-lg border px-2 py-2 text-xs font-medium transition ${
+                      className={`flex items-center justify-center gap-1.5 rounded-lg border px-2 py-2 text-xs font-medium transition ${
                         form.payment === opt.key ? "border-rose-600 bg-rose-50 text-rose-700" : "border-gray-200 text-slate-500 hover:bg-gray-50"
                       }`}
                     >
+                      {/* Logo faylisi (public/click-logo.png) bo'lmasa — yashiriladi, faqat nom qoladi */}
+                      {opt.logo && (
+                        <img src={opt.logo} alt="" className="h-5 w-5 shrink-0 rounded object-contain" onError={(e) => { e.currentTarget.style.display = "none"; }} />
+                      )}
                       {opt.label}
                     </button>
                   ))}
