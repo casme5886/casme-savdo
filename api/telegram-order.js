@@ -39,6 +39,38 @@ export default async function handler(req, res) {
     return res.status(400).json({ ok: false, error: "Buyurtma ma'lumoti topilmadi" });
   }
 
+  // To'lov cheki (skrinshot) yuklanganda — buyurtma xabariga rasm sifatida
+  // yuboriladi ("type: receipt"). Faqat o'zimizning R2 rasm manzillariga
+  // ruxsat beriladi (begona havolani botga yubortirib bo'lmasligi uchun).
+  if (order.type === "receipt") {
+    const photo = String(order.receiptUrl || "");
+    if (!photo.startsWith("https://pub-6a37909dbe8741249b8e364db72918b6.r2.dev/")) {
+      return res.status(400).json({ ok: false, error: "Noto'g'ri rasm manzili" });
+    }
+    const caption = [
+      "🧾 <b>To'lov cheki yuklandi</b>",
+      `👤 ${esc(order.customer)}  📞 ${esc(order.phone)}`,
+      `💰 ${Number(order.amount || 0).toLocaleString("ru-RU")} UZS — ${paymentLabel(order.payment)}`,
+      order.orderId ? `🆔 <code>${esc(order.orderId)}</code>` : "",
+    ].filter(Boolean).join("\n");
+    try {
+      const tgRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chat_id: CHAT_ID, photo, caption, parse_mode: "HTML" }),
+      });
+      const tgData = await tgRes.json();
+      if (!tgData.ok) {
+        console.error("Telegram sendPhoto xatosi:", tgData);
+        return res.status(502).json({ ok: false, error: "Telegramga yuborilmadi" });
+      }
+      return res.status(200).json({ ok: true });
+    } catch (e) {
+      console.error("Telegramga chek yuborishda xatolik:", e);
+      return res.status(500).json({ ok: false, error: "Server xatosi" });
+    }
+  }
+
   // Himoya qatlami: costPrice (tannarx) — frontend allaqachon buni yubormaydi,
   // lekin har ehtimolga qarshi, agar kelib qolsa ham, xabar matniga
   // hech qachon qo'shilmasligi uchun shu yerda ham tozalab tashlaymiz.
@@ -78,7 +110,7 @@ function esc(value) {
 }
 
 function paymentLabel(code) {
-  return { cash: "Naqd", card: "Karta orqali" }[code] || esc(code) || "—";
+  return { cash: "Naqd", card: "Karta orqali", click: "Click", uzum: "Uzum Nasiya" }[code] || esc(code) || "—";
 }
 
 function statusLabel(code) {

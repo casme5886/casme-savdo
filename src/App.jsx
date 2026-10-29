@@ -1470,6 +1470,16 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
       const url = await uploadImage(`receipts/${paidInfo.orderId}/${Date.now()}`, file);
       await updateItem(COL.orders, paidInfo.orderId, { receiptUrl: url });
       setReceiptUrl(url);
+      // Adminga Telegram orqali ham yuboramiz (buyurtma xabari bilan bir joyda)
+      notifyTelegramBot({
+        type: "receipt",
+        receiptUrl: url,
+        orderId: paidInfo.orderId,
+        customer: form.name.trim(),
+        phone: form.phone.trim(),
+        amount: paidInfo.amount,
+        payment: paidInfo.payment,
+      });
     } catch (e) {
       console.error("Chekni yuklashda xatolik:", e);
       setReceiptError(lang === "ru" ? "Не удалось загрузить. Попробуйте ещё раз." : "Yuklab bo'lmadi. Qayta urinib ko'ring.");
