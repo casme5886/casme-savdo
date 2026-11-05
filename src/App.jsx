@@ -1355,6 +1355,11 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
     const image = (selectedProduct.imageUrls && selectedProduct.imageUrls[0]) || selectedProduct.imageUrl || "";
     const url = `${SITE_ORIGIN}/product/${selectedProduct.id}${lang === "ru" ? "?lang=ru" : ""}`;
     const soldOut = isSoldOut(selectedProduct);
+    // Faqat haqiqiy sharhlar: buyurtmaga bog'langan, admin tasdiqlagan (active), mijoz yozgan
+    const realReviews = (testimonials || []).filter(
+      (x) => x.productId === selectedProduct.id && x.active === true && x.source === "customer" && x.orderId &&
+        Number(x.rating) >= 1 && Number(x.rating) <= 5 && String(x.text || "").trim()
+    );
 
     const productLd = {
       "@context": "https://schema.org",
@@ -1364,6 +1369,23 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
       ...(image ? { image: [image] } : {}),
       ...(selectedProduct.brand ? { brand: { "@type": "Brand", name: selectedProduct.brand } } : {}),
       sku: selectedProduct.id,
+      ...(realReviews.length
+        ? {
+            aggregateRating: {
+              "@type": "AggregateRating",
+              ratingValue: (realReviews.reduce((a, r) => a + Number(r.rating), 0) / realReviews.length).toFixed(1),
+              reviewCount: String(realReviews.length),
+              bestRating: "5",
+              worstRating: "1",
+            },
+            review: realReviews.slice(0, 10).map((r) => ({
+              "@type": "Review",
+              author: { "@type": "Person", name: String(r.name || "Mijoz").slice(0, 60) },
+              reviewRating: { "@type": "Rating", ratingValue: String(Number(r.rating)), bestRating: "5", worstRating: "1" },
+              reviewBody: String(r.text).slice(0, 1000),
+            })),
+          }
+        : {}),
       offers: {
         "@type": "Offer",
         url,
@@ -1402,7 +1424,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
       document.getElementById(PRODUCT_ID)?.remove();
       document.getElementById(BREADCRUMB_ID)?.remove();
     };
-  }, [selectedProduct, lang]);
+  }, [selectedProduct, lang, testimonials]);
   // Xarid qilingan mahsulotga sharh qoldirish oynasi — { order, item } yoki null.
   const [reviewModal, setReviewModal] = useState(null);
   // Har bir (buyurtma + mahsulot) juftligi uchun mijoz allaqachon sharh qoldirganmi va u qanday holatda ekanini bilish uchun.

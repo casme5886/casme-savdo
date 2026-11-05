@@ -592,6 +592,33 @@ async function buildPageData(type, key, ru) {
     const desc = (pickDesc(p, ru) || "").replace(/\s+/g, " ").slice(0, 160) || (ru ? `${name} — оригинальная продукция в CASME.` : `${name} — CASME'da original mahsulotlar.`);
     const image = firstImage(p);
     const url = `${SITE_URL}/product/${key}${ru ? "?lang=ru" : ""}`;
+    // Haqiqiy mijoz sharhlari: faqat buyurtmaga bog'langan va admin tasdiqlagan (active) sharhlar
+    let reviews = [];
+    try {
+      const rows = await fsQuery({
+        from: [{ collectionId: "testimonials" }],
+        where: { fieldFilter: { field: { fieldPath: "productId" }, op: "EQUAL", value: { stringValue: key } } },
+        limit: 50,
+      });
+      reviews = rows.filter((x) => x.active === true && x.source === "customer" && x.orderId && Number(x.rating) >= 1 && Number(x.rating) <= 5 && String(x.text || "").trim());
+    } catch { /* sharhsiz ham ishlayveradi */ }
+    const reviewLd = reviews.length
+      ? {
+          aggregateRating: {
+            "@type": "AggregateRating",
+            ratingValue: (reviews.reduce((a, r) => a + Number(r.rating), 0) / reviews.length).toFixed(1),
+            reviewCount: String(reviews.length),
+            bestRating: "5",
+            worstRating: "1",
+          },
+          review: reviews.slice(0, 10).map((r) => ({
+            "@type": "Review",
+            author: { "@type": "Person", name: String(r.name || "Mijoz").slice(0, 60) },
+            reviewRating: { "@type": "Rating", ratingValue: String(Number(r.rating)), bestRating: "5", worstRating: "1" },
+            reviewBody: String(r.text).slice(0, 1000),
+          })),
+        }
+      : {};
     // Ichki bog'lanish: shu brendning boshqa mahsulotlari
     let related = [];
     try {
@@ -618,6 +645,7 @@ async function buildPageData(type, key, ru) {
           ...(image ? { image: [image] } : {}),
           ...(p.brand ? { brand: { "@type": "Brand", name: p.brand } } : {}),
           sku: key,
+          ...reviewLd,
           offers: {
             "@type": "Offer",
             url,
@@ -633,6 +661,7 @@ async function buildPageData(type, key, ru) {
         `<h1>${escHtml(name)}</h1>` +
         `<p>${escHtml(Number(p.price || 0).toLocaleString("ru-RU"))} UZS</p>` +
         (pickDesc(p, ru) ? `<p>${escHtml(pickDesc(p, ru))}</p>` : "") +
+        (reviews.length ? `<h2>${ru ? "Отзывы покупателей" : "Mijozlar sharhlari"}</h2>${reviews.slice(0, 10).map((r) => `<p><b>${escHtml(r.name || "")}</b> — ${escHtml(Number(r.rating))}/5<br>${escHtml(String(r.text).slice(0, 500))}</p>`).join("")}` : "") +
         (related.length ? `<h2>${ru ? "Другие товары бренда" : "Shu brendning boshqa mahsulotlari"}</h2>${productLinks(related, ru)}` : ""),
     };
   }
