@@ -26,6 +26,7 @@
 // ==========================================================
 
 import sharp from "sharp";
+import { builtinSeoDescription } from "../src/seoDescriptions.js";
 
 const FIREBASE_PROJECT_ID = "casme-savdo";
 const FIRESTORE_BASE = `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/databases/(default)/documents`;
@@ -425,8 +426,273 @@ async function sendProductImage(req, res) {
   }
 }
 
+// ==========================================================
+// Serverda tayyorlangan sahifa (SSR-lite): /product/:id, /brand/:name,
+// /category/:name, /discounts, /hits, /categories
+//
+// Sayt SPA bo'lgani uchun Google avval bo'sh sahifa ko'radi. Bu yerda
+// deploy qilingan index.html olinadi va ichiga shu sahifaga xos title,
+// description, canonical, Open Graph, JSON-LD hamda crawler uchun oddiy
+// HTML (sarlavha + mahsulot havolalari) qo'shiladi. React yuklangach
+// #root ichini o'zi almashtiradi. Har qanday xatoda — oddiy index.html.
+// ==========================================================
+
+const escHtml = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const ldJson = (o) => JSON.stringify(o).replace(/</g, "\\u003c");
+const pickName = (p, ru) => (ru ? p.nameRu || p.nameUz || p.name : p.nameUz || p.nameRu || p.name) || "";
+const pickDesc = (p, ru) => (ru ? p.descriptionRu || p.descriptionUz || p.description : p.descriptionUz || p.descriptionRu || p.description) || "";
+const firstImage = (p) => (Array.isArray(p.imageUrls) && p.imageUrls[0]) || p.imageUrl || "";
+const soldOut = (p) => {
+  const st = p.stockType || "limited";
+  return st === "out" || (st === "limited" && (p.stock || 0) <= 0);
+};
+
+async function fsQuery(structuredQuery) {
+  const r = await fetch(`${FIRESTORE_BASE}:runQuery`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ structuredQuery }),
+  });
+  if (!r.ok) throw new Error(`runQuery ${r.status}`);
+  const rows = await r.json();
+  return (Array.isArray(rows) ? rows : [])
+    .filter((x) => x.document)
+    .map((x) => ({ id: x.document.name.split("/").pop(), ...decodeFields(x.document.fields || {}) }));
+}
+
+async function fetchProductsWhere(field, value, limit = 60) {
+  const rows = await fsQuery({
+    from: [{ collectionId: "products" }],
+    where: { fieldFilter: { field: { fieldPath: field }, op: "EQUAL", value: { stringValue: value } } },
+    limit,
+  });
+  return rows.filter((p) => p.active !== false);
+}
+
+function replaceMeta(html, attr, key, value) {
+  const re = new RegExp(`<meta\\s+${attr}="${key}"\\s+content="[^"]*"\\s*/?>`);
+  const tag = `<meta ${attr}="${key}" content="${escHtml(value)}" />`;
+  return re.test(html) ? html.replace(re, () => tag) : html.replace("</head>", () => `${tag}\n</head>`);
+}
+
+function buildPageHtml(baseHtml, page, ru) {
+  const self = `${SITE_URL}${page.path}`;
+  const selfHref = ru ? `${self}?lang=ru` : self;
+  let html = baseHtml;
+  html = html.replace(/<title>[\s\S]*?<\/title>/, () => `<title>${escHtml(page.title)}</title>`);
+  html = replaceMeta(html, "name", "description", page.desc);
+  html = replaceMeta(html, "property", "og:title", page.title);
+  html = replaceMeta(html, "property", "og:description", page.desc);
+  html = replaceMeta(html, "property", "og:url", selfHref);
+  html = replaceMeta(html, "property", "og:type", page.ogType || "website");
+  html = replaceMeta(html, "name", "twitter:title", page.title);
+  html = replaceMeta(html, "name", "twitter:description", page.desc);
+  if (page.image) {
+    html = replaceMeta(html, "property", "og:image", page.image);
+    html = replaceMeta(html, "name", "twitter:image", page.image);
+  }
+  html = html.replace(/<link rel="canonical" href="[^"]*"\s*\/?>/, () => `<link rel="canonical" href="${escHtml(selfHref)}" />`);
+  html = html.replace(/<link rel="alternate" hreflang="uz-UZ" href="[^"]*"\s*\/?>/, () => `<link rel="alternate" hreflang="uz-UZ" href="${escHtml(self)}" />`);
+  html = html.replace(/<link rel="alternate" hreflang="ru-UZ" href="[^"]*"\s*\/?>/, () => `<link rel="alternate" hreflang="ru-UZ" href="${escHtml(self)}?lang=ru" />`);
+  html = html.replace(/<link rel="alternate" hreflang="x-default" href="[^"]*"\s*\/?>/, () => `<link rel="alternate" hreflang="x-default" href="${escHtml(self)}" />`);
+  const ld = (page.jsonLd || []).map((o) => `<script type="application/ld+json">${ldJson(o)}</script>`).join("\n");
+  if (ld) html = html.replace("</head>", () => `${ld}\n</head>`);
+  // Crawler uchun oddiy kontent — React yuklangach #root to'liq almashtiriladi.
+  const body = `<main data-prerender style="font-family:system-ui,sans-serif;padding:16px;max-width:720px;margin:0 auto">${page.bodyHtml || ""}</main>`;
+  html = html.replace('<div id="root"></div>', () => `<div id="root">${body}</div>`);
+  return html;
+}
+
+const productLinks = (list, ru) =>
+  list.length
+    ? `<ul>${list.map((p) => `<li><a href="${SITE_URL}/product/${escHtml(p.id)}">${escHtml(pickName(p, ru))}</a>${p.price ? ` — ${escHtml(Number(p.price).toLocaleString("ru-RU"))} UZS` : ""}</li>`).join("")}</ul>`
+    : "";
+
+const itemListLd = (list, ru) => ({
+  "@context": "https://schema.org",
+  "@type": "ItemList",
+  itemListElement: list.slice(0, 40).map((p, i) => ({
+    "@type": "ListItem",
+    position: i + 1,
+    url: `${SITE_URL}/product/${p.id}`,
+    name: pickName(p, ru),
+  })),
+});
+
+const crumbLd = (ru, name, url) => ({
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: [
+    { "@type": "ListItem", position: 1, name: ru ? "Главная" : "Bosh sahifa", item: `${SITE_URL}/` },
+    { "@type": "ListItem", position: 2, name, item: url },
+  ],
+});
+
+async function buildPageData(type, key, ru) {
+  if (type === "product") {
+    const r = await fetch(`${FIRESTORE_BASE}/products/${encodeURIComponent(key)}`);
+    if (!r.ok) return null;
+    const doc = await r.json();
+    const p = { id: key, ...decodeFields(doc.fields || {}) };
+    if (p.active === false) return null;
+    const name = pickName(p, ru);
+    if (!name) return null;
+    const desc = (pickDesc(p, ru) || "").replace(/\s+/g, " ").slice(0, 160) || (ru ? `${name} — оригинальная продукция в CASME.` : `${name} — CASME'da original mahsulotlar.`);
+    const image = firstImage(p);
+    const url = `${SITE_URL}/product/${key}${ru ? "?lang=ru" : ""}`;
+    return {
+      path: `/product/${key}`,
+      title: `${name} — CASME`,
+      desc,
+      image,
+      ogType: "product",
+      jsonLd: [
+        {
+          "@context": "https://schema.org",
+          "@type": "Product",
+          name,
+          description: pickDesc(p, ru) || name,
+          ...(image ? { image: [image] } : {}),
+          ...(p.brand ? { brand: { "@type": "Brand", name: p.brand } } : {}),
+          sku: key,
+          offers: {
+            "@type": "Offer",
+            url,
+            priceCurrency: "UZS",
+            price: String(Number(p.price) || 0),
+            availability: soldOut(p) ? "https://schema.org/OutOfStock" : "https://schema.org/InStock",
+          },
+        },
+        crumbLd(ru, name, url),
+      ],
+      bodyHtml:
+        `<h1>${escHtml(name)}</h1>` +
+        (p.brand ? `<p>${escHtml(p.brand)}${p.category ? " · " + escHtml(p.category) : ""}</p>` : "") +
+        `<p>${escHtml(Number(p.price || 0).toLocaleString("ru-RU"))} UZS</p>` +
+        (pickDesc(p, ru) ? `<p>${escHtml(pickDesc(p, ru))}</p>` : "") +
+        `<p><a href="${SITE_URL}/">CASME</a></p>`,
+    };
+  }
+
+  if (type === "brand" || type === "category") {
+    const isBrand = type === "brand";
+    const name = key;
+    const list = await fetchProductsWhere(isBrand ? "brand" : "category", name);
+    if (!list.length) return null;
+    // Admin kiritgan tavsif ustun, bo'lmasa — ichki ro'yxatdan
+    let own = "";
+    try {
+      const docs = await fsQuery({
+        from: [{ collectionId: isBrand ? "brands" : "categories" }],
+        where: { fieldFilter: { field: { fieldPath: "name" }, op: "EQUAL", value: { stringValue: name } } },
+        limit: 1,
+      });
+      if (docs[0]) own = ((ru ? docs[0].descriptionRu : docs[0].description) || docs[0].description || docs[0].descriptionRu || "").trim();
+    } catch { /* ichki tavsifga o'tamiz */ }
+    const bdesc = own || builtinSeoDescription(type, name, ru ? "ru" : "uz");
+    const title = ru
+      ? `${name} — ${isBrand ? "оригинальная корейская косметика" : "корейская косметика"} | CASME`
+      : `${name} — ${isBrand ? "original koreys kosmetikasi" : "koreys kosmetikasi"} | CASME`;
+    const desc = bdesc
+      ? bdesc.replace(/\s+/g, " ").slice(0, 160)
+      : ru
+      ? `${isBrand ? "Все товары бренда" : "Все товары категории"} ${name} в интернет-магазине CASME. Оригинальная продукция, доставка по Ташкенту и Узбекистану.`
+      : `${name} ${isBrand ? "brendining" : "kategoriyasidagi"} barcha mahsulotlari CASME onlayn do'konida. Original mahsulotlar, Toshkent va O'zbekiston bo'ylab yetkazib berish.`;
+    const path = `/${type}/${encodeURIComponent(name)}`;
+    return {
+      path,
+      title,
+      desc,
+      image: firstImage(list[0]),
+      jsonLd: [
+        { "@context": "https://schema.org", "@type": "CollectionPage", name, description: desc, url: `${SITE_URL}${path}` },
+        itemListLd(list, ru),
+        crumbLd(ru, name, `${SITE_URL}${path}`),
+      ],
+      bodyHtml: `<h1>${escHtml(name)}</h1>${bdesc ? `<p>${escHtml(bdesc)}</p>` : ""}${productLinks(list, ru)}`,
+    };
+  }
+
+  if (type === "discounts" || type === "hits") {
+    const all = await fsQuery({ from: [{ collectionId: "products" }], limit: 1000 });
+    const act = all.filter((p) => p.active !== false);
+    const list = type === "discounts"
+      ? act.filter((p) => Number(p.oldPrice) > Number(p.price))
+      : act.filter((p) => p.tag === "bestseller");
+    const T = {
+      discounts: {
+        uz: ["Chegirmalar va aksiyalar — koreys kosmetikasi | CASME", "CASME'da original koreys kosmetikasiga mega chegirmalar va aksiyalar."],
+        ru: ["Скидки и акции на корейскую косметику | CASME", "Мега скидки на оригинальную корейскую косметику в CASME."],
+      },
+      hits: {
+        uz: ["Eng ko'p sotilgan mahsulotlar — koreys kosmetikasi | CASME", "CASME'dagi eng ommabop koreys kosmetikasi mahsulotlari."],
+        ru: ["Хиты продаж — корейская косметика | CASME", "Самые популярные товары корейской косметики в CASME."],
+      },
+    }[type][ru ? "ru" : "uz"];
+    const path = `/${type}`;
+    return {
+      path,
+      title: T[0],
+      desc: T[1],
+      image: list[0] ? firstImage(list[0]) : "",
+      jsonLd: [itemListLd(list, ru), crumbLd(ru, T[0].split(" | ")[0], `${SITE_URL}${path}`)],
+      bodyHtml: `<h1>${escHtml(T[0].split(" | ")[0])}</h1><p>${escHtml(T[1])}</p>${productLinks(list.slice(0, 60), ru)}`,
+    };
+  }
+
+  if (type === "categories") {
+    const act = (await fsQuery({ from: [{ collectionId: "products" }], limit: 1000 })).filter((p) => p.active !== false);
+    const cats = [...new Set(act.map((p) => (p.category || "").trim()).filter(Boolean))];
+    const brs = [...new Set(act.map((p) => (p.brand || "").trim()).filter(Boolean))];
+    const title = ru ? "Категории корейской косметики | CASME" : "Koreys kosmetikasi kategoriyalari | CASME";
+    const desc = ru ? "Все категории корейской косметики и ухода за кожей в CASME." : "CASME'dagi barcha koreys kosmetikasi va teri parvarishi kategoriyalari.";
+    const links = (arr, kind) => `<ul>${arr.map((n) => `<li><a href="${SITE_URL}/${kind}/${encodeURIComponent(n)}">${escHtml(n)}</a></li>`).join("")}</ul>`;
+    return {
+      path: "/categories",
+      title,
+      desc,
+      image: "",
+      jsonLd: [crumbLd(ru, ru ? "Категории" : "Kategoriyalar", `${SITE_URL}/categories`)],
+      bodyHtml: `<h1>${escHtml(title.split(" | ")[0])}</h1><p>${escHtml(desc)}</p>${links(cats, "category")}<h2>${ru ? "Бренды" : "Brendlar"}</h2>${links(brs, "brand")}`,
+    };
+  }
+  return null;
+}
+
+async function fetchBaseHtml() {
+  const r = await fetch(`${SITE_URL}/index.html`);
+  if (!r.ok) throw new Error(`index.html ${r.status}`);
+  const html = await r.text();
+  if (!html.includes('<div id="root"></div>')) throw new Error("index.html shabloni topilmadi");
+  return html;
+}
+
+async function sendPage(req, res) {
+  const type = String((req.query && req.query.type) || "");
+  const key = String((req.query && req.query.key) || "");
+  const ru = (req.query && req.query.lang) === "ru";
+  let base = null;
+  try {
+    base = await fetchBaseHtml();
+    const page = type === "discounts" || type === "hits" || type === "categories" ? await buildPageData(type, "", ru) : key ? await buildPageData(type, key, ru) : null;
+    const out = page ? buildPageHtml(base, page, ru) : base;
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.setHeader("Cache-Control", page ? "public, max-age=0, s-maxage=600, stale-while-revalidate=86400" : "public, max-age=0, s-maxage=60");
+    return res.status(200).send(out);
+  } catch (e) {
+    console.error("page xatosi:", e);
+    if (base) {
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.setHeader("Cache-Control", "no-store");
+      return res.status(200).send(base);
+    }
+    return res.redirect(302, "/");
+  }
+}
+
 export default async function handler(req, res) {
   const kind = (req.query && req.query.kind) || "";
+  if (kind === "page") return sendPage(req, res);
   if (kind === "robots") return sendRobots(res);
   if (kind === "favicon") return sendFavicon(res);
   if (kind === "merchant") return sendMerchantFeed(res);

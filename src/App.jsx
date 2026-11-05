@@ -2729,7 +2729,16 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
       });
     } catch (e) {
       console.error("Buyurtma yuborishda xatolik:", e);
-      setError(t.common.required);
+      if (e && e.code === "out_of_stock") {
+        const nm = e.productName ? `«${e.productName}» ` : "";
+        setError(
+          lang === "ru"
+            ? `${nm}— недостаточно товара на складе${e.left > 0 ? ` (осталось: ${e.left} шт.)` : " (закончился)"}. Измените количество в корзине.`
+            : `${nm}omborda yetarli emas${e.left > 0 ? ` (qoldi: ${e.left} ta)` : " (tugab qoldi)"}. Savatdagi sonini o'zgartiring.`
+        );
+      } else {
+        setError(t.common.required);
+      }
       setPlacing(false);
     }
   };

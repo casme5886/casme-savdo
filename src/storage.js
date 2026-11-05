@@ -10,7 +10,7 @@
 import { db } from "./firebase.js";
 import {
   collection, doc, onSnapshot, addDoc, setDoc, updateDoc, deleteDoc,
-  query, where, getDocs, increment, writeBatch, serverTimestamp, getCountFromServer,
+  query, where, getDocs, increment, writeBatch, serverTimestamp, getCountFromServer, runTransaction,
 } from "firebase/firestore";
 
 /** Kolleksiyaga real-vaqtli obuna bo'lish. callback har o'zgarishda ishga tushadi. */
@@ -335,17 +335,51 @@ export async function findMyOrders({ telegramUserId, customerId, phone }) {
  * aniq vaqt belgisi (mijoz telefonining vaqti emas).
  */
 export async function placeOrderBatch({ cartItems, existingCustomer, customerName, customerPhone, customerAddress, cartTotal, orderData }) {
-  const batch = writeBatch(db);
-
-  cartItems.forEach(({ product, qty }) => {
-    // "sold" — mahsulotlar sahifasida "Nechta sotilgan" ko'rsatish uchun,
-    // qoldiq turidan qat'iy nazar (cheksiz bo'lsa ham) har doim +qty qilinadi.
-    const productUpdates = { sold: increment(qty) };
-    if ((product.stockType || "limited") === "limited") {
-      productUpdates.stock = increment(-qty);
+  // MUHIM: qoldiq tekshiruvi va yozish bitta TRANZAKSIYA ichida — ikki mijoz
+  // bir vaqtda oxirgi mahsulotni buyurtma qilsa, ikkinchisi "qolmadi" xatosini
+  // oladi (ombor manfiyga tushmaydi). Firestore tranzaksiyasi raqobat bo'lsa
+  // o'zi qayta urinadi.
+  return runTransaction(db, async (tx) => {
+    // 1) Avval BARCHA o'qishlar (tranzaksiya qoidasi)
+    const stockChecks = [];
+    for (const { product, qty } of cartItems) {
+      const ref = doc(db, "products", product.id);
+      const snap = await tx.get(ref);
+      stockChecks.push({ product, qty, ref, snap });
     }
-    batch.update(doc(db, "products", product.id), productUpdates);
+    for (const { product, qty, snap } of stockChecks) {
+      if (!snap.exists()) {
+        const err = new Error("Mahsulot topilmadi");
+        err.code = "out_of_stock";
+        err.productName = product.nameUz || product.name || "";
+        err.left = 0;
+        throw err;
+      }
+      const cur = snap.data();
+      if ((cur.stockType || "limited") === "limited" && Number(cur.stock || 0) < qty) {
+        const err = new Error("Omborda yetarli mahsulot yo'q");
+        err.code = "out_of_stock";
+        err.productName = cur.nameUz || cur.name || product.nameUz || product.name || "";
+        err.left = Math.max(0, Number(cur.stock || 0));
+        throw err;
+      }
+    }
+
+    // 2) Keyin yozishlar
+    stockChecks.forEach(({ qty, ref, snap }) => {
+      const cur = snap.data();
+      // "sold" — mahsulotlar sahifasida "Nechta sotilgan" ko'rsatish uchun,
+      // qoldiq turidan qat'iy nazar (cheksiz bo'lsa ham) har doim +qty qilinadi.
+      const productUpdates = { sold: increment(qty) };
+      if ((cur.stockType || "limited") === "limited") {
+        productUpdates.stock = increment(-qty);
+      }
+      tx.update(ref, productUpdates);
+    });
+    return writeOrderAndCustomer(tx);
   });
+
+  function writeOrderAndCustomer(batch) {
 
   // Telegram orqali kelgan bo'lsa, mijoz yozuviga ham shu ma'lumotlarni
   // yozamiz — shunda "Buyurtmalarim" bo'limi va admin panel buni ko'ra oladi.
@@ -391,6 +425,6 @@ export async function placeOrderBatch({ cartItems, existingCustomer, customerNam
   const newOrderRef = doc(collection(db, "orders"));
   batch.set(newOrderRef, { ...orderData, customerId: linkedCustomerId, createdAt: serverTimestamp() });
 
-  await batch.commit();
   return newOrderRef.id;
+  }
 }

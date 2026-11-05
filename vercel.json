@@ -15,6 +15,12 @@
     { "source": "/icon-512.png", "destination": "/api/sitemap?kind=icon&size=512" },
     { "source": "/icon-maskable-512.png", "destination": "/api/sitemap?kind=icon&size=512&maskable=1" },
     { "source": "/apple-touch-icon-180.png", "destination": "/api/sitemap?kind=icon&size=180" },
+    { "source": "/product/:key", "destination": "/api/sitemap?kind=page&type=product&key=:key" },
+    { "source": "/brand/:key", "destination": "/api/sitemap?kind=page&type=brand&key=:key" },
+    { "source": "/category/:key", "destination": "/api/sitemap?kind=page&type=category&key=:key" },
+    { "source": "/discounts", "destination": "/api/sitemap?kind=page&type=discounts" },
+    { "source": "/hits", "destination": "/api/sitemap?kind=page&type=hits" },
+    { "source": "/categories", "destination": "/api/sitemap?kind=page&type=categories" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }
