@@ -1,4 +1,10 @@
 {
+  "headers": [
+    {
+      "source": "/(click-logo|uzcard-logo|uzum-logo).(png|jpg)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=2592000, stale-while-revalidate=86400" }]
+    }
+  ],
   "rewrites": [
     { "source": "/sitemap.xml", "destination": "/api/sitemap" },
     { "source": "/robots.txt", "destination": "/api/sitemap?kind=robots" },

@@ -821,6 +821,15 @@ const SEO_DEFAULTS = {
 };
 const SITE_ORIGIN = "https://www.casme.uz";
 
+// To'lov usullari logotiplari (public/ papkadagi haqiqiy fayl nomlari) va ularni oldindan yuklash:
+// buyurtma oynasi ochilganda rasmlar "yangi yuklanayotgandek" kechikib chiqmasligi uchun.
+const PAY_LOGOS = { click: "/click-logo.jpg", card: "/uzcard-logo.png", uzum: "/uzum-logo.png" };
+if (typeof window !== "undefined") {
+  try {
+    Object.values(PAY_LOGOS).forEach((src) => { const im = new Image(); im.decoding = "async"; im.src = src; });
+  } catch { /* ignore */ }
+}
+
 /* ---------------------------------------------------------------
    CUSTOMER-FACING STOREFRONT
 --------------------------------------------------------------- */
@@ -5318,9 +5327,9 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
               <Field label={t.store.payment}>
                 <div className="grid grid-cols-2 gap-2">
                   {[
-                    ...(storeSettings?.payClickLink ? [{ key: "click", label: "Click", logo: "/click-logo.png" }] : []),
-                    { key: "card", label: t.store.card, logo: "/uzcard-logo.png" },
-                    ...(storeSettings?.payUzumEnabled ? [{ key: "uzum", label: "Uzum Nasiya", logo: "/uzum-logo.png" }] : []),
+                    ...(storeSettings?.payClickLink ? [{ key: "click", label: "Click", logo: PAY_LOGOS.click }] : []),
+                    { key: "card", label: t.store.card, logo: PAY_LOGOS.card },
+                    ...(storeSettings?.payUzumEnabled ? [{ key: "uzum", label: "Uzum Nasiya", logo: PAY_LOGOS.uzum }] : []),
                     { key: "cash", label: t.store.cash },
                   ].map((opt, idx, arr) => {
                     const showLogo = !!opt.logo && !logoFailed[opt.key];
@@ -5349,7 +5358,10 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                           className={`absolute inset-0 h-full w-full ${opt.key === "click" ? "object-cover" : "object-contain"}`}
                           onError={(e) => {
                             const el = e.currentTarget;
-                            if (!el.dataset.triedJpg) { el.dataset.triedJpg = "1"; el.src = opt.logo.replace(/\.png$/, ".jpg"); }
+                            if (!el.dataset.triedJpg) {
+                              el.dataset.triedJpg = "1";
+                              el.src = /\.png$/.test(opt.logo) ? opt.logo.replace(/\.png$/, ".jpg") : opt.logo.replace(/\.jpg$/, ".png");
+                            }
                             else setLogoFailed((prev) => ({ ...prev, [opt.key]: true }));
                           }}
                         />
