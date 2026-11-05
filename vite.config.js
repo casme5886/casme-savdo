@@ -62,6 +62,7 @@ export default defineConfig({
         navigateFallbackDenylist: [
           /^\/api\//,
           /^\/articles?(\/|$)/,
+          /^\/yandex_.*\.html$/,
           /^\/sitemap\.xml$/,
           /^\/robots\.txt$/,
           /^\/merchant-feed\.xml$/,
