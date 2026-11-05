@@ -3157,7 +3157,8 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                   <div className="relative overflow-hidden rounded-[28px] bg-stone-100" style={{ aspectRatio: "750 / 1200" }}>
                     <img
                       loading="lazy"
-                      src={c.imageUrl}
+                      decoding="async"
+                      src={thumbUrl(c.imageUrl, 900)}
                       alt={collectionTitle(c, lang)}
                       className="absolute inset-0 h-full w-full object-cover"
                       draggable={false}
@@ -3332,7 +3333,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                         <span className="flex items-center gap-1 rounded-full bg-white/95 py-0.5 pl-0.5 pr-2 shadow-sm">
                           <span className="flex h-4 w-4 shrink-0 items-center justify-center overflow-hidden rounded-full bg-rose-50 text-stone-300">
                             {brandInfo?.imageUrl ? (
-                              <img loading="lazy" src={brandInfo.imageUrl} alt="" className="h-full w-full object-cover" />
+                              <img loading="lazy" src={thumbUrl(brandInfo.imageUrl, 240)} alt="" className="h-full w-full object-cover" />
                             ) : (
                               <Tag size={8} />
                             )}

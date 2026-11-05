@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Star, Quote, ChevronLeft, ChevronRight, Package } from "lucide-react";
-import { useCarouselRow, pname, fmtMoney } from "./ui.jsx";
+import { useCarouselRow, pname, fmtMoney, sizedImg } from "./ui.jsx";
 
 const SERIF = { fontFamily: "'Playfair Display', Georgia, serif" };
 
@@ -71,7 +71,7 @@ export default function Testimonials({ testimonials, products, lang, t, onProduc
                 >
                   {item.imageUrl && (
                     <div className="h-40 w-full shrink-0 overflow-hidden bg-stone-100">
-                      <img loading="lazy" src={item.imageUrl} alt={item.name} className="h-full w-full object-cover" draggable={false} onDragStart={(e) => e.preventDefault()} />
+                      <img loading="lazy" decoding="async" src={sizedImg(item.imageUrl, 500)} alt={item.name} className="h-full w-full object-cover" draggable={false} onDragStart={(e) => e.preventDefault()} />
                     </div>
                   )}
                   <div className="flex flex-1 flex-col p-5">
