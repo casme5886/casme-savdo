@@ -1179,8 +1179,51 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
   // muammosisiz).
   // ---------------------------------------------------------------
   useEffect(() => {
-    const path = selectedProduct ? `/product/${selectedProduct.id}` : "/";
     const isRu = lang === "ru";
+    // Brend/kategoriya/xit/chegirma/kategoriyalar/banner sahifalari uchun ham
+    // o'zining sarlavhasi, tavsifi va canonical manzili (Google ularni alohida
+    // sahifa deb ko'rishi uchun). Mahsulot ochiq bo'lsa — u ustuvor.
+    let pageInfo = null;
+    if (!selectedProduct) {
+      if (categoryPageOpen && (categoryPageMode === "brand" || categoryPageMode === "category") && categoryPageName) {
+        const isBrand = categoryPageMode === "brand";
+        pageInfo = {
+          path: `/${categoryPageMode}/${encodeURIComponent(categoryPageName)}`,
+          title: isRu
+            ? `${categoryPageName} — ${isBrand ? "оригинальная корейская косметика" : "корейская косметика"} | CASME`
+            : `${categoryPageName} — ${isBrand ? "original koreys kosmetikasi" : "koreys kosmetikasi"} | CASME`,
+          desc: isRu
+            ? `${isBrand ? "Все товары бренда" : "Все товары категории"} ${categoryPageName} в интернет-магазине CASME. Оригинальная продукция, доставка по Ташкенту и Узбекистану.`
+            : `${categoryPageName} ${isBrand ? "brendining" : "kategoriyasidagi"} barcha mahsulotlari CASME onlayn do'konida. Original mahsulotlar, Toshkent va O'zbekiston bo'ylab yetkazib berish.`,
+        };
+      } else if (categoryPageOpen && categoryPageMode === "hits") {
+        pageInfo = {
+          path: "/hits",
+          title: isRu ? "Хиты продаж — корейская косметика | CASME" : "Eng ko'p sotilgan mahsulotlar — koreys kosmetikasi | CASME",
+          desc: isRu ? "Самые популярные товары корейской косметики в CASME." : "CASME'dagi eng ommabop koreys kosmetikasi mahsulotlari.",
+        };
+      } else if (discountsPageOpen) {
+        pageInfo = {
+          path: "/discounts",
+          title: isRu ? "Скидки и акции на корейскую косметику | CASME" : "Chegirmalar va aksiyalar — koreys kosmetikasi | CASME",
+          desc: isRu ? "Мега скидки на оригинальную корейскую косметику в CASME." : "CASME'da original koreys kosmetikasiga mega chegirmalar va aksiyalar.",
+        };
+      } else if (categoriesPageOpen) {
+        pageInfo = {
+          path: "/categories",
+          title: isRu ? "Категории корейской косметики | CASME" : "Koreys kosmetikasi kategoriyalari | CASME",
+          desc: isRu ? "Все категории корейской косметики и ухода за кожей в CASME." : "CASME'dagi barcha koreys kosmetikasi va teri parvarishi kategoriyalari.",
+        };
+      } else if (bannerPageOpen && bannerCollection?.id) {
+        const bt = collectionTitle(bannerCollection, lang) || bannerCollection.title || "";
+        pageInfo = {
+          path: `/banner/${encodeURIComponent(bannerCollection.id)}`,
+          title: `${bt || "CASME"} | CASME`,
+          desc: (bannerCollection.subtitle || "").slice(0, 160) || (isRu ? "Специальное предложение CASME." : "CASME'dan maxsus taklif."),
+        };
+      }
+    }
+    const path = selectedProduct ? `/product/${selectedProduct.id}` : (pageInfo ? pageInfo.path : "/");
     const selfHref = `${SITE_ORIGIN}${path}${isRu ? "?lang=ru" : ""}`;
     const uzHref = `${SITE_ORIGIN}${path}`;
     const ruHref = `${SITE_ORIGIN}${path}?lang=ru`;
@@ -1226,6 +1269,11 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
       desc = (pdesc(selectedProduct, lang) || "").slice(0, 160) || `${name} — CASME'da original mahsulotlar.`;
       image = (selectedProduct.imageUrls && selectedProduct.imageUrls[0]) || selectedProduct.imageUrl || storeSettings?.logoUrl || "";
       keywords = "";
+    } else if (pageInfo) {
+      title = pageInfo.title;
+      desc = pageInfo.desc;
+      keywords = "";
+      image = storeSettings?.logoUrl || "";
     } else {
       const d = SEO_DEFAULTS[isRu ? "ru" : "uz"];
       title = (isRu ? storeSettings?.seoTitleRu : storeSettings?.seoTitle) || d.title;
@@ -1251,7 +1299,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
     setMeta("name", "twitter:title", title);
     setMeta("name", "twitter:description", desc);
     if (image) setMeta("name", "twitter:image", image);
-  }, [selectedProduct, lang, storeSettings]);
+  }, [selectedProduct, lang, storeSettings, categoryPageOpen, categoryPageMode, categoryPageName, discountsPageOpen, categoriesPageOpen, bannerPageOpen, bannerCollection]);
 
   // ---------------------------------------------------------------
   // Structured data (JSON-LD) — mahsulot ochilganda Product +
@@ -5398,6 +5446,56 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
           lang={lang}
         />
       )}
+
+      {/* Footer: Google va boshqa qidiruv robotlari ko'rishi uchun haqiqiy <a href> havolalar.
+          Foydalanuvchi bosganda sahifa qayta yuklanmaydi — ilova ichidagi sahifa ochiladi. */}
+      <footer className="mx-auto mb-24 mt-10 max-w-6xl border-t border-gray-100 px-5 py-6 text-xs text-slate-500 md:mb-8">
+        <nav aria-label={lang === "ru" ? "Разделы магазина" : "Do'kon bo'limlari"} className="flex flex-wrap gap-x-5 gap-y-2">
+          {[
+            { href: "/categories", label: lang === "ru" ? "Категории" : "Kategoriyalar", go: () => setCategoriesPageOpen(true) },
+            { href: "/discounts", label: lang === "ru" ? "Скидки" : "Chegirmalar", go: () => setDiscountsPageOpen(true) },
+            { href: "/hits", label: lang === "ru" ? "Хиты продаж" : "Xit mahsulotlar", go: () => openHitsPage() },
+          ].map((l) => (
+            <a
+              key={l.href}
+              href={l.href}
+              onClick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return; e.preventDefault(); l.go(); }}
+              className="font-medium text-slate-600 hover:text-rose-500"
+            >
+              {l.label}
+            </a>
+          ))}
+        </nav>
+        {categories.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5">
+            {categories.slice(0, 20).map((c) => (
+              <a
+                key={`c-${c.name}`}
+                href={`/category/${encodeURIComponent(c.name)}`}
+                onClick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return; e.preventDefault(); openCategoryPage(c.name); }}
+                className="hover:text-rose-500"
+              >
+                {c.name}
+              </a>
+            ))}
+          </div>
+        )}
+        {brands.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5">
+            {brands.slice(0, 30).map((b) => (
+              <a
+                key={`b-${b.name}`}
+                href={`/brand/${encodeURIComponent(b.name)}`}
+                onClick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return; e.preventDefault(); openBrandPage(b.name); }}
+                className="hover:text-rose-500"
+              >
+                {b.name}
+              </a>
+            ))}
+          </div>
+        )}
+        <p className="mt-4 text-[11px] text-slate-400">© CASME</p>
+      </footer>
 
       {/* Pastki navigatsiya paneli — suzuvchi (floating) pill, faqat ikonkalar, mobilda */}
       <nav className="fixed inset-x-0 bottom-4 z-30 mx-auto flex w-fit items-center gap-1 rounded-full bg-white px-2 py-2 shadow-[0_8px_28px_rgba(0,0,0,0.16)] md:hidden">

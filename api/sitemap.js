@@ -109,8 +109,15 @@ function escapeXml(s) {
 
 async function sendSitemap(res) {
   let productIds = [];
+  const brandSet = new Set();
+  const categorySet = new Set();
   try {
-    productIds = await fetchActiveProductIds();
+    const products = await fetchActiveProductsFull();
+    productIds = products.map((p) => p.id);
+    for (const p of products) {
+      if (p.brand && String(p.brand).trim()) brandSet.add(String(p.brand).trim());
+      if (p.category && String(p.category).trim()) categorySet.add(String(p.category).trim());
+    }
   } catch (e) {
     // Firestore vaqtincha javob bermasa ham — hech bo'lmasa bosh sahifasi
     // bilan bo'sh bo'lmagan, to'g'ri XML qaytaramiz (butunlay xato o'rniga).
@@ -119,6 +126,19 @@ async function sendSitemap(res) {
 
   const urls = [
     { loc: `${SITE_URL}/`, changefreq: "daily", priority: "1.0" },
+    { loc: `${SITE_URL}/categories`, changefreq: "weekly", priority: "0.9" },
+    { loc: `${SITE_URL}/discounts`, changefreq: "daily", priority: "0.9" },
+    { loc: `${SITE_URL}/hits`, changefreq: "daily", priority: "0.9" },
+    ...[...categorySet].map((n) => ({
+      loc: `${SITE_URL}/category/${encodeURIComponent(n)}`,
+      changefreq: "weekly",
+      priority: "0.8",
+    })),
+    ...[...brandSet].map((n) => ({
+      loc: `${SITE_URL}/brand/${encodeURIComponent(n)}`,
+      changefreq: "weekly",
+      priority: "0.8",
+    })),
     ...productIds.map((id) => ({
       loc: `${SITE_URL}/product/${id}`,
       changefreq: "weekly",
