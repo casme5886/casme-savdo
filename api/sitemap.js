@@ -281,7 +281,7 @@ async function sendAppIcon(req, res) {
       .png()
       .toBuffer();
     res.setHeader("Content-Type", "image/png");
-    res.setHeader("Cache-Control", "public, max-age=86400, s-maxage=2592000, stale-while-revalidate=86400");
+    res.setHeader("Cache-Control", "public, max-age=604800, s-maxage=2592000, stale-while-revalidate=86400");
     return res.status(200).send(outBuffer);
   } catch (e) {
     console.error("PWA ikonka yaratishda xatolik:", e);
@@ -447,7 +447,7 @@ async function sendProductImage(req, res) {
   // bo'lib ketmasligi uchun.
   const raw = (req.query && req.query.raw) === "1";
   // "w" — thumbnail kengligi (120–800), standart 200 (Excel eksporti uchun).
-  const rawSize = Math.min(800, Math.max(120, parseInt((req.query && req.query.w) || "200", 10) || 200));
+  const rawSize = Math.min(1920, Math.max(120, parseInt((req.query && req.query.w) || "200", 10) || 200));
   try {
     const upstream = await fetch(src);
     if (!upstream.ok) throw new Error(`Rasm yuklanmadi: ${upstream.status}`);

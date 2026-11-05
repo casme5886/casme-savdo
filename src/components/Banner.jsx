@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, Truck, RotateCcw, ShieldCheck } from "lucide
 import useEmblaCarousel from "embla-carousel-react";
 import { WheelGesturesPlugin } from "embla-carousel-wheel-gestures";
 import { incrementBannerClicks } from "../storage.js";
+import { sizedImg } from "./ui.jsx";
 
 const SERIF = { fontFamily: "'Playfair Display', Georgia, serif" };
 
@@ -73,9 +74,9 @@ function DotIndicators({ active, index, onSelect }) {
 }
 
 /** Bitta banner slaydining tarkibi — rasm + (bo'lsa) matn ustidagi qatlam. */
-function BannerSlide({ banner, useMobileImage, onViewLinkedProducts }) {
+function BannerSlide({ banner, useMobileImage, onViewLinkedProducts, priority = false }) {
   const handleClick = useBannerClick(banner, onViewLinkedProducts);
-  const imageUrl = useMobileImage ? banner.mobileImage : banner.desktopImage;
+  const imageUrl = sizedImg(useMobileImage ? banner.mobileImage : banner.desktopImage, useMobileImage ? 900 : 1600);
   const hasTextContent = !!(banner.badge || banner.title || banner.subtitle || banner.buttonText);
   const clickable = (banner.linkedProductIds || []).length > 0;
 
@@ -88,6 +89,10 @@ function BannerSlide({ banner, useMobileImage, onViewLinkedProducts }) {
         <img
           src={imageUrl}
           alt={banner.title || ""}
+          // Birinchi slayd — sahifaning asosiy (LCP) rasmi: darhol va yuqori ustuvorlikda yuklanadi; qolganlari — kerak bo'lganda.
+          loading={priority ? "eager" : "lazy"}
+          fetchpriority={priority ? "high" : "auto"}
+          decoding="async"
           draggable={false}
           onDragStart={(e) => e.preventDefault()}
           style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: positionFor(banner, useMobileImage) }}
@@ -191,8 +196,8 @@ export default function Banner({ banners, inTelegram, t, onViewLinkedProducts })
       >
         <div ref={viewportRef} className="embla-viewport h-full">
           <div className="embla-container h-full">
-            {active.map((banner) => (
-              <BannerSlide key={banner.id} banner={banner} useMobileImage={useMobileImage} onViewLinkedProducts={onViewLinkedProducts} />
+            {active.map((banner, bi) => (
+              <BannerSlide key={banner.id} banner={banner} useMobileImage={useMobileImage} onViewLinkedProducts={onViewLinkedProducts} priority={bi === 0} />
             ))}
           </div>
         </div>
@@ -237,7 +242,7 @@ export function MidPromoBanner({ banners, inTelegram, t, onViewLinkedProducts })
   if (!banner) return null;
 
   const useMobileImage = inTelegram || isNarrow;
-  const img = useMobileImage ? banner.mobileImage : banner.desktopImage;
+  const img = sizedImg(useMobileImage ? banner.mobileImage : banner.desktopImage, useMobileImage ? 900 : 1400);
   const clickable = (banner.linkedProductIds || []).length > 0;
 
   return (
@@ -246,7 +251,7 @@ export function MidPromoBanner({ banners, inTelegram, t, onViewLinkedProducts })
       style={{ aspectRatio: useMobileImage ? "1080 / 720" : "21 / 7" }}
       onClick={clickable ? handleClick : undefined}
     >
-      {img && <img src={img} alt={banner.title || ""} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: positionFor(banner, useMobileImage) }} className="absolute inset-0" />}
+      {img && <img loading="lazy" decoding="async" src={img} alt={banner.title || ""} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: positionFor(banner, useMobileImage) }} className="absolute inset-0" />}
       <div className={`absolute inset-0 flex flex-col items-center justify-center px-6 text-center ${img ? "bg-black/35 text-white" : "text-stone-900"}`}>
         {banner.badge && <span className="mb-2 text-xs font-medium uppercase tracking-[0.2em] opacity-90">{banner.badge}</span>}
         {banner.title && <HighlightedTitle text={banner.title} className="max-w-lg text-2xl font-semibold leading-tight sm:text-3xl" />}
@@ -266,7 +271,7 @@ export function MidPromoBanner({ banners, inTelegram, t, onViewLinkedProducts })
 }
 
 function PromoTile({ tile, useMobileImage, onViewLinkedProducts }) {
-  const img = useMobileImage ? tile.mobileImage : tile.desktopImage;
+  const img = sizedImg(useMobileImage ? tile.mobileImage : tile.desktopImage, 700);
   const handleClick = useBannerClick(tile, onViewLinkedProducts);
   const clickable = (tile.linkedProductIds || []).length > 0;
   return (
@@ -275,7 +280,7 @@ function PromoTile({ tile, useMobileImage, onViewLinkedProducts }) {
       onClick={clickable ? handleClick : undefined}
     >
       {img && (
-        <img src={img} alt={tile.title || ""} className="absolute inset-0 h-full w-full object-cover" style={{ objectPosition: positionFor(tile, useMobileImage) }} />
+        <img loading="lazy" decoding="async" src={img} alt={tile.title || ""} className="absolute inset-0 h-full w-full object-cover" style={{ objectPosition: positionFor(tile, useMobileImage) }} />
       )}
       <div className={`relative z-10 flex h-full w-full flex-col justify-center px-6 py-6 ${img ? "bg-gradient-to-r from-black/55 via-black/10 to-transparent text-white" : "text-stone-900"}`}>
         {tile.badge && <span className="mb-1.5 text-[11px] font-medium uppercase tracking-[0.2em] opacity-80">{tile.badge}</span>}

@@ -323,3 +323,15 @@ export function useCarouselRow(options = {}) {
 
   return { viewportRef, emblaApi, scrollPrev, scrollNext };
 }
+
+
+/**
+ * R2'dagi rasmni kerakli kenglikda (px) kichraytirilgan, CDN'da keshlanadigan
+ * versiyaga aylantiradi (/product-image proksisi). Boshqa manzillar o'zgarishsiz qaytadi.
+ * Katta banner/kolleksiya rasmlari sahifani og'irlashtirib yubormasligi uchun.
+ */
+const R2_HOST = "https://pub-6a37909dbe8741249b8e364db72918b6.r2.dev/";
+export function sizedImg(url, w = 600) {
+  if (typeof url === "string" && url.startsWith(R2_HOST)) return `/product-image?src=${encodeURIComponent(url)}&raw=1&w=${w}`;
+  return url;
+}
