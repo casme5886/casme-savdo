@@ -452,10 +452,20 @@ async function sendProductImage(req, res) {
     const upstream = await fetch(src);
     if (!upstream.ok) throw new Error(`Rasm yuklanmadi: ${upstream.status}`);
     const inputBuffer = Buffer.from(await upstream.arrayBuffer());
-    const outBuffer = raw
-      ? await sharp(inputBuffer).rotate().flatten({ background: "#ffffff" }).resize({ width: rawSize, height: rawSize, fit: "inside", withoutEnlargement: true }).jpeg({ quality: 80, mozjpeg: true }).toBuffer()
-      : await whitenBlackBackground(inputBuffer);
-    res.setHeader("Content-Type", "image/jpeg");
+    // "alpha=1" — shaffof (PNG/WebP) rasmlar shaffofligini saqlaydi (WebP qaytaradi);
+    // shaffofligi yo'q rasmlar oddiy JPEG bo'lib qoladi.
+    const keepAlpha = raw && (req.query && req.query.alpha) === "1" && (await sharp(inputBuffer).metadata()).hasAlpha;
+    let contentType = "image/jpeg";
+    let outBuffer;
+    if (keepAlpha) {
+      outBuffer = await sharp(inputBuffer).rotate().resize({ width: rawSize, height: rawSize, fit: "inside", withoutEnlargement: true }).webp({ quality: 82 }).toBuffer();
+      contentType = "image/webp";
+    } else if (raw) {
+      outBuffer = await sharp(inputBuffer).rotate().flatten({ background: "#ffffff" }).resize({ width: rawSize, height: rawSize, fit: "inside", withoutEnlargement: true }).jpeg({ quality: 80, mozjpeg: true }).toBuffer();
+    } else {
+      outBuffer = await whitenBlackBackground(inputBuffer);
+    }
+    res.setHeader("Content-Type", contentType);
     // 30 kun CDN'da keshlanadi — har mahsulot rasmi faqat BIR MARTA
     // qayta ishlanadi, keyingi so'rovlar Vercel CDN keshidan darhol qaytadi.
     res.setHeader("Cache-Control", "public, max-age=86400, s-maxage=2592000, stale-while-revalidate=86400");

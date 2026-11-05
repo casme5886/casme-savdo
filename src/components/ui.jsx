@@ -332,6 +332,6 @@ export function useCarouselRow(options = {}) {
  */
 const R2_HOST = "https://pub-6a37909dbe8741249b8e364db72918b6.r2.dev/";
 export function sizedImg(url, w = 600) {
-  if (typeof url === "string" && url.startsWith(R2_HOST)) return `/product-image?src=${encodeURIComponent(url)}&raw=1&w=${w}`;
+  if (typeof url === "string" && url.startsWith(R2_HOST)) return `/product-image?src=${encodeURIComponent(url)}&raw=1&alpha=1&w=${w}`;
   return url;
 }
