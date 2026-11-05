@@ -95,7 +95,7 @@ export default async function handler(req, res) {
     const endpoint = `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${R2_BUCKET_NAME}/${normalizedPath}`;
     const r2Res = await client.fetch(endpoint, {
       method: "PUT",
-      headers: { "Content-Type": contentType },
+      headers: { "Content-Type": contentType, "Cache-Control": "public, max-age=31536000, immutable" },
       body: buffer,
     });
 

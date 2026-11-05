@@ -66,11 +66,20 @@ export default defineConfig({
             },
           },
           {
+            urlPattern: ({ url }) => url.pathname === "/product-image",
+            handler: "CacheFirst",
+            options: {
+              cacheName: "casme-product-thumbs",
+              expiration: { maxEntries: 800, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              cacheableResponse: { statuses: [200] },
+            },
+          },
+          {
             urlPattern: /^https:\/\/pub-6a37909dbe8741249b8e364db72918b6\.r2\.dev\/.*/i,
             handler: "StaleWhileRevalidate",
             options: {
               cacheName: "casme-product-images",
-              expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 14 },
+              expiration: { maxEntries: 400, maxAgeSeconds: 60 * 60 * 24 * 14 },
             },
           },
         ],

@@ -403,12 +403,14 @@ async function sendProductImage(req, res) {
   // o'lchamdagi JPEG qaytaradi — tez yuklanishi va fayl hajmi katta
   // bo'lib ketmasligi uchun.
   const raw = (req.query && req.query.raw) === "1";
+  // "w" — thumbnail kengligi (120–800), standart 200 (Excel eksporti uchun).
+  const rawSize = Math.min(800, Math.max(120, parseInt((req.query && req.query.w) || "200", 10) || 200));
   try {
     const upstream = await fetch(src);
     if (!upstream.ok) throw new Error(`Rasm yuklanmadi: ${upstream.status}`);
     const inputBuffer = Buffer.from(await upstream.arrayBuffer());
     const outBuffer = raw
-      ? await sharp(inputBuffer).rotate().resize({ width: 200, height: 200, fit: "inside", withoutEnlargement: true }).jpeg({ quality: 82 }).toBuffer()
+      ? await sharp(inputBuffer).rotate().flatten({ background: "#ffffff" }).resize({ width: rawSize, height: rawSize, fit: "inside", withoutEnlargement: true }).jpeg({ quality: 80, mozjpeg: true }).toBuffer()
       : await whitenBlackBackground(inputBuffer);
     res.setHeader("Content-Type", "image/jpeg");
     // 30 kun CDN'da keshlanadi — har mahsulot rasmi faqat BIR MARTA

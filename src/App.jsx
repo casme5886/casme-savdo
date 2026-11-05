@@ -821,6 +821,14 @@ const SEO_DEFAULTS = {
 };
 const SITE_ORIGIN = "https://www.casme.uz";
 
+// Kartochkalar uchun kichik (480px) rasm: asl 1600px rasm o'rniga CDN'da keshlanadigan yengil versiya.
+const R2_IMG_HOST = "https://pub-6a37909dbe8741249b8e364db72918b6.r2.dev/";
+function thumbUrl(url, w = 480) {
+  if (typeof url === "string" && url.startsWith(R2_IMG_HOST)) return `/product-image?src=${encodeURIComponent(url)}&raw=1&w=${w}`;
+  return url;
+}
+
+
 // To'lov usullari logotiplari (public/ papkadagi haqiqiy fayl nomlari) va ularni oldindan yuklash:
 // buyurtma oynasi ochilganda rasmlar "yangi yuklanayotgandek" kechikib chiqmasligi uchun.
 const PAY_LOGOS = { click: "/click-logo.jpg", card: "/uzcard-logo.png", uzum: "/uzum-logo.png" };
@@ -2896,7 +2904,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
               const soldOut = stockType === "out" || (stockType === "limited" && (p.stock || 0) <= 0);
               const hasDiscount = p.oldPrice > p.price;
               const pct = discountPct(p.price, p.oldPrice);
-              const thumb = (p.imageUrls && p.imageUrls[0]) || p.imageUrl || "";
+              const thumb = thumbUrl((p.imageUrls && p.imageUrls[0]) || p.imageUrl || "");
               const name = pname(p, lang);
               const liked = wishlist.has(p.id);
               return (
@@ -3010,7 +3018,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
               const soldOut = stockType === "out" || (stockType === "limited" && (p.stock || 0) <= 0);
               const hasDiscount = p.oldPrice > p.price;
               const pct = discountPct(p.price, p.oldPrice);
-              const thumb = (p.imageUrls && p.imageUrls[0]) || p.imageUrl || "";
+              const thumb = thumbUrl((p.imageUrls && p.imageUrls[0]) || p.imageUrl || "");
               const name = pname(p, lang);
               const liked = wishlist.has(p.id);
               return (
@@ -3132,7 +3140,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                             const soldOut = stockType === "out" || (stockType === "limited" && (p.stock || 0) <= 0);
                             const hasDiscount = p.oldPrice > p.price;
                             const pct = discountPct(p.price, p.oldPrice);
-                            const thumb = (p.imageUrls && p.imageUrls[0]) || p.imageUrl || "";
+                            const thumb = thumbUrl((p.imageUrls && p.imageUrls[0]) || p.imageUrl || "");
                             const name = pname(p, lang);
                             const liked = wishlist.has(p.id);
                             return (
@@ -3247,7 +3255,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
               const hasDiscount = p.oldPrice > p.price;
               const pct = discountPct(p.price, p.oldPrice);
               const liked = wishlist.has(p.id);
-              const thumb = (p.imageUrls && p.imageUrls[0]) || p.imageUrl || "";
+              const thumb = thumbUrl((p.imageUrls && p.imageUrls[0]) || p.imageUrl || "");
               const name = pname(p, lang);
               const brandInfo = p.brand ? brands.find(b => b.name === p.brand) : null;
               let stockLabel;
@@ -3475,7 +3483,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                   const stockType = p.stockType || "limited";
                   const soldOut = stockType === "out" || (stockType === "limited" && (p.stock || 0) <= 0);
                   const pct = discountPct(p.price, p.oldPrice);
-                  const thumb = (p.imageUrls && p.imageUrls[0]) || p.imageUrl || "";
+                  const thumb = thumbUrl((p.imageUrls && p.imageUrls[0]) || p.imageUrl || "");
                   const name = pname(p, lang);
                   const liked = wishlist.has(p.id);
                   return (
@@ -3623,7 +3631,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                   const hasDiscount = bannerDiscPct > 0 || p.oldPrice > p.price;
                   const pct = bannerDiscPct > 0 ? bannerDiscPct : discountPct(p.price, p.oldPrice);
                   const crossedPrice = bannerDiscPct > 0 ? basePrice : p.oldPrice;
-                  const thumb = (p.imageUrls && p.imageUrls[0]) || p.imageUrl || "";
+                  const thumb = thumbUrl((p.imageUrls && p.imageUrls[0]) || p.imageUrl || "");
                   const name = pname(p, lang);
                   const liked = wishlist.has(p.id);
                   return (
@@ -3883,7 +3891,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                     const soldOut = stockType === "out" || (stockType === "limited" && (p.stock || 0) <= 0);
                     const hasDiscount = p.oldPrice > p.price;
                     const pct = discountPct(p.price, p.oldPrice);
-                    const thumb = (p.imageUrls && p.imageUrls[0]) || p.imageUrl || "";
+                    const thumb = thumbUrl((p.imageUrls && p.imageUrls[0]) || p.imageUrl || "");
                     const name = pname(p, lang);
                     const liked = wishlist.has(p.id);
                     return (
@@ -4084,7 +4092,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                     const soldOut = stockType === "out" || (stockType === "limited" && (p.stock || 0) <= 0);
                     const hasDiscount = p.oldPrice > p.price;
                     const pct = discountPct(p.price, p.oldPrice);
-                    const thumb = (p.imageUrls && p.imageUrls[0]) || p.imageUrl || "";
+                    const thumb = thumbUrl((p.imageUrls && p.imageUrls[0]) || p.imageUrl || "");
                     const name = pname(p, lang);
                     const liked = wishlist.has(p.id);
                     return (
@@ -4344,7 +4352,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
               ) : (
                 <div className="space-y-3">
                   {wishlistItems.map(p => {
-                    const thumb = (p.imageUrls && p.imageUrls[0]) || p.imageUrl || "";
+                    const thumb = thumbUrl((p.imageUrls && p.imageUrls[0]) || p.imageUrl || "");
                     return (
                       <div key={p.id} className="flex items-center gap-3 rounded-2xl border border-gray-100 p-2.5 shadow-sm transition hover:shadow-md">
                         <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-gray-50 text-slate-300">
@@ -4891,7 +4899,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                         {expanded && (
                           <div className="mt-2 space-y-2 border-t border-rose-200 pt-2">
                             {items.map(({ product, qty, unitPrice, discPct }) => {
-                              const thumb = (product.imageUrls && product.imageUrls[0]) || product.imageUrl || "";
+                              const thumb = thumbUrl((product.imageUrls && product.imageUrls[0]) || product.imageUrl || "");
                               return (
                                 <div key={product.id} className="flex items-center gap-2.5 rounded-xl bg-white p-1.5">
                                   <div className="h-11 w-11 shrink-0 overflow-hidden rounded-lg bg-gray-50 text-slate-300">
@@ -4922,7 +4930,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                     );
                   })}
                   {cartSingles.map(({ product, qty, unitPrice, discPct }) => {
-                    const thumb = (product.imageUrls && product.imageUrls[0]) || product.imageUrl || "";
+                    const thumb = thumbUrl((product.imageUrls && product.imageUrls[0]) || product.imageUrl || "");
                     const checked = selectedCartIds.has(product.id);
                     return (
                       <div key={product.id} className="rounded-2xl border border-gray-100 p-2.5 shadow-sm transition hover:shadow-md">
@@ -5002,7 +5010,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                       <h4 className="mb-3 text-sm font-semibold text-slate-800">{t.store.cartRecommended}</h4>
                       <div className="flex gap-3 overflow-x-auto pb-2 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: "none" }}>
                         {cartRecommendedProducts.map((p) => {
-                          const thumb = (p.imageUrls && p.imageUrls[0]) || p.imageUrl || "";
+                          const thumb = thumbUrl((p.imageUrls && p.imageUrls[0]) || p.imageUrl || "");
                           const liked = wishlist.has(p.id);
                           return (
                             <div
@@ -5160,7 +5168,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
               {/* Buyurtma qilinayotgan mahsulotlar ro'yxati (surat + nom) */}
               <div className="mb-3 space-y-2">
                 {selectedCartItemsList.map(({ product, qty, unitPrice }) => {
-                  const thumb = (product.imageUrls && product.imageUrls[0]) || product.imageUrl || "";
+                  const thumb = thumbUrl((product.imageUrls && product.imageUrls[0]) || product.imageUrl || "");
                   return (
                     <div key={product.id} className="flex items-center gap-2.5">
                       <div className="h-11 w-11 shrink-0 overflow-hidden rounded-lg bg-gray-50 text-slate-300">
