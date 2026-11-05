@@ -957,6 +957,15 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
     () => categories.find(c => c.name === categoryPageName) || null,
     [categories, categoryPageName]
   );
+  // Admin kiritgan SEO tavsif (brend yoki kategoriya) — sahifada va meta description'da ishlatiladi
+  const categoryPageDesc = useMemo(() => {
+    if (categoryPageMode !== "brand" && categoryPageMode !== "category") return "";
+    const obj = categoryPageMode === "brand"
+      ? brands.find((b) => b.name === categoryPageName)
+      : categories.find((c) => c.name === categoryPageName);
+    if (!obj) return "";
+    return ((lang === "ru" ? obj.descriptionRu : obj.description) || obj.description || obj.descriptionRu || "").trim();
+  }, [brands, categories, categoryPageMode, categoryPageName, lang]);
   const categoryPageHeroImg = categoryPageMode === "brand"
     ? (brands.find(b => b.name === categoryPageName)?.imageUrl || null)
     : categoryPageMode === "hits"
@@ -1192,7 +1201,9 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
           title: isRu
             ? `${categoryPageName} — ${isBrand ? "оригинальная корейская косметика" : "корейская косметика"} | CASME`
             : `${categoryPageName} — ${isBrand ? "original koreys kosmetikasi" : "koreys kosmetikasi"} | CASME`,
-          desc: isRu
+          desc: categoryPageDesc
+            ? categoryPageDesc.replace(/\s+/g, " ").slice(0, 160)
+            : isRu
             ? `${isBrand ? "Все товары бренда" : "Все товары категории"} ${categoryPageName} в интернет-магазине CASME. Оригинальная продукция, доставка по Ташкенту и Узбекистану.`
             : `${categoryPageName} ${isBrand ? "brendining" : "kategoriyasidagi"} barcha mahsulotlari CASME onlayn do'konida. Original mahsulotlar, Toshkent va O'zbekiston bo'ylab yetkazib berish.`,
         };
@@ -1299,7 +1310,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
     setMeta("name", "twitter:title", title);
     setMeta("name", "twitter:description", desc);
     if (image) setMeta("name", "twitter:image", image);
-  }, [selectedProduct, lang, storeSettings, categoryPageOpen, categoryPageMode, categoryPageName, discountsPageOpen, categoriesPageOpen, bannerPageOpen, bannerCollection]);
+  }, [selectedProduct, lang, storeSettings, categoryPageOpen, categoryPageMode, categoryPageName, categoryPageDesc, discountsPageOpen, categoriesPageOpen, bannerPageOpen, bannerCollection]);
 
   // ---------------------------------------------------------------
   // Structured data (JSON-LD) — mahsulot ochilganda Product +
@@ -4029,6 +4040,9 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
             </div>
 
             <div className="px-4 pt-4 min-[769px]:px-6">
+              {categoryPageDesc && (
+                <p className="mb-4 whitespace-pre-line text-sm leading-relaxed text-stone-600">{categoryPageDesc}</p>
+              )}
               <div className="mb-4 flex items-center gap-2">
                 <div className="relative flex-1">
                   <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" />

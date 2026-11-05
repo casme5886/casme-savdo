@@ -17,7 +17,7 @@ import {
   ChevronDown, Save, AlertCircle, Loader2, ShoppingCart, ShoppingBag,
   LogIn, LogOut, Lock, Image as ImageIcon, Eye,
   MessageSquareQuote, HelpCircle, Settings as SettingsIcon, Bell, Download, Phone, Send, Copy, Tag,
-  ArrowUp, ArrowDown, EyeOff, MapPin,
+  ArrowUp, ArrowDown, EyeOff, MapPin, FileText,
   Filter, CheckSquare, Square, MinusSquare,
   AlertTriangle, UserCheck, UserX, UserPlus, PanelLeftClose, PanelLeftOpen, PackageX, Boxes, Wallet,
 } from "lucide-react";
@@ -1524,6 +1524,17 @@ function TaxonomyModal({ title, items, collectionName, productField, products, o
   const [newValue, setNewValue] = useState("");
   const [busy, setBusy] = useState(false);
   const [uploadingId, setUploadingId] = useState(null);
+  // SEO tavsif (Google uchun): har bir brend/kategoriya sahifasida ko'rinadi
+  const [descId, setDescId] = useState(null);
+  const [descUz, setDescUz] = useState("");
+  const [descRu, setDescRu] = useState("");
+  const openDesc = (item) => { setDescId(descId === item.id ? null : item.id); setDescUz(item.description || ""); setDescRu(item.descriptionRu || ""); };
+  const saveDesc = async (item) => {
+    setBusy(true);
+    await updateItem(collectionName, item.id, { description: descUz.trim(), descriptionRu: descRu.trim() });
+    setBusy(false);
+    setDescId(null);
+  };
 
   const countFor = (name) => products.filter(p => p[productField] === name).length;
 
@@ -1592,7 +1603,7 @@ function TaxonomyModal({ title, items, collectionName, productField, products, o
       ) : (
         <div className="max-h-80 space-y-1.5 overflow-y-auto">
           {items.map((item) => (
-            <div key={item.id} className="flex items-center gap-2 rounded-lg border border-gray-100 p-2">
+            <div key={item.id} className="flex flex-wrap items-center gap-2 rounded-lg border border-gray-100 p-2">
               <label className="relative flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-lg bg-gray-50 text-slate-300 hover:bg-gray-100">
                 {uploadingId === item.id ? (
                   <Loader2 size={14} className="animate-spin text-emerald-600" />
@@ -1621,9 +1632,21 @@ function TaxonomyModal({ title, items, collectionName, productField, products, o
                   <span className="flex-1 truncate text-sm text-slate-700">
                     {item.name} <span className="text-xs text-slate-400">({countFor(item.name)} {t.common.ta})</span>
                   </span>
+                  <button onClick={() => openDesc(item)} title="SEO tavsif" className={`rounded-lg p-1.5 hover:bg-emerald-50 hover:text-emerald-600 ${item.description ? "text-emerald-600" : "text-slate-400"}`}><FileText size={15} /></button>
                   <button onClick={() => startEdit(item)} className="rounded-lg p-1.5 text-slate-400 hover:bg-emerald-50 hover:text-emerald-600"><Pencil size={15} /></button>
                   <button onClick={() => remove(item)} disabled={busy} className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600"><Trash2 size={15} /></button>
                 </>
+              )}
+              {descId === item.id && (
+                <div className="basis-full space-y-1.5 pt-1">
+                  <textarea rows={3} className={inputCls} value={descUz} onChange={(e) => setDescUz(e.target.value)}
+                    placeholder="Tavsif (o'zbekcha) — Google uchun 2-3 jumla" />
+                  <textarea rows={3} className={inputCls} value={descRu} onChange={(e) => setDescRu(e.target.value)}
+                    placeholder="Описание (на русском)" />
+                  <button onClick={() => saveDesc(item)} disabled={busy} className="flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-60">
+                    <Save size={13} /> Saqlash
+                  </button>
+                </div>
               )}
             </div>
           ))}
