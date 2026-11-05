@@ -452,13 +452,13 @@ async function sendProductImage(req, res) {
     const upstream = await fetch(src);
     if (!upstream.ok) throw new Error(`Rasm yuklanmadi: ${upstream.status}`);
     const inputBuffer = Buffer.from(await upstream.arrayBuffer());
-    // "alpha=1" — shaffof (PNG/WebP) rasmlar shaffofligini saqlaydi (WebP qaytaradi);
-    // shaffofligi yo'q rasmlar oddiy JPEG bo'lib qoladi.
-    const keepAlpha = raw && (req.query && req.query.alpha) === "1" && (await sharp(inputBuffer).metadata()).hasAlpha;
+    // "alpha=1" — do'kon (storefront) rasmlari: shaffoflik saqlanadi va WebP (JPEGdan ~30% yengil)
+    // qaytariladi. Excel eksporti alpha ishlatmaydi, shuning uchun JPEG oladi.
+    const keepAlpha = raw && (req.query && req.query.alpha) === "1";
     let contentType = "image/jpeg";
     let outBuffer;
     if (keepAlpha) {
-      outBuffer = await sharp(inputBuffer).rotate().resize({ width: rawSize, height: rawSize, fit: "inside", withoutEnlargement: true }).webp({ quality: 82 }).toBuffer();
+      outBuffer = await sharp(inputBuffer).rotate().resize({ width: rawSize, height: rawSize, fit: "inside", withoutEnlargement: true }).webp({ quality: 76 }).toBuffer();
       contentType = "image/webp";
     } else if (raw) {
       outBuffer = await sharp(inputBuffer).rotate().flatten({ background: "#ffffff" }).resize({ width: rawSize, height: rawSize, fit: "inside", withoutEnlargement: true }).jpeg({ quality: 80, mozjpeg: true }).toBuffer();

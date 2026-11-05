@@ -823,7 +823,7 @@ const SITE_ORIGIN = "https://www.casme.uz";
 
 // Kartochkalar uchun kichik (480px) rasm: asl 1600px rasm o'rniga CDN'da keshlanadigan yengil versiya.
 const R2_IMG_HOST = "https://pub-6a37909dbe8741249b8e364db72918b6.r2.dev/";
-function thumbUrl(url, w = 480) {
+function thumbUrl(url, w = 360) {
   if (typeof url === "string" && url.startsWith(R2_IMG_HOST)) return `/product-image?src=${encodeURIComponent(url)}&raw=1&alpha=1&w=${w}`;
   return url;
 }
