@@ -5509,6 +5509,10 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
               {l.label}
             </a>
           ))}
+          {/* Maqolalar — alohida (serverda tayyorlangan) sahifa, oddiy havola */}
+          <a href={lang === "ru" ? "/articles?lang=ru" : "/articles"} className="font-medium text-slate-600 hover:text-rose-500">
+            {lang === "ru" ? "Статьи" : "Maqolalar"}
+          </a>
         </nav>
         {categories.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5">

@@ -44,6 +44,7 @@ export default defineConfig({
       workbox: {
         navigateFallbackDenylist: [
           /^\/api\//,
+          /^\/articles?(\/|$)/,
           /^\/sitemap\.xml$/,
           /^\/robots\.txt$/,
           /^\/merchant-feed\.xml$/,

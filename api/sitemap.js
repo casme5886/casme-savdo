@@ -27,6 +27,7 @@
 
 import sharp from "sharp";
 import { builtinSeoDescription } from "../src/seoDescriptions.js";
+import { ARTICLES, getArticle } from "../src/articles.js";
 
 const FIREBASE_PROJECT_ID = "casme-savdo";
 const FIRESTORE_BASE = `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/databases/(default)/documents`;
@@ -125,8 +126,24 @@ async function sendSitemap(res) {
     console.error("sitemap: mahsulotlarni o'qishda xatolik:", e);
   }
 
+  // Faol banner va to'plam (kolleksiya) sahifalari
+  const bannerKeys = [];
+  try {
+    const [bs, cs] = await Promise.all([
+      fsQuery({ from: [{ collectionId: "banners" }], limit: 100 }),
+      fsQuery({ from: [{ collectionId: "collections" }], limit: 100 }),
+    ]);
+    bs.forEach((b) => { if (b.active !== false && Array.isArray(b.linkedProductIds) && b.linkedProductIds.length) bannerKeys.push(`banner-${b.id}`); });
+    cs.forEach((c) => { if (c.active !== false && Array.isArray(c.productIds) && c.productIds.length) bannerKeys.push(c.id); });
+  } catch (e) {
+    console.error("sitemap: banner/kolleksiyalarni o'qishda xatolik:", e);
+  }
+
   const urls = [
     { loc: `${SITE_URL}/`, changefreq: "daily", priority: "1.0" },
+    { loc: `${SITE_URL}/articles`, changefreq: "weekly", priority: "0.7" },
+    ...ARTICLES.map((a) => ({ loc: `${SITE_URL}/article/${a.slug}`, changefreq: "monthly", priority: "0.6" })),
+    ...bannerKeys.map((k) => ({ loc: `${SITE_URL}/banner/${encodeURIComponent(k)}`, changefreq: "weekly", priority: "0.7" })),
     { loc: `${SITE_URL}/categories`, changefreq: "weekly", priority: "0.9" },
     { loc: `${SITE_URL}/discounts`, changefreq: "daily", priority: "0.9" },
     { loc: `${SITE_URL}/hits`, changefreq: "daily", priority: "0.9" },
@@ -272,7 +289,10 @@ function isLikelyGtin(code) {
   return typeof code === "string" && /^\d{8}(\d{4}|\d{5}|\d{6})?$/.test(code.trim());
 }
 
-async function sendMerchantFeed(res) {
+async function sendMerchantFeed(req, res) {
+  // ?lang=ru — ruscha feed (/merchant-feed-ru.xml): ruscha nom/tavsif va ?lang=ru havola.
+  // Ruscha nomi kiritilmagan mahsulotlar bu feed'ga KIRMAYDI (til aralashib ketmasligi uchun).
+  const ru = (req.query && req.query.lang) === "ru";
   let products = [];
   try {
     products = await fetchActiveProductsFull();
@@ -286,9 +306,9 @@ async function sendMerchantFeed(res) {
 
   const items = products
     .map((p) => {
-      const name = p.nameUz || p.name || "";
+      const name = ru ? (p.nameRu || "") : (p.nameUz || p.name || "");
       if (!name) return "";
-      const desc = p.descriptionUz || p.description || name;
+      const desc = ru ? (p.descriptionRu || name) : (p.descriptionUz || p.description || name);
       const rawImages = Array.isArray(p.imageUrls) && p.imageUrls.length ? p.imageUrls : (p.imageUrl ? [p.imageUrl] : []);
       if (!rawImages.length) return ""; // Google rasmsiz mahsulotni rad etadi
       // Rasmlar qora fonli bo'lgani uchun — Merchant Center'ga to'g'ridan-
@@ -305,7 +325,7 @@ async function sendMerchantFeed(res) {
         `    <g:id>${escapeXml(p.id)}</g:id>\n` +
         `    <g:title>${escapeXml(name.slice(0, 150))}</g:title>\n` +
         `    <g:description>${escapeXml(desc.slice(0, 5000))}</g:description>\n` +
-        `    <g:link>${escapeXml(`${SITE_URL}/product/${p.id}`)}</g:link>\n` +
+        `    <g:link>${escapeXml(`${SITE_URL}/product/${p.id}${ru ? "?lang=ru" : ""}`)}</g:link>\n` +
         `    <g:image_link>${escapeXml(images[0])}</g:image_link>\n` +
         images.slice(1, 10).map((img) => `    <g:additional_image_link>${escapeXml(img)}</g:additional_image_link>\n`).join("") +
         `    <g:availability>${productAvailability(p)}</g:availability>\n` +
@@ -324,7 +344,7 @@ async function sendMerchantFeed(res) {
     `<?xml version="1.0" encoding="UTF-8"?>\n` +
     `<rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">\n` +
     `<channel>\n` +
-    `  <title>CASME — mahsulotlar feed'i</title>\n` +
+    `  <title>${ru ? "CASME — фид товаров (RU)" : "CASME — mahsulotlar feed'i"}</title>\n` +
     `  <link>${SITE_URL}/</link>\n` +
     `  <description>CASME do'konidagi barcha faol mahsulotlar (Google Merchant Center uchun)</description>\n` +
     items +
@@ -613,6 +633,48 @@ async function buildPageData(type, key, ru) {
     };
   }
 
+  if (type === "banner") {
+    // key = "banner-<bannerId>" (bosh banner) yoki kolleksiya id'si ("keng banner")
+    let title = "", sub = "", image = "", ids = [];
+    if (key.startsWith("banner-")) {
+      const r = await fetch(`${FIRESTORE_BASE}/banners/${encodeURIComponent(key.slice(7))}`);
+      if (!r.ok) return null;
+      const b = decodeFields((await r.json()).fields || {});
+      if (b.active === false) return null;
+      title = b.title || "";
+      sub = b.subtitle || "";
+      image = b.mobileImage || b.desktopImage || "";
+      ids = Array.isArray(b.linkedProductIds) ? b.linkedProductIds : [];
+    } else {
+      const r = await fetch(`${FIRESTORE_BASE}/collections/${encodeURIComponent(key)}`);
+      if (!r.ok) return null;
+      const c = decodeFields((await r.json()).fields || {});
+      title = (ru ? c.titleRu || c.titleUz : c.titleUz || c.titleRu) || c.title || "";
+      sub = (ru ? c.descriptionRu || c.descriptionUz : c.descriptionUz || c.descriptionRu) || c.description || "";
+      image = c.imageUrl || "";
+      ids = Array.isArray(c.productIds) ? c.productIds : [];
+    }
+    if (!title || !ids.length) return null;
+    const idSet = new Set(ids);
+    const all = await fsQuery({ from: [{ collectionId: "products" }], limit: 1000 });
+    const list = all.filter((p) => p.active !== false && idSet.has(p.id));
+    if (!list.length) return null;
+    const path = `/banner/${encodeURIComponent(key)}`;
+    const desc = (sub || (ru ? `${title} — специальное предложение CASME.` : `${title} — CASME'dan maxsus taklif.`)).replace(/\s+/g, " ").slice(0, 160);
+    return {
+      path,
+      title: `${title} | CASME`,
+      desc,
+      image: image || firstImage(list[0]),
+      jsonLd: [
+        { "@context": "https://schema.org", "@type": "CollectionPage", name: title, description: desc, url: `${SITE_URL}${path}` },
+        itemListLd(list, ru),
+        crumbLd(ru, title, `${SITE_URL}${path}`),
+      ],
+      bodyHtml: `<h1>${escHtml(title)}</h1>${sub ? `<p>${escHtml(sub)}</p>` : ""}${productLinks(list, ru)}`,
+    };
+  }
+
   if (type === "discounts" || type === "hits") {
     const all = await fsQuery({ from: [{ collectionId: "products" }], limit: 1000 });
     const act = all.filter((p) => p.active !== false);
@@ -659,6 +721,143 @@ async function buildPageData(type, key, ru) {
   return null;
 }
 
+
+// ==========================================================
+// Maqolalar: /articles va /article/<slug> — alohida (SPA'siz) to'liq HTML.
+// Matnlar src/articles.js'da. Maqola oxirida tegishli kategoriya mahsulotlari.
+// ==========================================================
+const ART_CSS = `*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#1e293b;background:#fff;line-height:1.7}
+a{color:#e11d48;text-decoration:none}a:hover{text-decoration:underline}
+header{border-bottom:1px solid #f1f5f9;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;max-width:820px;margin:0 auto}
+.logo{font-weight:800;letter-spacing:.12em;color:#1f1f1f;font-size:20px}
+nav a{margin-left:14px;font-size:14px;color:#475569}
+main{max-width:820px;margin:0 auto;padding:24px 20px 48px}
+h1{font-size:28px;line-height:1.25;margin:0 0 8px}h2{font-size:20px;margin:28px 0 6px}
+p{margin:0 0 14px;font-size:16px}.meta{color:#94a3b8;font-size:13px;margin-bottom:18px}
+ul.list{list-style:none;padding:0;margin:20px 0;display:grid;gap:12px}
+ul.list li{border:1px solid #f1f5f9;border-radius:14px;padding:14px 16px}
+ul.list a.t{font-weight:600;font-size:17px;color:#1e293b}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin:12px 0 24px}
+.card{border:1px solid #f1f5f9;border-radius:14px;padding:10px;font-size:13px;color:#1e293b;display:block}
+.card img{width:100%;aspect-ratio:1/1;object-fit:contain;background:#f8fafc;border-radius:10px}
+.card b{display:block;margin-top:6px;font-weight:600}.card span{color:#64748b}
+.cta{display:inline-block;background:#e11d48;color:#fff;border-radius:999px;padding:10px 20px;font-weight:600;margin:6px 0 0}.cta:hover{text-decoration:none;background:#be123c}
+footer{border-top:1px solid #f1f5f9;padding:20px;text-align:center;font-size:13px;color:#94a3b8}`;
+
+function articleShell({ title, desc, path, ru, jsonLd, inner }) {
+  const self = `${SITE_URL}${path}`;
+  const selfHref = ru ? `${self}?lang=ru` : self;
+  const other = ru ? self : `${self}?lang=ru`;
+  const ld = (jsonLd || []).map((o) => `<script type="application/ld+json">${ldJson(o)}</script>`).join("\n");
+  return `<!doctype html>
+<html lang="${ru ? "ru" : "uz"}">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>${escHtml(title)}</title>
+<meta name="description" content="${escHtml(desc)}" />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="${escHtml(selfHref)}" />
+<link rel="alternate" hreflang="uz-UZ" href="${escHtml(self)}" />
+<link rel="alternate" hreflang="ru-UZ" href="${escHtml(self)}?lang=ru" />
+<link rel="alternate" hreflang="x-default" href="${escHtml(self)}" />
+<link rel="icon" href="/favicon.ico" />
+<meta property="og:site_name" content="CASME" />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="${escHtml(title)}" />
+<meta property="og:description" content="${escHtml(desc)}" />
+<meta property="og:url" content="${escHtml(selfHref)}" />
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="${escHtml(title)}" />
+<meta name="twitter:description" content="${escHtml(desc)}" />
+${ld}
+<style>${ART_CSS}</style>
+</head>
+<body>
+<header>
+<a class="logo" href="/">CASME</a>
+<nav><a href="/">${ru ? "Магазин" : "Do'kon"}</a><a href="/articles${ru ? "?lang=ru" : ""}">${ru ? "Статьи" : "Maqolalar"}</a><a href="${escHtml(other)}">${ru ? "O'zbekcha" : "Русский"}</a></nav>
+</header>
+<main>
+${inner}
+</main>
+<footer>© CASME — ${ru ? "оригинальная корейская косметика" : "original koreys kosmetikasi"}</footer>
+</body>
+</html>`;
+}
+
+async function sendArticlePage(req, res, type, key, ru) {
+  const q = ru ? "?lang=ru" : "";
+  const L = ru ? "ru" : "uz";
+  let html;
+  if (type === "articles") {
+    const title = ru ? "Статьи об уходе за кожей | CASME" : "Teri parvarishi maqolalari | CASME";
+    const desc = ru ? "Полезные статьи об уходе за кожей и корейской косметике: как выбрать сыворотку, SPF и построить уход." : "Teri parvarishi va koreys kosmetikasi bo'yicha foydali maqolalar: serum, SPF tanlash va parvarish tartibi.";
+    html = articleShell({
+      title, desc, path: "/articles", ru,
+      jsonLd: [
+        { "@context": "https://schema.org", "@type": "CollectionPage", name: title.split(" | ")[0], description: desc, url: `${SITE_URL}/articles` },
+        crumbLd(ru, ru ? "Статьи" : "Maqolalar", `${SITE_URL}/articles`),
+      ],
+      inner:
+        `<h1>${escHtml(title.split(" | ")[0])}</h1><p>${escHtml(desc)}</p><ul class="list">` +
+        ARTICLES.map((a) => `<li><a class="t" href="/article/${a.slug}${q}">${escHtml(a[L].title)}</a><p style="margin:6px 0 0;font-size:14px;color:#64748b">${escHtml(a[L].desc)}</p></li>`).join("") +
+        `</ul>`,
+    });
+  } else {
+    const a = getArticle(key);
+    if (!a) return false;
+    const c = a[L];
+    let products = [];
+    try {
+      products = a.category ? (await fetchProductsWhere("category", a.category, 12)).filter((p) => !soldOut(p)).slice(0, 6) : [];
+    } catch { /* mahsulotsiz ham ishlayveradi */ }
+    const path = `/article/${a.slug}`;
+    const body = c.blocks.map(([t, text]) => (t === "h" ? `<h2>${escHtml(text)}</h2>` : `<p>${escHtml(text)}</p>`)).join("");
+    const prodHtml = products.length
+      ? `<h2>${ru ? "Подходящие товары" : "Mos mahsulotlar"}</h2><div class="grid">` +
+        products.map((p) => {
+          const img = firstImage(p);
+          const src = img.startsWith(ALLOWED_IMAGE_HOST) ? `/product-image?src=${encodeURIComponent(img)}&raw=1&w=300` : img;
+          return `<a class="card" href="/product/${escHtml(p.id)}${q}">${src ? `<img loading="lazy" src="${escHtml(src)}" alt="${escHtml(pickName(p, ru))}" />` : ""}<b>${escHtml(pickName(p, ru))}</b><span>${escHtml(Number(p.price || 0).toLocaleString("ru-RU"))} UZS</span></a>`;
+        }).join("") + `</div>`
+      : "";
+    html = articleShell({
+      title: `${c.title} | CASME`, desc: c.desc, path, ru,
+      jsonLd: [
+        {
+          "@context": "https://schema.org",
+          "@type": "Article",
+          headline: c.title,
+          description: c.desc,
+          datePublished: a.date,
+          dateModified: a.date,
+          inLanguage: ru ? "ru-UZ" : "uz-UZ",
+          mainEntityOfPage: `${SITE_URL}${path}`,
+          author: { "@type": "Organization", name: "CASME", url: `${SITE_URL}/` },
+          publisher: { "@type": "Organization", name: "CASME", url: `${SITE_URL}/` },
+        },
+        {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          itemListElement: [
+            { "@type": "ListItem", position: 1, name: ru ? "Главная" : "Bosh sahifa", item: `${SITE_URL}/` },
+            { "@type": "ListItem", position: 2, name: ru ? "Статьи" : "Maqolalar", item: `${SITE_URL}/articles` },
+            { "@type": "ListItem", position: 3, name: c.title, item: `${SITE_URL}${path}` },
+          ],
+        },
+      ],
+      inner:
+        `<p class="meta"><a href="/articles${q}">${ru ? "← Все статьи" : "← Barcha maqolalar"}</a> · ${escHtml(a.date)}</p><h1>${escHtml(c.title)}</h1>${body}${prodHtml}` +
+        `<p><a class="cta" href="/">${ru ? "Перейти в магазин CASME" : "CASME do'koniga o'tish"}</a></p>`,
+    });
+  }
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  res.setHeader("Cache-Control", "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400");
+  res.status(200).send(html);
+  return true;
+}
+
 async function fetchBaseHtml() {
   const r = await fetch(`${SITE_URL}/index.html`);
   if (!r.ok) throw new Error(`index.html ${r.status}`);
@@ -671,6 +870,14 @@ async function sendPage(req, res) {
   const type = String((req.query && req.query.type) || "");
   const key = String((req.query && req.query.key) || "");
   const ru = (req.query && req.query.lang) === "ru";
+  if (type === "articles" || type === "article") {
+    try {
+      if (await sendArticlePage(req, res, type, key, ru)) return;
+    } catch (e) {
+      console.error("article xatosi:", e);
+    }
+    return res.redirect(302, "/articles");
+  }
   let base = null;
   try {
     base = await fetchBaseHtml();
@@ -695,7 +902,7 @@ export default async function handler(req, res) {
   if (kind === "page") return sendPage(req, res);
   if (kind === "robots") return sendRobots(res);
   if (kind === "favicon") return sendFavicon(res);
-  if (kind === "merchant") return sendMerchantFeed(res);
+  if (kind === "merchant") return sendMerchantFeed(req, res);
   if (kind === "product-image") return sendProductImage(req, res);
   if (kind === "icon") return sendAppIcon(req, res);
   return sendSitemap(res);
