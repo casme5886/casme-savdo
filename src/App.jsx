@@ -12,6 +12,7 @@ import {
 import { initTelegram, isInTelegram, getTelegramUser, hapticFeedback, getWebApp } from "./telegram.js";
 import Banner from "./components/Banner.jsx";
 import ProductDetail from "./components/ProductDetail.jsx";
+import { builtinSeoDescription } from "./seoDescriptions.js";
 import { CategoryIconRow, BrandIconRow, CategoryShowcase, CategoryQuickRow, CollectionShowcase, WideCollectionShowcase, collectionTitle, collectionDescription, itemThumb } from "./components/CategoryShowcase.jsx";
 import StoreFooter from "./components/StoreFooter.jsx";
 import Testimonials from "./components/Testimonials.jsx";
@@ -963,8 +964,8 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
     const obj = categoryPageMode === "brand"
       ? brands.find((b) => b.name === categoryPageName)
       : categories.find((c) => c.name === categoryPageName);
-    if (!obj) return "";
-    return ((lang === "ru" ? obj.descriptionRu : obj.description) || obj.description || obj.descriptionRu || "").trim();
+    const own = obj ? ((lang === "ru" ? obj.descriptionRu : obj.description) || obj.description || obj.descriptionRu || "").trim() : "";
+    return own || builtinSeoDescription(categoryPageMode, categoryPageName, lang);
   }, [brands, categories, categoryPageMode, categoryPageName, lang]);
   const categoryPageHeroImg = categoryPageMode === "brand"
     ? (brands.find(b => b.name === categoryPageName)?.imageUrl || null)
