@@ -1342,7 +1342,13 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
     const BREADCRUMB_ID = "ld-breadcrumb-jsonld";
     document.getElementById(PRODUCT_ID)?.remove();
     document.getElementById(BREADCRUMB_ID)?.remove();
+    // Server HTML'ga joylangan sxemalar (data-ssr-product): boshqa mahsulotniki bo'lsa — olib tashlaymiz;
+    // aynan shu mahsulotniki bo'lsa — dublikat qo'shmaymiz.
+    document.querySelectorAll("script[data-ssr-product]").forEach((el) => {
+      if (!selectedProduct || el.getAttribute("data-ssr-product") !== selectedProduct.id) el.remove();
+    });
     if (!selectedProduct) return;
+    if (document.querySelector(`script[data-ssr-product="${selectedProduct.id}"]`)) return;
 
     const name = pname(selectedProduct, lang);
     const desc = pdesc(selectedProduct, lang) || name;
@@ -5485,6 +5491,8 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
           cartQty={cart[selectedProduct.id] || 0}
           onClose={() => setSelectedProduct(null)}
           onAddToCart={addToCart}
+          onOpenBrand={(n) => { setSelectedProduct(null); openBrandPage(n); }}
+          onOpenCategory={(n) => { setSelectedProduct(null); openCategoryPage(n); }}
           t={t}
           fmtMoney={fmtMoney}
           lang={lang}

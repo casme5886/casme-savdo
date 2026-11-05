@@ -8,7 +8,7 @@ import { pname, pdesc, discountPct, useSwipeDownToClose } from "./ui.jsx";
  * va savatga qo'shish tugmasi. Telegram Mini App/telefonda to'liq
  * ekranga yaqin (pastdan chiqadigan varaq) ko'rinishda ochiladi.
  */
-export default function ProductDetail({ product, cartQty, onClose, onAddToCart, t, fmtMoney, lang }) {
+export default function ProductDetail({ product, cartQty, onClose, onAddToCart, onOpenBrand, onOpenCategory, t, fmtMoney, lang }) {
   const images = useMemo(() => {
     if (product.imageUrls && product.imageUrls.length) return product.imageUrls;
     if (product.imageUrl) return [product.imageUrl];
@@ -165,8 +165,25 @@ export default function ProductDetail({ product, cartQty, onClose, onAddToCart, 
           )}
 
           {/* Ma'lumot */}
-          {product.brand && <p className="text-[11px] font-medium uppercase tracking-wide text-rose-400">{product.brand}</p>}
-          <p className="text-xs font-medium text-emerald-600">{product.category || "—"}</p>
+          {/* Brend va kategoriya — haqiqiy havolalar (Google ichki bog'lanishni ko'rishi uchun); bosilganda sayt ichida ochiladi */}
+          {product.brand && (
+            <p className="text-[11px] font-medium uppercase tracking-wide text-rose-400">
+              <a
+                href={`/brand/${encodeURIComponent(product.brand)}`}
+                onClick={(e) => { if (onOpenBrand && !(e.metaKey || e.ctrlKey || e.shiftKey)) { e.preventDefault(); onOpenBrand(product.brand); } }}
+                className="hover:underline"
+              >{product.brand}</a>
+            </p>
+          )}
+          <p className="text-xs font-medium text-emerald-600">
+            {product.category ? (
+              <a
+                href={`/category/${encodeURIComponent(product.category)}`}
+                onClick={(e) => { if (onOpenCategory && !(e.metaKey || e.ctrlKey || e.shiftKey)) { e.preventDefault(); onOpenCategory(product.category); } }}
+                className="hover:underline"
+              >{product.category}</a>
+            ) : "—"}
+          </p>
           <h2 className="mb-2 text-lg font-bold text-slate-800">{name}</h2>
 
           <div className="mb-2 flex items-center gap-2">

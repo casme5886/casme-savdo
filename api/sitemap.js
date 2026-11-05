@@ -537,7 +537,9 @@ function buildPageHtml(baseHtml, page, ru) {
   html = html.replace(/<link rel="alternate" hreflang="uz-UZ" href="[^"]*"\s*\/?>/, () => `<link rel="alternate" hreflang="uz-UZ" href="${escHtml(self)}" />`);
   html = html.replace(/<link rel="alternate" hreflang="ru-UZ" href="[^"]*"\s*\/?>/, () => `<link rel="alternate" hreflang="ru-UZ" href="${escHtml(self)}?lang=ru" />`);
   html = html.replace(/<link rel="alternate" hreflang="x-default" href="[^"]*"\s*\/?>/, () => `<link rel="alternate" hreflang="x-default" href="${escHtml(self)}" />`);
-  const ld = (page.jsonLd || []).map((o) => `<script type="application/ld+json">${ldJson(o)}</script>`).join("\n");
+  // data-ssr-product: brauzerdagi JS shu mahsulot uchun ikkinchi marta (dublikat) sxema qo'shmasligi uchun belgi
+  const ssrAttr = page.productId ? ` data-ssr-product="${escHtml(page.productId)}"` : "";
+  const ld = (page.jsonLd || []).map((o) => `<script type="application/ld+json"${ssrAttr}>${ldJson(o)}</script>`).join("\n");
   if (ld) html = html.replace("</head>", () => `${ld}\n</head>`);
   // Crawler uchun oddiy kontent — React yuklangach #root to'liq almashtiriladi.
   const body = `<main data-prerender style="font-family:system-ui,sans-serif;padding:16px;max-width:720px;margin:0 auto">${page.bodyHtml || ""}</main>`;
@@ -580,7 +582,8 @@ const crumbLd = (ru, name, url) => ({
 async function buildPageData(type, key, ru) {
   if (type === "product") {
     const r = await fetch(`${FIRESTORE_BASE}/products/${encodeURIComponent(key)}`);
-    if (!r.ok) return null;
+    if (r.status === 404) return null;
+    if (!r.ok) throw new Error(`product ${r.status}`); // vaqtinchalik xato — 404 deb hisoblamaymiz
     const doc = await r.json();
     const p = { id: key, ...decodeFields(doc.fields || {}) };
     if (p.active === false) return null;
@@ -589,8 +592,19 @@ async function buildPageData(type, key, ru) {
     const desc = (pickDesc(p, ru) || "").replace(/\s+/g, " ").slice(0, 160) || (ru ? `${name} — оригинальная продукция в CASME.` : `${name} — CASME'da original mahsulotlar.`);
     const image = firstImage(p);
     const url = `${SITE_URL}/product/${key}${ru ? "?lang=ru" : ""}`;
+    // Ichki bog'lanish: shu brendning boshqa mahsulotlari
+    let related = [];
+    try {
+      if (p.brand) related = (await fetchProductsWhere("brand", p.brand, 10)).filter((x) => x.id !== key).slice(0, 8);
+    } catch { /* havolasiz ham ishlayveradi */ }
+    const crumbs = [
+      { "@type": "ListItem", position: 1, name: ru ? "Главная" : "Bosh sahifa", item: `${SITE_URL}/` },
+      ...(p.brand ? [{ "@type": "ListItem", position: 2, name: p.brand, item: `${SITE_URL}/brand/${encodeURIComponent(p.brand)}` }] : []),
+    ];
+    crumbs.push({ "@type": "ListItem", position: crumbs.length + 1, name, item: url });
     return {
       path: `/product/${key}`,
+      productId: key,
       title: `${name} — CASME`,
       desc,
       image,
@@ -612,14 +626,14 @@ async function buildPageData(type, key, ru) {
             availability: soldOut(p) ? "https://schema.org/OutOfStock" : "https://schema.org/InStock",
           },
         },
-        crumbLd(ru, name, url),
+        { "@context": "https://schema.org", "@type": "BreadcrumbList", itemListElement: crumbs },
       ],
       bodyHtml:
+        `<p><a href="${SITE_URL}/">CASME</a>${p.brand ? ` › <a href="${SITE_URL}/brand/${encodeURIComponent(p.brand)}">${escHtml(p.brand)}</a>` : ""}${p.category ? ` › <a href="${SITE_URL}/category/${encodeURIComponent(p.category)}">${escHtml(p.category)}</a>` : ""}</p>` +
         `<h1>${escHtml(name)}</h1>` +
-        (p.brand ? `<p>${escHtml(p.brand)}${p.category ? " · " + escHtml(p.category) : ""}</p>` : "") +
         `<p>${escHtml(Number(p.price || 0).toLocaleString("ru-RU"))} UZS</p>` +
         (pickDesc(p, ru) ? `<p>${escHtml(pickDesc(p, ru))}</p>` : "") +
-        `<p><a href="${SITE_URL}/">CASME</a></p>`,
+        (related.length ? `<h2>${ru ? "Другие товары бренда" : "Shu brendning boshqa mahsulotlari"}</h2>${productLinks(related, ru)}` : ""),
     };
   }
 
@@ -914,7 +928,11 @@ async function sendPage(req, res) {
     const out = page ? buildPageHtml(base, page, ru) : base;
     res.setHeader("Content-Type", "text/html; charset=utf-8");
     res.setHeader("Cache-Control", page ? "public, max-age=0, s-maxage=600, stale-while-revalidate=86400" : "public, max-age=0, s-maxage=60");
-    return res.status(200).send(out);
+    // Topilmagan (yoki o'chirilgan/yashirilgan) mahsulot — 404: Google bunday sahifani
+    // indeksdan chiqaradi. Mijoz esa baribir sayt ichida (SPA) ko'radi. Brend/kategoriya
+    // nomlarida maxsus belgi bo'lishi mumkin, shuning uchun ularga 404 BERILMAYDI.
+    const status = !page && type === "product" && key ? 404 : 200;
+    return res.status(status).send(out);
   } catch (e) {
     console.error("page xatosi:", e);
     if (base) {
