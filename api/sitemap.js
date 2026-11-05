@@ -105,6 +105,14 @@ async function fetchActiveProductsFull() {
     .filter((p) => p.active !== false);
 }
 
+/** Sayt ichidagi yengil (keshlanadigan) rasm manzili — R2 rasmlari uchun /product-image proksisi. */
+function thumbSrc(url, w = 480) {
+  return typeof url === "string" && url.startsWith(ALLOWED_IMAGE_HOST)
+    ? `${SITE_URL}/product-image?src=${encodeURIComponent(url)}&raw=1&w=${w}`
+    : url || "";
+}
+const productImages = (p) => (Array.isArray(p.imageUrls) && p.imageUrls.length ? p.imageUrls : p.imageUrl ? [p.imageUrl] : []);
+
 function escapeXml(s) {
   return String(s).replace(/[<>&'"]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", "'": "&apos;", '"': "&quot;" }[c]));
 }
@@ -113,12 +121,22 @@ async function sendSitemap(res) {
   let productIds = [];
   const brandSet = new Set();
   const categorySet = new Set();
+  const imgByProduct = new Map(); // id -> [rasm,...]
+  const imgByBrand = new Map();
+  const imgByCategory = new Map();
+  const pushImg = (map, key, imgs) => {
+    const arr = map.get(key) || [];
+    for (const u of imgs) if (arr.length < 4 && !arr.includes(u)) arr.push(u);
+    map.set(key, arr);
+  };
   try {
     const products = await fetchActiveProductsFull();
     productIds = products.map((p) => p.id);
     for (const p of products) {
-      if (p.brand && String(p.brand).trim()) brandSet.add(String(p.brand).trim());
-      if (p.category && String(p.category).trim()) categorySet.add(String(p.category).trim());
+      const imgs = productImages(p).slice(0, 3).map((u) => thumbSrc(u, 800));
+      imgByProduct.set(p.id, imgs);
+      if (p.brand && String(p.brand).trim()) { brandSet.add(String(p.brand).trim()); if (imgs[0]) pushImg(imgByBrand, String(p.brand).trim(), [imgs[0]]); }
+      if (p.category && String(p.category).trim()) { categorySet.add(String(p.category).trim()); if (imgs[0]) pushImg(imgByCategory, String(p.category).trim(), [imgs[0]]); }
     }
   } catch (e) {
     // Firestore vaqtincha javob bermasa ham — hech bo'lmasa bosh sahifasi
@@ -151,22 +169,25 @@ async function sendSitemap(res) {
       loc: `${SITE_URL}/category/${encodeURIComponent(n)}`,
       changefreq: "weekly",
       priority: "0.8",
+      images: imgByCategory.get(n) || [],
     })),
     ...[...brandSet].map((n) => ({
       loc: `${SITE_URL}/brand/${encodeURIComponent(n)}`,
       changefreq: "weekly",
       priority: "0.8",
+      images: imgByBrand.get(n) || [],
     })),
     ...productIds.map((id) => ({
       loc: `${SITE_URL}/product/${id}`,
       changefreq: "weekly",
       priority: "0.8",
+      images: imgByProduct.get(id) || [],
     })),
   ];
 
   const xml =
     `<?xml version="1.0" encoding="UTF-8"?>\n` +
-    `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
+    `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n` +
     urls
       .map(
         (u) =>
@@ -174,6 +195,7 @@ async function sendSitemap(res) {
           `    <loc>${escapeXml(u.loc)}</loc>\n` +
           `    <changefreq>${u.changefreq}</changefreq>\n` +
           `    <priority>${u.priority}</priority>\n` +
+          (u.images || []).map((img) => `    <image:image><image:loc>${escapeXml(img)}</image:loc></image:image>\n`).join("") +
           `  </url>\n`
       )
       .join("") +
@@ -525,7 +547,13 @@ function buildPageHtml(baseHtml, page, ru) {
 
 const productLinks = (list, ru) =>
   list.length
-    ? `<ul>${list.map((p) => `<li><a href="${SITE_URL}/product/${escHtml(p.id)}">${escHtml(pickName(p, ru))}</a>${p.price ? ` — ${escHtml(Number(p.price).toLocaleString("ru-RU"))} UZS` : ""}</li>`).join("")}</ul>`
+    ? `<ul style="list-style:none;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:14px">${list
+        .map((p) => {
+          const nm = pickName(p, ru);
+          const img = thumbSrc(firstImage(p), 480);
+          return `<li><a href="${SITE_URL}/product/${escHtml(p.id)}" style="color:inherit;text-decoration:none;display:block">${img ? `<img src="${escHtml(img)}" alt="${escHtml(nm)}" width="160" height="160" loading="lazy" style="width:100%;height:auto;aspect-ratio:1/1;object-fit:contain" />` : ""}<span style="display:block;font-size:13px">${escHtml(nm)}</span></a>${p.price ? `<span style="font-size:12px;color:#64748b">${escHtml(Number(p.price).toLocaleString("ru-RU"))} UZS</span>` : ""}</li>`;
+        })
+        .join("")}</ul>`
     : "";
 
 const itemListLd = (list, ru) => ({
@@ -536,6 +564,7 @@ const itemListLd = (list, ru) => ({
     position: i + 1,
     url: `${SITE_URL}/product/${p.id}`,
     name: pickName(p, ru),
+    ...(firstImage(p) ? { image: thumbSrc(firstImage(p), 800) } : {}),
   })),
 });
 
@@ -623,9 +652,9 @@ async function buildPageData(type, key, ru) {
       path,
       title,
       desc,
-      image: firstImage(list[0]),
+      image: thumbSrc(firstImage(list[0]), 800),
       jsonLd: [
-        { "@context": "https://schema.org", "@type": "CollectionPage", name, description: desc, url: `${SITE_URL}${path}` },
+        { "@context": "https://schema.org", "@type": "CollectionPage", name, description: desc, url: `${SITE_URL}${path}`, ...(firstImage(list[0]) ? { primaryImageOfPage: { "@type": "ImageObject", url: thumbSrc(firstImage(list[0]), 800) } } : {}) },
         itemListLd(list, ru),
         crumbLd(ru, name, `${SITE_URL}${path}`),
       ],
