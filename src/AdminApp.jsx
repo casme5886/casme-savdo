@@ -24,7 +24,7 @@ import {
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from "recharts";
-import { auth } from "./firebase.js";
+import { auth } from "./firebaseAuth.js";
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
 import {
   subscribeCollection, subscribeDoc, addItem, setItem, updateItem, deleteItem, uploadImage, adjustCustomerBonus,

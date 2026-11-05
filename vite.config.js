@@ -3,6 +3,20 @@ import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
+  build: {
+    rollupOptions: {
+      output: {
+        // Vendor kodlarini alohida fayllarga ajratamiz: parallel yuklanadi va
+        // keyingi deploy'larda brauzer keshida qoladi.
+        manualChunks(id) {
+          if (!id.includes("node_modules")) return;
+          if (id.includes("firebase") || id.includes("@firebase")) return "firebase";
+          if (id.includes("react-dom") || id.includes("/react/") || id.includes("scheduler")) return "react";
+          if (id.includes("embla")) return "embla";
+        },
+      },
+    },
+  },
   plugins: [
     react(),
     // PWA (mobil ilova) — saytni "Bosh ekranga qo'shish" orqali
@@ -42,6 +56,9 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // Admin panel, Excel va xarita kodlari oldindan keshlanmaydi — ularni faqat
+        // kerak bo'lganda yuklanadi (yangi mijozning interneti ortiqcha sarflanmasin).
+        globIgnores: ["**/AdminApp-*.js", "**/exceljs*.js", "**/MapPicker-*"],
         navigateFallbackDenylist: [
           /^\/api\//,
           /^\/articles?(\/|$)/,

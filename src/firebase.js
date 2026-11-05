@@ -11,7 +11,6 @@
 
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAW8EbpfKrUPc3eI6zjQCWn2N8HU5g9CvM",
@@ -24,4 +23,5 @@ const firebaseConfig = {
 
 export const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
-export const auth = getAuth(app);
+// Auth faqat admin panelda kerak — src/firebaseAuth.js (AdminApp ichida yuklanadi),
+// shunda mijozlar auth kodini yuklab olmaydi.

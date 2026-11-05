@@ -10,16 +10,17 @@
   },
   "dependencies": {
     "aws4fetch": "^1.0.20",
+    "caniuse-lite": "^1.0.30001822",
     "embla-carousel-react": "^8.6.0",
     "embla-carousel-wheel-gestures": "^8.1.0",
     "exceljs": "^4.4.0",
     "firebase": "^10.14.1",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.383.0",
-    "sharp": "^0.33.5",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "recharts": "^2.12.7"
+    "recharts": "^2.12.7",
+    "sharp": "^0.33.5"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.1",

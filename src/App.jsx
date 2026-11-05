@@ -16,7 +16,7 @@ import { builtinSeoDescription } from "./seoDescriptions.js";
 import { CategoryIconRow, BrandIconRow, CategoryShowcase, CategoryQuickRow, CollectionShowcase, WideCollectionShowcase, collectionTitle, collectionDescription, itemThumb } from "./components/CategoryShowcase.jsx";
 import StoreFooter from "./components/StoreFooter.jsx";
 import Testimonials from "./components/Testimonials.jsx";
-import MapPicker from "./components/MapPicker.jsx";
+const MapPicker = lazy(() => import("./components/MapPicker.jsx")); // leaflet faqat xarita ochilganda yuklanadi
 
 // MUHIM (tezlik uchun kod ajratish/code-splitting): admin panelining BARCHA
 // kodi (buyurtmalar, mijozlar, mahsulotlar boshqaruvi, statistika grafigi,
@@ -4786,7 +4786,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                       {showAddressMap && (
                         <div className="mt-2">
                           <p className="mb-1.5 text-[11px] text-slate-400">{t.store.mapPickNote}</p>
-                          <MapPicker value={newAddressLocation} onChange={setNewAddressLocation} />
+                          <Suspense fallback={<div className="h-48 animate-pulse rounded-xl bg-gray-100" />}><MapPicker value={newAddressLocation} onChange={setNewAddressLocation} /></Suspense>
                           <button
                             type="button"
                             onClick={() => setShowAddressMap(false)}
@@ -5471,7 +5471,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                 {showCheckoutMap && (
                   <div className="mt-2">
                     <p className="mb-1.5 text-[11px] text-slate-400">{t.store.mapPickNote}</p>
-                    <MapPicker value={location} onChange={setLocation} />
+                    <Suspense fallback={<div className="h-48 animate-pulse rounded-xl bg-gray-100" />}><MapPicker value={location} onChange={setLocation} /></Suspense>
                     <button
                       type="button"
                       onClick={() => setShowCheckoutMap(false)}
