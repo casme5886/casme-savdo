@@ -1686,6 +1686,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
   const [location, setLocation] = useState(null); // {lat, lng}
   const [error, setError] = useState("");
   const [placing, setPlacing] = useState(false);
+  const [orderError, setOrderError] = useState("");
   const [done, setDone] = useState(false);
 
   // ---------------------------------------------------------------
@@ -2627,6 +2628,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
       setError(t.store.phoneInvalid);
       return;
     }
+    setOrderError("");
     setPlacing(true);
 
     const phone = form.phone.trim();
@@ -2774,13 +2776,16 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
       console.error("Buyurtma yuborishda xatolik:", e);
       if (e && e.code === "out_of_stock") {
         const nm = e.productName ? `«${e.productName}» ` : "";
-        setError(
+        setOrderError(
           lang === "ru"
             ? `${nm}— недостаточно товара на складе${e.left > 0 ? ` (осталось: ${e.left} шт.)` : " (закончился)"}. Измените количество в корзине.`
             : `${nm}omborda yetarli emas${e.left > 0 ? ` (qoldi: ${e.left} ta)` : " (tugab qoldi)"}. Savatdagi sonini o'zgartiring.`
         );
+      } else if (e && e.code === "timeout") {
+        setOrderError(lang === "ru" ? "Медленный интернет. Попробуйте ещё раз." : "Internet sekin yoki uzilgan. Qayta urinib ko'ring.");
       } else {
-        setError(t.common.required);
+        const c = (e && (e.code || e.message)) ? ` (${String(e.code || e.message).slice(0, 60)})` : "";
+        setOrderError((lang === "ru" ? "Не удалось отправить заказ. Попробуйте ещё раз." : "Buyurtma yuborilmadi. Qayta urinib ko'ring.") + c);
       }
       setPlacing(false);
     }
@@ -2807,6 +2812,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
     setForm({ name: fullName || "", phone: myPhone || "", payment: "cash", address: "", phone2: "" });
     setLocation(null);
     setError("");
+    setOrderError("");
     removePromoCode();
     setBonusToUse("");
     setShowCheckoutMap(false);
@@ -5512,6 +5518,11 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                 )}
               </div>
 
+              {orderError && (
+                <div role="alert" className="mt-4 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm font-medium text-rose-700">
+                  {orderError}
+                </div>
+              )}
               <div className="mt-4 flex justify-end gap-2">
                 <button onClick={resetAll} className="rounded-lg px-3.5 py-2 text-sm font-medium text-slate-500 hover:bg-gray-100">{t.common.cancel}</button>
                 <button onClick={submitOrder} disabled={placing} className="flex items-center gap-1.5 rounded-lg bg-rose-600 px-3.5 py-2 text-sm font-medium text-white hover:bg-rose-700 disabled:opacity-60">
