@@ -2986,7 +2986,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                       <span className="absolute left-0 top-0 rounded-full bg-[#E01876] px-2 py-0.5 text-[10px] font-bold text-white">-{pct}%</span>
                     )}
                     <button
-                      onClick={(e) => { e.stopPropagation(); toggleWishlist(p.id); }}
+                      onClick={(e) => { e.stopPropagation(); toggleWishlist(p.id); }} aria-label="Sevimlilar"
                       className="absolute right-0 top-0 flex h-6 w-6 items-center justify-center rounded-full border border-white/70 text-white transition hover:bg-white/15"
                     >
                       <Heart size={12} fill={liked ? "#fff" : "none"} />
@@ -3070,7 +3070,8 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
               className="flex gap-3 overflow-x-auto pb-2 scroll-smooth [&::-webkit-scrollbar]:hidden min-[769px]:gap-4"
               style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
             >
-              {sortSoldOutLast(products.filter(p => p.tag === "bestseller")).map((p) => {
+              {/* TEZLIK: faqat dastlabki 20 ta chiziladi (150+ kartochka sahifani sekinlashtirardi); qolganlari "Barchasini ko'rish" sahifasida. */}
+              {sortSoldOutLast(products.filter(p => p.tag === "bestseller")).slice(0, 20).map((p) => {
               const inCart = cart[p.id] || 0;
               const stockType = p.stockType || "limited";
               const soldOut = stockType === "out" || (stockType === "limited" && (p.stock || 0) <= 0);
@@ -3100,7 +3101,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                       <span className="absolute left-1 top-1 rounded-full bg-rose-100 px-1.5 py-0.5 text-[10px] font-bold text-rose-600">-{pct}%</span>
                     )}
                     <button
-                      onClick={(e) => { e.stopPropagation(); toggleWishlist(p.id); }}
+                      onClick={(e) => { e.stopPropagation(); toggleWishlist(p.id); }} aria-label="Sevimlilar"
                       className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-white/90 text-stone-400 shadow-sm transition hover:text-rose-500"
                     >
                       <Heart size={11} fill={liked ? "#f43f5e" : "none"} className={liked ? "text-rose-500" : ""} />
@@ -3223,7 +3224,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                                     <span className="absolute left-0 top-0 rounded-full bg-[#E01876] px-2 py-0.5 text-[10px] font-bold text-white">-{pct}%</span>
                                   )}
                                   <button
-                                    onClick={(e) => { e.stopPropagation(); toggleWishlist(p.id); }}
+                                    onClick={(e) => { e.stopPropagation(); toggleWishlist(p.id); }} aria-label="Sevimlilar"
                                     className="absolute right-0 top-0 flex h-6 w-6 items-center justify-center rounded-full border border-white/70 text-white transition hover:bg-white/15"
                                   >
                                     <Heart size={12} fill={liked ? "#fff" : "none"} />
@@ -3379,7 +3380,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                       )}
                     </div>
                     <button
-                      onClick={(e) => { e.stopPropagation(); toggleWishlist(p.id); }}
+                      onClick={(e) => { e.stopPropagation(); toggleWishlist(p.id); }} aria-label="Sevimlilar"
                       className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-stone-400 shadow-sm transition hover:text-rose-500"
                     >
                       <Heart size={15} fill={liked ? "#f43f5e" : "none"} className={liked ? "text-rose-500" : ""} />
@@ -3564,7 +3565,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                         )}
                         <span className="absolute left-1.5 top-1.5 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-bold text-rose-600">-{pct}%</span>
                         <button
-                          onClick={(e) => { e.stopPropagation(); toggleWishlist(p.id); }}
+                          onClick={(e) => { e.stopPropagation(); toggleWishlist(p.id); }} aria-label="Sevimlilar"
                           className="absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-stone-400 shadow-sm transition hover:text-rose-500"
                         >
                           <Heart size={13} fill={liked ? "#f43f5e" : "none"} className={liked ? "text-rose-500" : ""} />
@@ -3714,7 +3715,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                           <span className="absolute left-1.5 top-1.5 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-bold text-rose-600">-{pct}%</span>
                         )}
                         <button
-                          onClick={(e) => { e.stopPropagation(); toggleWishlist(p.id); }}
+                          onClick={(e) => { e.stopPropagation(); toggleWishlist(p.id); }} aria-label="Sevimlilar"
                           className="absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-stone-400 shadow-sm transition hover:text-rose-500"
                         >
                           <Heart size={13} fill={liked ? "#f43f5e" : "none"} className={liked ? "text-rose-500" : ""} />
@@ -3974,7 +3975,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                             <span className="absolute left-1.5 top-1.5 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-bold text-rose-600">-{pct}%</span>
                           )}
                           <button
-                            onClick={(e) => { e.stopPropagation(); toggleWishlist(p.id); }}
+                            onClick={(e) => { e.stopPropagation(); toggleWishlist(p.id); }} aria-label="Sevimlilar"
                             className="absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-stone-400 shadow-sm transition hover:text-rose-500"
                           >
                             <Heart size={13} fill={liked ? "#f43f5e" : "none"} className={liked ? "text-rose-500" : ""} />
@@ -4175,7 +4176,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                             <span className="absolute left-1.5 top-1.5 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-bold text-rose-600">-{pct}%</span>
                           )}
                           <button
-                            onClick={(e) => { e.stopPropagation(); toggleWishlist(p.id); }}
+                            onClick={(e) => { e.stopPropagation(); toggleWishlist(p.id); }} aria-label="Sevimlilar"
                             className="absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-stone-400 shadow-sm transition hover:text-rose-500"
                           >
                             <Heart size={13} fill={liked ? "#f43f5e" : "none"} className={liked ? "text-rose-500" : ""} />
@@ -5084,7 +5085,7 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
                                   <div className="flex h-full w-full items-center justify-center"><Package size={20} /></div>
                                 )}
                                 <button
-                                  onClick={(e) => { e.stopPropagation(); toggleWishlist(p.id); }}
+                                  onClick={(e) => { e.stopPropagation(); toggleWishlist(p.id); }} aria-label="Sevimlilar"
                                   className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-white/90 text-stone-400 shadow-sm hover:text-rose-500"
                                 >
                                   <Heart size={12} fill={liked ? "#f43f5e" : "none"} className={liked ? "text-rose-500" : ""} />
