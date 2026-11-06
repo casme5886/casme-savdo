@@ -10,7 +10,7 @@
 // ==========================================================
 
 import { initializeApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
+import { initializeFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAW8EbpfKrUPc3eI6zjQCWn2N8HU5g9CvM",
@@ -22,6 +22,10 @@ const firebaseConfig = {
 };
 
 export const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app);
+// iPhone/Safari va ba'zi tarmoqlarda Firestore'ning odatiy ulanishi (WebChannel)
+// bloklanib, yozuvlar osilib qoladi. Auto-detect bunday holatda long-polling'ga o'tadi.
+export const db = initializeFirestore(app, {
+  experimentalAutoDetectLongPolling: true,
+});
 // Auth faqat admin panelda kerak — src/firebaseAuth.js (AdminApp ichida yuklanadi),
 // shunda mijozlar auth kodini yuklab olmaydi.
