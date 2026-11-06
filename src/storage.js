@@ -355,7 +355,19 @@ export async function placeOrderBatch({ cartItems, existingCustomer, customerNam
     // 1) Avval BARCHA o'qishlar
     const stockChecks = await Promise.all(cartItems.map(async ({ product, qty }) => {
       const ref = doc(db, "products", product.id);
-      const snap = await getDoc(ref);
+      let snap;
+      try {
+        // Firebase o'qish limiti tugagan / internet sekin bo'lsa, buyurtma
+        // to'xtab qolmasin: 4 soniyada javob bo'lmasa yoki xato bersa,
+        // savatdagi (saytda yuklangan) mahsulot ma'lumotidan foydalanamiz.
+        snap = await Promise.race([
+          getDoc(ref),
+          new Promise((_, rej) => setTimeout(() => rej(new Error("read-timeout")), 4000)),
+        ]);
+      } catch (e) {
+        console.warn("Qoldiqni o'qib bo'lmadi, mahalliy ma'lumot ishlatiladi:", e && (e.code || e.message));
+        snap = { exists: () => true, data: () => product };
+      }
       return { product, qty, ref, snap };
     }));
     for (const { product, qty, snap } of stockChecks) {

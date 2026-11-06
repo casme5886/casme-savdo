@@ -5685,49 +5685,49 @@ export default function App() {
   }, []);
 
   // Mahsulotlar — hammaga kerak (do'konda ko'rsatish + admin boshqarishi uchun)
+  //
+  // Do'kon (mijozlar) uchun: ma'lumotlar /api/catalog orqali (30 daqiqaga
+  // keshlanadi) — Firestore'ning kunlik bepul o'qish limitini tejaydi.
+  // Admin panel uchun yoki /api/catalog ishlamasa — to'g'ridan-to'g'ri
+  // Firestore'ga jonli obuna (zaxira yo'l).
   useEffect(() => {
-    const unsub = subscribeCollection(COL.products, (list) => {
-      setProducts(list);
-      setProductsLoaded(true);
-    });
-    return unsub;
-  }, []);
-
-  // Kategoriyalar — hammaga kerak (do'kondagi chip'lar + admin formadagi tanlov uchun)
-  useEffect(() => {
-    const unsub = subscribeCollection(COL.categories, setCategories);
-    return unsub;
-  }, []);
-
-  // Brendlar — admin formadagi tanlov uchun
-  useEffect(() => {
-    const unsub = subscribeCollection(COL.brands, setBrands);
-    return unsub;
-  }, []);
-
-  // Kolleksiyalar — "O'zingizga mos uslubni toping" bo'limi uchun
-  useEffect(() => {
-    const unsub = subscribeCollection(COL.collections, setCollections);
-    return unsub;
-  }, []);
-
-  // Bannerlar — hammaga kerak (do'kon sliderining o'zi + admin boshqaruvi uchun)
-  useEffect(() => {
-    const unsub = subscribeCollection(COL.banners, setBanners);
-    return unsub;
-  }, []);
-
-  // Mijoz sharhlari
-  useEffect(() => {
-    const unsub = subscribeCollection(COL.testimonials, setTestimonials);
-    return unsub;
-  }, []);
-
-  // Savol-javob
-  useEffect(() => {
-    const unsub = subscribeCollection(COL.faqs, setFaqs);
-    return unsub;
-  }, []);
+    const unsubs = [];
+    let cancelled = false;
+    const live = () => {
+      unsubs.push(
+        subscribeCollection(COL.products, (list) => { setProducts(list); setProductsLoaded(true); }),
+        subscribeCollection(COL.categories, setCategories),
+        subscribeCollection(COL.brands, setBrands),
+        subscribeCollection(COL.collections, setCollections),
+        subscribeCollection(COL.banners, setBanners),
+        subscribeCollection(COL.testimonials, setTestimonials),
+        subscribeCollection(COL.faqs, setFaqs),
+      );
+    };
+    if (route === "admin") {
+      live();
+    } else {
+      fetch("/api/catalog")
+        .then((r) => (r.ok ? r.json() : Promise.reject(new Error("catalog " + r.status))))
+        .then((d) => {
+          if (cancelled) return;
+          if (!d || !Array.isArray(d.products) || d.products.length === 0) throw new Error("catalog empty");
+          setProducts(d.products);
+          setCategories(d.categories || []);
+          setBrands(d.brands || []);
+          setCollections(d.collections || []);
+          setBanners(d.banners || []);
+          setTestimonials(d.testimonials || []);
+          setFaqs(d.faqs || []);
+          setProductsLoaded(true);
+        })
+        .catch((e) => {
+          console.warn("Katalog API ishlamadi, Firestore'ga o'tilmoqda:", e && e.message);
+          if (!cancelled) live();
+        });
+    }
+    return () => { cancelled = true; unsubs.forEach((u) => u && u()); };
+  }, [route]);
 
   // Do'kon sozlamalari (bitta hujjat — settings/store). MUHIM: butun
   // "settings" kolleksiyasiga emas, FAQAT shu bitta hujjatga obuna

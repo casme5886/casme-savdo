@@ -82,7 +82,16 @@ async function fetchActiveProductIds() {
 /** "products" kolleksiyasidan Google Merchant Center feed'i uchun kerakli
  *  BARCHA maydonlarni o'qiydi (yuqoridagi fetchActiveProductIds'dan farqli —
  *  bu yerda nom/narx/rasm/brend/shtrix-kod kabi to'liq ma'lumot kerak). */
+let _fullCache = { at: 0, data: null };
 async function fetchActiveProductsFull() {
+  // Xotira keshi (30 daqiqa): bir "issiq" server nusxasi ichida har sahifa
+  // uchun mahsulotlarni qayta o'qimaymiz — Firestore o'qish limitini tejaydi.
+  if (_fullCache.data && Date.now() - _fullCache.at < 30 * 60 * 1000) return _fullCache.data;
+  const data = await fetchActiveProductsFullUncached();
+  _fullCache = { at: Date.now(), data };
+  return data;
+}
+async function fetchActiveProductsFullUncached() {
   const body = {
     structuredQuery: {
       from: [{ collectionId: "products" }],
