@@ -61,8 +61,8 @@ service cloud.firestore {
           'orders', 'spent', 'address', 'phone',
           'telegramUserId', 'telegramFirstName', 'telegramUsername'
         ]) &&
-        request.resource.data.orders >= resource.data.orders &&
-        request.resource.data.spent >= resource.data.spent
+        request.resource.data.orders >= resource.data.get('orders', 0) &&
+        request.resource.data.spent >= resource.data.get('spent', 0)
       );
       allow delete: if request.auth != null;
     }
@@ -85,7 +85,10 @@ service cloud.firestore {
       // kimdir orqaga qaytarib qo'ymasligi uchun).
       allow update: if request.auth != null || (
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stock', 'sold']) &&
-        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['sold']) || request.resource.data.sold >= resource.data.sold)
+        // MUHIM: hali hech qachon sotilmagan mahsulotda 'sold' maydoni YO'Q —
+        // oddiy resource.data.sold xato berib, butun buyurtmani rad etardi.
+        // .get('sold', 0) — maydon bo'lmasa 0 deb hisoblaydi.
+        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['sold']) || request.resource.data.sold >= resource.data.get('sold', 0))
       );
     }
 

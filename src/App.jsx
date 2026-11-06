@@ -5707,8 +5707,11 @@ export default function App() {
     if (route === "admin") {
       live();
     } else {
-      fetch("/api/catalog")
-        .then((r) => (r.ok ? r.json() : Promise.reject(new Error("catalog " + r.status))))
+      // index.html allaqachon so'rovni boshlab qo'ygan bo'lishi mumkin (window.__catalogP) —
+      // shunda JS yuklanishini kutib o'tirmaymiz.
+      const early = typeof window !== "undefined" ? window.__catalogP : null;
+      if (typeof window !== "undefined") window.__catalogP = null;
+      (early || fetch("/api/catalog").then((r) => (r.ok ? r.json() : Promise.reject(new Error("catalog " + r.status)))))
         .then((d) => {
           if (cancelled) return;
           if (!d || !Array.isArray(d.products) || d.products.length === 0) throw new Error("catalog empty");
