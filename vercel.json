@@ -6,6 +6,7 @@
     }
   ],
   "rewrites": [
+    { "source": "/api/catalog", "destination": "/api/sitemap?kind=catalog" },
     { "source": "/sitemap.xml", "destination": "/api/sitemap" },
     { "source": "/robots.txt", "destination": "/api/sitemap?kind=robots" },
     { "source": "/favicon.ico", "destination": "/api/sitemap?kind=favicon" },

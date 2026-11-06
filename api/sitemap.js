@@ -992,8 +992,43 @@ async function sendPage(req, res) {
   }
 }
 
+/**
+ * /api/catalog — do'kon ma'lumotlari (mahsulot, kategoriya, brend va h.k.)
+ * Nega: avval HAR mijoz sayt ochganda Firestore'dan ~330 hujjat o'qirdi va
+ * kunlik bepul limit tugardi. Endi hamma bitta keshlanadigan javobni oladi
+ * (Vercel CDN: 15 daqiqa). Hobby rejada 12 funksiya limiti bor, shuning
+ * uchun alohida fayl emas, shu funksiya ichida (vercel.json rewrite orqali).
+ */
+const CATALOG_COLLECTIONS = ["products", "categories", "brands", "collections", "banners", "testimonials", "faqs"];
+async function fetchCollectionAll(name) {
+  const res = await fetch(`${FIRESTORE_BASE}:runQuery`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ structuredQuery: { from: [{ collectionId: name }], limit: 5000 } }),
+  });
+  if (!res.ok) throw new Error(`${name}: ${res.status}`);
+  const rows = await res.json();
+  return (Array.isArray(rows) ? rows : [])
+    .filter((r) => r.document)
+    .map((r) => ({ id: r.document.name.split("/").pop(), ...decodeFields(r.document.fields || {}) }));
+}
+async function sendCatalog(res) {
+  try {
+    const lists = await Promise.all(CATALOG_COLLECTIONS.map(fetchCollectionAll));
+    const data = {};
+    CATALOG_COLLECTIONS.forEach((n, i) => { data[n] = lists[i]; });
+    res.setHeader("Cache-Control", "public, max-age=60, s-maxage=900, stale-while-revalidate=120");
+    res.status(200).json(data);
+  } catch (e) {
+    // Xato keshlanmasin — mijoz zaxira yo'lga (to'g'ridan-to'g'ri Firestore) o'tadi.
+    res.setHeader("Cache-Control", "no-store");
+    res.status(503).json({ error: String((e && e.message) || e) });
+  }
+}
+
 export default async function handler(req, res) {
   const kind = (req.query && req.query.kind) || "";
+  if (kind === "catalog") return sendCatalog(res);
   if (kind === "page") return sendPage(req, res);
   if (kind === "robots") return sendRobots(res);
   if (kind === "favicon") return sendFavicon(res);
