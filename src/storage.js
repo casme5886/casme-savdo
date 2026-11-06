@@ -10,7 +10,7 @@
 import { db } from "./firebase.js";
 import {
   collection, doc, onSnapshot, addDoc, setDoc, updateDoc, deleteDoc,
-  query, where, getDocs, increment, writeBatch, serverTimestamp, getCountFromServer, runTransaction,
+  query, where, getDocs, increment, writeBatch, serverTimestamp, getCountFromServer, getDoc,
 } from "firebase/firestore";
 
 /** Kolleksiyaga real-vaqtli obuna bo'lish. callback har o'zgarishda ishga tushadi. */
@@ -339,14 +339,25 @@ export async function placeOrderBatch({ cartItems, existingCustomer, customerNam
   // bir vaqtda oxirgi mahsulotni buyurtma qilsa, ikkinchisi "qolmadi" xatosini
   // oladi (ombor manfiyga tushmaydi). Firestore tranzaksiyasi raqobat bo'lsa
   // o'zi qayta urinadi.
-  return runTransaction(db, async (tx) => {
-    // 1) Avval BARCHA o'qishlar (tranzaksiya qoidasi)
-    const stockChecks = [];
-    for (const { product, qty } of cartItems) {
+  // Tranzaksiya telefonlarda (sekin/beqaror internet) osilib qolardi — shuning
+  // uchun oddiy o'qish + atomik batch yozuv ishlatamiz va 20 soniya timeout qo'yamiz.
+  const withTimeout = (p, ms) => Promise.race([
+    p,
+    new Promise((_, rej) => setTimeout(() => {
+      const e = new Error("Internet sekin yoki uzilgan. Qayta urinib ko'ring.");
+      e.code = "timeout";
+      rej(e);
+    }, ms)),
+  ]);
+
+  return withTimeout((async () => {
+    const tx = writeBatch(db);
+    // 1) Avval BARCHA o'qishlar
+    const stockChecks = await Promise.all(cartItems.map(async ({ product, qty }) => {
       const ref = doc(db, "products", product.id);
-      const snap = await tx.get(ref);
-      stockChecks.push({ product, qty, ref, snap });
-    }
+      const snap = await getDoc(ref);
+      return { product, qty, ref, snap };
+    }));
     for (const { product, qty, snap } of stockChecks) {
       if (!snap.exists()) {
         const err = new Error("Mahsulot topilmadi");
@@ -376,8 +387,10 @@ export async function placeOrderBatch({ cartItems, existingCustomer, customerNam
       }
       tx.update(ref, productUpdates);
     });
-    return writeOrderAndCustomer(tx);
-  });
+    const orderId = writeOrderAndCustomer(tx);
+    await tx.commit();
+    return orderId;
+  })(), 20000);
 
   function writeOrderAndCustomer(batch) {
 
