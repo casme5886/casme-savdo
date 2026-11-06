@@ -2638,7 +2638,22 @@ function StorefrontPage({ lang, setLang, products, categories, banners, brands, 
     //    ham uning UCHUN IKKINCHI (dublikat) mijoz yozuvi yaratilmaydi;
     // 2) shu sabab unga qayta "xush kelibsiz" bonusi berilib qolmaydi —
     //    bonus faqat haqiqiy ro'yxatdan o'tishda beriladi.
-    const existing = myCustomerId ? { id: myCustomerId } : await findCustomerByPhone(phone);
+    // Mijozni qidirish xato bersa yoki osilib qolsa ham buyurtma to'xtamasin
+    // (5 soniya timeout, xatoda — yangi mijoz sifatida davom etamiz).
+    let existing = null;
+    if (myCustomerId) {
+      existing = { id: myCustomerId };
+    } else {
+      try {
+        existing = await Promise.race([
+          findCustomerByPhone(phone),
+          new Promise((resolve) => setTimeout(() => resolve(null), 5000)),
+        ]);
+      } catch (e) {
+        console.error("Mijozni qidirishda xatolik:", e);
+        existing = null;
+      }
+    }
 
     const orderData = {
       customer: form.name.trim(),
